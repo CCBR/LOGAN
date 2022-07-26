@@ -24,7 +24,7 @@ workflow {
 }
 
 
-
+//Try BQSR pply by group
 process applybqsr {
     /*
     Base quality recalibration for all samples to 
