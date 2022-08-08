@@ -3,7 +3,6 @@ nextflow.enable.dsl=2
 
 date = new Date().format( 'yyyyMMdd' )
 
-
 GENOME=file(params.genome)
 WGSREGION=file(params.wgsregion) 
 MILLSINDEL=file(params.millsindel) //= "/data/OpenOmics/references/genome-seek/GATK_resource_bundle/hg38bundle/Mills_and_1000G_gold_standard.indels.hg38.vcf.gz"// file(params.gold_indels1) //
@@ -19,7 +18,6 @@ PON=file(params.pon)
                         //row.simpleName,row
                        //)}
 
-
 fastqinput=Channel.fromFilePairs(params.fastqs,checkIfExists: true,type:'file')
 intervalbed = Channel.fromPath(params.intervals,checkIfExists: true,type: 'file')
 sample_sheet=Channel.fromPath(params.sample_sheet, checkIfExists: true)
@@ -34,7 +32,6 @@ sample_sheet=Channel.fromPath(params.sample_sheet, checkIfExists: true)
 
 workflow {
     fastp(fastqinput) 
-    
 }
 
 process fastp{
