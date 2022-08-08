@@ -40,10 +40,10 @@ process fastp{
     
     output:
     tuple val(samplename)
-    path({$outfq.simpleName}.R1.trimmed.fastq.gz)
-    path({$outfq.simpleName}.R2.trimmed.fastq.gz)
-    path({$outfq.simpleName}.fastp.json)
-    path({$outfq.simpleName}.fastp.html)
+    path({$fqs[0].simpleName}.R1.trimmed.fastq.gz)
+    path({$fqs[0].simpleName}.R2.trimmed.fastq.gz)
+    path({$fqs[0].simpleName}.fastp.json)
+    path({$fqs[0].simpleName}.fastp.html)
 
     script:
     """
@@ -51,10 +51,10 @@ process fastp{
         --detect_adapter_for_pe \
         --in1 ${fqs[0]} \
         --in2 ${fqs[1]} \
-        --out1 ${outfq.simpleName}.R1.trimmed.fastq.gz \
-        --out2 ${outfq.simpleName}.R2.trimmed.fastq.gz  \
-        --json ${outfq.simpleName}.fastp.json \
-        --html ${outfq.simpleName}.fastp.html
+        --out1 ${fqs[0].simpleName}.R1.trimmed.fastq.gz \
+        --out2 ${fqs[0].simpleName}.R2.trimmed.fastq.gz  \
+        --json ${fqs[0].simpleName}.fastp.json \
+        --html ${fqs[0].simpleName}.fastp.html
     """
 
 }
