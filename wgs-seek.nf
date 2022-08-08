@@ -32,6 +32,11 @@ sample_sheet=Channel.fromPath(params.sample_sheet, checkIfExists: true)
                                   }
 
 
+workflow {
+    fastp(fastqinput) 
+    
+}
+
 process fastp{
   input:
     tuple val(samplename), path(fqs)
