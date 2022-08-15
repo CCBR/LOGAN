@@ -1,4 +1,5 @@
 #!/usr/bin/env nextflow
+//Variant Calling with Tumor Only for BAM files 
 nextflow.enable.dsl=2
 
 date = new Date().format( 'yyyyMMdd' )
@@ -14,7 +15,11 @@ GNOMAD=file(params.gnomad) //= '/data/CCBR_Pipeliner/Exome-seek/hg38/GNOMAD/soma
 PON=file(params.pon) 
 
 
-fastqinput=Channel.fromFilePairs(params.fastqs,checkIfExists: true)
+baminput= Channel.fromPath(params.bams, checkIfExists: true, type: 'file')
+                .map { row -> tuple(
+                        row.simpleName,row,"${row}.bai"
+                       )}
+
 intervalbed = Channel.fromPath(params.intervals,checkIfExists: true,type: 'file')
 sample_sheet=Channel.fromPath(params.sample_sheet, checkIfExists: true)
                        .ifEmpty { exit 1, "sample sheet not found" }
@@ -26,61 +31,54 @@ sample_sheet=Channel.fromPath(params.sample_sheet, checkIfExists: true)
                                   }
 //Final Workflow
 workflow {
-    fastqinput.view()
-    fastp(fastqinput)
-    bwamem2(fastp.out)
-    indelrealign(bwamem2.out)
-    indelbambyinterval=indelrealign.out.combine(intervalbed)
-    bqsr(indelbambyinterval)
-    bqsrs=bqsr.out.groupTuple()
-        .map { samplename,beds -> tuple( samplename, 
-        beds.toSorted{ it -> (it.name =~ /_(.*?).recal_data.grp/)[0][1].toInteger() } )
-        }
-    gatherbqsr(bqsrs)
-
-    tobqsr=indelrealign.out.combine(gatherbqsr.out,by:0)
-    applybqsr(tobqsr) 
-    samtoolsindex(applybqsr.out)
-    
-    bamwithsample=samtoolsindex.out.join(sample_sheet).map{it.swap(3,0)}.join(samtoolsindex.out).map{it.swap(3,0)}
+    baminput.view()
+    //sample_sheet.view()
+    bamwithsample=baminput.join(sample_sheet)
+    .map{it.swap(3,0)}.join(baminput).map{it.swap(3,0)}
 
     bambyinterval=bamwithsample.combine(intervalbed)
 
+    
     //Paired Mutect2    
     mutect2(bambyinterval)
     pileup_paired_t(bambyinterval)
     pileup_paired_n(bambyinterval)
     
+
+    //pileup_paired_t.out.view()
+      
     pileup_paired_tout=pileup_paired_t.out.groupTuple()
     .map{samplename,pileups-> tuple( samplename,
-    pileups.toSorted{ it -> (it.name =~ /_(.*?).tumor.pileup.table/)[0][1].toInteger() } ,
+    pileups.toSorted{ it -> (it.name =~ /${samplename}_(.*?).tumor.pileup.table/)[0][1].toInteger() } ,
     )}
+
+  
     pileup_paired_nout=pileup_paired_n.out.groupTuple()
     .map{samplename,pileups-> tuple( samplename,
-    pileups.toSorted{ it -> (it.name =~ /_(.*?).normal.pileup.table/)[0][1].toInteger() } ,
+    pileups.toSorted{ it -> (it.name =~ /${samplename}_(.*?).normal.pileup.table/)[0][1].toInteger() } ,
     )}
 
-
+    
     pileup_paired_all=pileup_paired_tout.join(pileup_paired_nout)
     contamination_paired(pileup_paired_all)
-
+    
     mut2out_lor=mutect2.out.groupTuple()
     .map { samplename,vcfs,f1r2,stats -> tuple( samplename,
-    f1r2.toSorted{ it -> (it.name =~ /_(.*?).f1r2.tar.gz/)[0][1].toInteger() } 
+    f1r2.toSorted{ it -> (it.name =~ /${samplename}_(.*?).f1r2.tar.gz/)[0][1].toInteger() } 
     )}
 
     learnreadorientationmodel(mut2out_lor)
 
     mut2out_mstats=mutect2.out.groupTuple()
     .map { samplename,vcfs,f1r2,stats -> tuple( samplename,
-    stats.toSorted{ it -> (it.name =~ /_(.*?).mut2.vcf.gz.stats/)[0][1].toInteger() } 
+    stats.toSorted{ it -> (it.name =~ /${samplename}_(.*?).mut2.vcf.gz.stats/)[0][1].toInteger() } 
     )}
 
     mergemut2stats(mut2out_mstats)
 
     allmut2tn=mutect2.out.groupTuple()
     .map { samplename,vcfs,f1r2,stats -> tuple( samplename,
-    vcfs.toSorted{ it -> (it.name =~ /_(.*?).mut2.vcf.gz/)[0][1].toInteger() } 
+    vcfs.toSorted{ it -> (it.name =~ /${samplename}_(.*?).mut2.vcf.gz/)[0][1].toInteger() } 
     )}
     
     mut2tn_filter=allmut2tn
@@ -98,7 +96,7 @@ workflow {
     //LOR     
     mut2tout_lor=mutect2_tonly.out.groupTuple()
     .map { samplename,vcfs,f1r2,stats -> tuple( samplename,
-    f1r2.toSorted{ it -> (it.name =~ /_(.*?).f1r2.tar.gz/)[0][1].toInteger() } 
+    f1r2.toSorted{ it -> (it.name =~ /${samplename}_(.*?).f1r2.tar.gz/)[0][1].toInteger() } 
     )}
     learnreadorientationmodel_tonly(mut2tout_lor)
 
@@ -106,7 +104,7 @@ workflow {
     //Stats
     mut2tonly_mstats=mutect2_tonly.out.groupTuple()
     .map { samplename,vcfs,f1r2,stats -> tuple( samplename,
-    stats.toSorted{ it -> (it.name =~ /_(.*?).tonly.mut2.vcf.gz.stats/)[0][1].toInteger() } 
+    stats.toSorted{ it -> (it.name =~ /${samplename}_(.*?).tonly.mut2.vcf.gz.stats/)[0][1].toInteger() } 
     )}
     mergemut2stats_tonly(mut2out_mstats)
 
@@ -119,7 +117,7 @@ workflow {
     //Final TUMOR ONLY FILTER
     allmut2tonly=mutect2_tonly.out.groupTuple()
     .map { samplename,vcfs,f1r2,stats -> tuple( samplename,
-    vcfs.toSorted{ it -> (it.name =~ /_(.*?).tonly.mut2.vcf.gz/)[0][1].toInteger() } 
+    vcfs.toSorted{ it -> (it.name =~ /${samplename}_(.*?).tonly.mut2.vcf.gz/)[0][1].toInteger() } 
     )}
     
     mut2tonly_filter=allmut2tonly
@@ -137,6 +135,7 @@ workflow {
         //##VCF2MAF TO
     //inpvep=vcfinput.join(sample_sheet)
     //annotvep(inpvep)
+    
 }
 
 process fastp{
