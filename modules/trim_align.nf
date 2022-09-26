@@ -42,7 +42,7 @@ process bwamem2{
         tuple val(samplename), path("${samplename}.bam"), path("${samplename}.bai")
 
     script:
-    //BWAmem2/sambalster/samtools sort for marking duplicates;
+    //BWAmem2/samblaster/samtools sort for marking duplicates;
     """
 
      bwa-mem2 mem -M \
