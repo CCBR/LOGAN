@@ -14,6 +14,9 @@ GNOMAD=file(params.gnomad) //= '/data/CCBR_Pipeliner/Exome-seek/hg38/GNOMAD/soma
 PON=file(params.pon) 
 
 
+results_dir=params.output
+
+
 fastqinput=Channel.fromFilePairs(params.fastqs,checkIfExists: true)
 intervalbed = Channel.fromPath(params.intervals,checkIfExists: true,type: 'file')
 sample_sheet=Channel.fromPath(params.sample_sheet, checkIfExists: true)
@@ -34,7 +37,7 @@ workflow {
     bqsr(indelbambyinterval)
     bqsrs=bqsr.out.groupTuple()
         .map { samplename,beds -> tuple( samplename, 
-        beds.toSorted{ it -> (it.name =~ /_(.*?).recal_data.grp/)[0][1].toInteger() } )
+        beds.toSorted{ it -> (it.name =~ /${samplename}_(.*?).recal_data.grp/)[0][1].toInteger() } )
         }
     gatherbqsr(bqsrs)
 
@@ -53,11 +56,11 @@ workflow {
     
     pileup_paired_tout=pileup_paired_t.out.groupTuple()
     .map{samplename,pileups-> tuple( samplename,
-    pileups.toSorted{ it -> (it.name =~ /_(.*?).tumor.pileup.table/)[0][1].toInteger() } ,
+    pileups.toSorted{ it -> (it.name =~ /${samplename}_(.*?).tumor.pileup.table/)[0][1].toInteger() } ,
     )}
     pileup_paired_nout=pileup_paired_n.out.groupTuple()
     .map{samplename,pileups-> tuple( samplename,
-    pileups.toSorted{ it -> (it.name =~ /_(.*?).normal.pileup.table/)[0][1].toInteger() } ,
+    pileups.toSorted{ it -> (it.name =~ /${samplename}_(.*?).normal.pileup.table/)[0][1].toInteger() } ,
     )}
 
 
@@ -66,21 +69,21 @@ workflow {
 
     mut2out_lor=mutect2.out.groupTuple()
     .map { samplename,vcfs,f1r2,stats -> tuple( samplename,
-    f1r2.toSorted{ it -> (it.name =~ /_(.*?).f1r2.tar.gz/)[0][1].toInteger() } 
+    f1r2.toSorted{ it -> (it.name =~ /${samplename}_(.*?).f1r2.tar.gz/)[0][1].toInteger() } 
     )}
 
     learnreadorientationmodel(mut2out_lor)
 
     mut2out_mstats=mutect2.out.groupTuple()
     .map { samplename,vcfs,f1r2,stats -> tuple( samplename,
-    stats.toSorted{ it -> (it.name =~ /_(.*?).mut2.vcf.gz.stats/)[0][1].toInteger() } 
+    stats.toSorted{ it -> (it.name =~ /${samplename}_(.*?).mut2.vcf.gz.stats/)[0][1].toInteger() } 
     )}
 
     mergemut2stats(mut2out_mstats)
 
     allmut2tn=mutect2.out.groupTuple()
     .map { samplename,vcfs,f1r2,stats -> tuple( samplename,
-    vcfs.toSorted{ it -> (it.name =~ /_(.*?).mut2.vcf.gz/)[0][1].toInteger() } 
+    vcfs.toSorted{ it -> (it.name =~ /${samplename}_(.*?).mut2.vcf.gz/)[0][1].toInteger() } 
     )}
     
     mut2tn_filter=allmut2tn
@@ -98,7 +101,7 @@ workflow {
     //LOR     
     mut2tout_lor=mutect2_tonly.out.groupTuple()
     .map { samplename,vcfs,f1r2,stats -> tuple( samplename,
-    f1r2.toSorted{ it -> (it.name =~ /_(.*?).f1r2.tar.gz/)[0][1].toInteger() } 
+    f1r2.toSorted{ it -> (it.name =~ /${samplename}_(.*?).f1r2.tar.gz/)[0][1].toInteger() } 
     )}
     learnreadorientationmodel_tonly(mut2tout_lor)
 
@@ -106,7 +109,7 @@ workflow {
     //Stats
     mut2tonly_mstats=mutect2_tonly.out.groupTuple()
     .map { samplename,vcfs,f1r2,stats -> tuple( samplename,
-    stats.toSorted{ it -> (it.name =~ /_(.*?).tonly.mut2.vcf.gz.stats/)[0][1].toInteger() } 
+    stats.toSorted{ it -> (it.name =~ /${samplename}_(.*?).tonly.mut2.vcf.gz.stats/)[0][1].toInteger() } 
     )}
     mergemut2stats_tonly(mut2out_mstats)
 
@@ -119,7 +122,7 @@ workflow {
     //Final TUMOR ONLY FILTER
     allmut2tonly=mutect2_tonly.out.groupTuple()
     .map { samplename,vcfs,f1r2,stats -> tuple( samplename,
-    vcfs.toSorted{ it -> (it.name =~ /_(.*?).tonly.mut2.vcf.gz/)[0][1].toInteger() } 
+    vcfs.toSorted{ it -> (it.name =~ /${samplename}_(.*?).tonly.mut2.vcf.gz/)[0][1].toInteger() } 
     )}
     
     mut2tonly_filter=allmut2tonly
@@ -135,8 +138,12 @@ workflow {
     //#To implement
         //CNMOPs from the BAM BQSRs
         //##VCF2MAF TO
-    //inpvep=vcfinput.join(sample_sheet)
-    //annotvep(inpvep)
+    tn_vepin=mutect2filter.out
+    .join(sample_sheet)
+
+   annotvep_tn(tn_vepin)
+   annotvep_tonly(mutect2filter_tonly.out)
+
 }
 
 process fastp{
@@ -603,7 +610,7 @@ process mutect2filter_tonly {
     input:
         tuple val(sample), path(mutvcfs), path(stats), path(obs), path(pileups),path(tumorcontamination)
     output:
-        tuple val(sample), path("${sample}.tonly.marked.vcf.gz"),path("${sample}.tonly.final.mut2.vcf.gz"),path("${sample}.marked.vcf.gz.filteringStats.tsv")
+        tuple val(sample), path("${sample}.tonly.marked.vcf.gz"),path("${sample}.tonly.final.mut2.vcf.gz"),path("${sample}.tonly.marked.vcf.gz.filteringStats.tsv")
     script:
     //Include the stats and  concat ${mutvcfs} -Oz -o ${sample}.concat.vcf.gz
     mut2in = mutvcfs.join(" -I ")
@@ -632,26 +639,66 @@ process mutect2filter_tonly {
 
 
 
-process annotvep {
-    input:
-        tuple val(tumor_id), path(tumorvcf), val(normal_id)
+process annotvep_tn {
+    module=['vcf2maf/1.6.21','VEP/106']
     
+    publishDir("${results_dir}/mafs/", mode: "copy")
+
+    input:
+        tuple val(tumorsample), 
+        path("${tumorsample}.marked.vcf.gz"), 
+        path("${tumorsample}.final.mut2.vcf.gz"), 
+        path("${tumorsample}.marked.vcf.gz.filteringStats.tsv"), 
+        val(normalsample)
+
     output:
-        path("${tumorvcf.simpleName}.maf")
+        path("${tumorsample}.maf")
 
     script:
 
     """
     
-    gunzip ${tumorvcf}
+    zcat ${tumorsample}.final.mut2.vcf.gz > ${tumorsample}.final.mut2.vcf
 
     vcf2maf.pl \
-    --vep-forks 16 --input-vcf ${tumorvcf.simpleName}.vcf \
-    --output-maf ${tumorvcf.simpleName}.maf \
-    --tumor-id ${tumor_id} \
-    --normal-id ${normal_id} \
-    --vep-path /opt/vep/src/ensembl-vep --vep-data /data/CCBR_Pipeliner/Exome-seek/hg38/vcf2maf/VEP_tarballs/.vep \
-    --filter-vcf /data/CCBR_Pipeliner/Exome-seek/hg38/vcf2maf/filtervcf/homo_sapiens/GRCh38.filter.vcf.gz \
+    --vep-forks 16 --input-vcf ${tumorsample}.final.mut2.vcf \
+    --output-maf ${tumorsample}.maf \
+    --tumor-id ${tumorsample} \
+    --normal-id ${normalsample} \
+    --vep-path \${VEP_HOME}/bin \
+    --vep-data \${VEP_CACHEDIR} \
+    --ncbi-build GRCh38 --species homo_sapiens --ref-fasta ${GENOME}
+
+    """
+}
+
+
+process annotvep_tonly {
+    module=['vcf2maf/1.6.21','VEP/106']
+
+    publishDir("${results_dir}/mafs/", mode: "copy")
+
+    input:
+        tuple val(tumorsample), 
+        path("${tumorsample}.tonly.marked.vcf.gz"),
+        path("${tumorsample}.tonly.final.mut2.vcf.gz"),
+        path("${tumorsample}.tonly.marked.vcf.gz.filteringStats.tsv")
+
+    output:
+        path("${tumorsample}.tonly.maf")
+
+    script:
+
+    """
+    
+    zcat ${tumorsample}.tonly.final.mut2.vcf.gz  > ${tumorsample}.tonly.final.mut2.vcf
+
+    vcf2maf.pl \
+    --vep-forks 16 --input-vcf ${tumorsample}.tonly.final.mut2.vcf \
+    --output-maf ${tumorsample}.tonly.maf \
+    --tumor-id ${tumorsample} \
+    --vep-path \${VEP_HOME}/bin \
+    --vep-data \${VEP_CACHEDIR} \
     --ncbi-build GRCh38 --species homo_sapiens --ref-fasta ${GENOME}
 
     """

@@ -15,10 +15,30 @@ GNOMAD=file(params.gnomad) //= '/data/CCBR_Pipeliner/Exome-seek/hg38/GNOMAD/soma
 PON=file(params.pon) 
 
 
+results_dir=params.output
+
+
 baminput= Channel.fromPath(params.bams, checkIfExists: true, type: 'file')
-                .map { row -> tuple(
-                        row.simpleName,row,"${row}.bai"
+               .map { row -> tuple(
+                        row.simpleName,row
                        )}
+
+
+baiinput= Channel.fromPath(params.bai, checkIfExists: true, type: 'file')
+               .map { row -> tuple(
+                        row.simpleName,row
+                       )}
+
+
+baminput=baminput.join(baiinput)
+/*
+baminput= Channel.fromFilePairs(params.bams, checkIfExists: true,size:-1){ file -> file.name.replaceAll(/.bam|.bai$/,'') }
+                .map { sample,bams -> tuple(
+                        sample,bams.toSorted{ it -> (it.name=~/(.*?).bam$/ )} 
+                 )}.view()
+
+*/
+
 
 intervalbed = Channel.fromPath(params.intervals,checkIfExists: true,type: 'file')
 sample_sheet=Channel.fromPath(params.sample_sheet, checkIfExists: true)
@@ -31,13 +51,16 @@ sample_sheet=Channel.fromPath(params.sample_sheet, checkIfExists: true)
                                   }
 //Final Workflow
 workflow {
-    baminput.view()
-    //sample_sheet.view()
+    //baminput.view()
+    
+    
     bamwithsample=baminput.join(sample_sheet)
-    .map{it.swap(3,0)}.join(baminput).map{it.swap(3,0)}
+    .map{it.swap(3,0)}
+    .join(baminput)
+    .map{it.swap(3,0)}
 
     bambyinterval=bamwithsample.combine(intervalbed)
-
+    
     
     //Paired Mutect2    
     mutect2(bambyinterval)
@@ -128,13 +151,17 @@ workflow {
     mutect2filter_tonly(mut2tonly_filter)
 
 
-        
-    
     //#To implement
         //CNMOPs from the BAM BQSRs
         //##VCF2MAF TO
     //inpvep=vcfinput.join(sample_sheet)
     //annotvep(inpvep)
+    
+    tn_vepin=mutect2filter.out
+    .join(sample_sheet)
+
+   annotvep_tn(tn_vepin)
+   annotvep_tonly(mutect2filter_tonly.out)
     
 }
 
@@ -602,7 +629,7 @@ process mutect2filter_tonly {
     input:
         tuple val(sample), path(mutvcfs), path(stats), path(obs), path(pileups),path(tumorcontamination)
     output:
-        tuple val(sample), path("${sample}.tonly.marked.vcf.gz"),path("${sample}.tonly.final.mut2.vcf.gz"),path("${sample}.marked.vcf.gz.filteringStats.tsv")
+        tuple val(sample), path("${sample}.tonly.marked.vcf.gz"),path("${sample}.tonly.final.mut2.vcf.gz"),path("${sample}.tonly.marked.vcf.gz.filteringStats.tsv")
     script:
     //Include the stats and  concat ${mutvcfs} -Oz -o ${sample}.concat.vcf.gz
     mut2in = mutvcfs.join(" -I ")
@@ -631,26 +658,66 @@ process mutect2filter_tonly {
 
 
 
-process annotvep {
-    input:
-        tuple val(tumor_id), path(tumorvcf), val(normal_id)
+process annotvep_tn {
+    module=['vcf2maf/1.6.21','VEP/106']
     
+    publishDir("${results_dir}/mafs/", mode: "copy")
+
+    input:
+        tuple val(tumorsample), 
+        path("${tumorsample}.marked.vcf.gz"), 
+        path("${tumorsample}.final.mut2.vcf.gz"), 
+        path("${tumorsample}.marked.vcf.gz.filteringStats.tsv"), 
+        val(normalsample)
+
     output:
-        path("${tumorvcf.simpleName}.maf")
+        path("${tumorsample}.maf")
 
     script:
 
     """
     
-    gunzip ${tumorvcf}
+    zcat ${tumorsample}.final.mut2.vcf.gz > ${tumorsample}.final.mut2.vcf
 
     vcf2maf.pl \
-    --vep-forks 16 --input-vcf ${tumorvcf.simpleName}.vcf \
-    --output-maf ${tumorvcf.simpleName}.maf \
-    --tumor-id ${tumor_id} \
-    --normal-id ${normal_id} \
-    --vep-path /opt/vep/src/ensembl-vep --vep-data /data/CCBR_Pipeliner/Exome-seek/hg38/vcf2maf/VEP_tarballs/.vep \
-    --filter-vcf /data/CCBR_Pipeliner/Exome-seek/hg38/vcf2maf/filtervcf/homo_sapiens/GRCh38.filter.vcf.gz \
+    --vep-forks 16 --input-vcf ${tumorsample}.final.mut2.vcf \
+    --output-maf ${tumorsample}.maf \
+    --tumor-id ${tumorsample} \
+    --normal-id ${normalsample} \
+    --vep-path \${VEP_HOME}/bin \
+    --vep-data \${VEP_CACHEDIR} \
+    --ncbi-build GRCh38 --species homo_sapiens --ref-fasta ${GENOME}
+
+    """
+}
+
+
+process annotvep_tonly {
+    module=['vcf2maf/1.6.21','VEP/106']
+
+    publishDir("${results_dir}/mafs/", mode: "copy")
+
+    input:
+        tuple val(tumorsample), 
+        path("${tumorsample}.tonly.marked.vcf.gz"),
+        path("${tumorsample}.tonly.final.mut2.vcf.gz"),
+        path("${tumorsample}.tonly.marked.vcf.gz.filteringStats.tsv")
+
+    output:
+        path("${tumorsample}.tonly.maf")
+
+    script:
+
+    """
+    
+    zcat ${tumorsample}.tonly.final.mut2.vcf.gz  > ${tumorsample}.tonly.final.mut2.vcf
+
+    vcf2maf.pl \
+    --vep-forks 16 --input-vcf ${tumorsample}.tonly.final.mut2.vcf \
+    --output-maf ${tumorsample}.tonly.maf \
+    --tumor-id ${tumorsample} \
+    --vep-path \${VEP_HOME}/bin \
+    --vep-data \${VEP_CACHEDIR} \
     --ncbi-build GRCh38 --species homo_sapiens --ref-fasta ${GENOME}
 
     """
