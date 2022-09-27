@@ -3,7 +3,7 @@ project:
   output-dir: docs
 
 website:
-  title: "docs"
+  title: "WGS-Seek CCBR"
   navbar:
     left:
       - href: index.qmd

@@ -1,7 +1,12 @@
 ---
-title: "docs"
+title: "WGS-Seek"
+theme: cerulean
 ---
 
-This is a Quarto website.
+WGS Seek-
 
-To learn more about Quarto websites visit <https://quarto.org/docs/websites>.
+Example
+
+Use the 
+
+Pipeline Dev from 
