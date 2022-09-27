@@ -27,11 +27,12 @@ sample_sheet=Channel.fromPath(params.sample_sheet, checkIfExists: true)
                        row.Normal
                        )
                                   }
+include {fastq_screen;kraken} from  './modules/qc.nf'
+include {fastp} from './modules/trim_align.nf'
+//include 'modules/variant_calling.nf'
+
 //Final Workflow
 workflow {
-    include 'modules/qc.nf'
-    include 'modules/trim_align.nf'
-    include 'modules/variant_calling.nf'
 
     fastqinput.view()
     fastp(fastqinput)

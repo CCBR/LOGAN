@@ -23,7 +23,6 @@ QC Processes for WGS Data
 process fc_lane {
     tag { name }
     
-
     module 'python/3.8'
 
     input:
@@ -44,9 +43,11 @@ process fc_lane {
 process fastq_screen {
     tag { name }
     module ['fastq_screen/0.15.2','bowtie/2-2.4.5']
+    fastq_screen_conf=params.fastq_screen_conf
 
     input:
         tuple val(samplename), 
+        baseDir
         path("${samplename}.R1.trimmed.fastq.gz"),
         path("${samplename}.R2.trimmed.fastq.gz")
 
@@ -70,8 +71,9 @@ process fastq_screen {
 
 
 process kraken{
+//Kraken and Krona Rerpot
     tag { name }
-    module 'kraken/2.1.2'
+    module=['kraken/2.1.2','kronatools/2.8']
 
     input:
         tuple val(samplename), 
@@ -79,7 +81,10 @@ process kraken{
         path("${samplename}.R2.trimmed.fastq.gz")
 
     output:
-        tuple val(samplename)
+        tuple val(samplename),
+        path("${samplename}.trimmed.kraken_bacteria.out.txt"),
+        path("${samplename}.trimmed.kraken_bacteria.taxa.txt"),
+        path("${samplename}.trimmed.kraken_bacteria.krona.html"),
 
 
     script:
@@ -89,8 +94,10 @@ process kraken{
         --output {output.out} \
         --gzip-compressed \
         --paired {input.fq1} {input.fq2}
+
     # Generate Krona Report
     cut -f2,3 {output.out} | \
         ktImportTaxonomy - -o {output.html}
+    
     """
 }
