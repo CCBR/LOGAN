@@ -3,22 +3,12 @@ nextflow.enable.dsl=2
 
 date = new Date().format( 'yyyyMMdd' )
 
-GENOME=file(params.genome)
-GENOMEDICT=file(params.genomedict)
-WGSREGION=file(params.wgsregion) 
-MILLSINDEL=file(params.millsindel) //= "/data/OpenOmics/references/genome-seek/GATK_resource_bundle/hg38bundle/Mills_and_1000G_gold_standard.indels.hg38.vcf.gz"// file(params.gold_indels1) //
-SHAPEITINDEL=file(params.shapeitindel) //params.shapeitindel =  "/data/OpenOmics/references/genome-seek/ALL.wgs.1000G_phase3.GRCh38.ncbi_remapper.20150424.shapeit2_indels.vcf.gz" //file(params.gold_indels2) //
-KGP=file(params.kgp) ///data/CCBR_Pipeliner/Exome-seek/hg38/GATK_resource_bundle/1000G_phase1.snps.high_confidence.hg38.vcf.gz"
-DBSNP=file(params.dbsnp) //= "/data/OpenOmics/references/genome-seek/GATK_resource_bundle/hg38bundle/dbsnp_138.hg38.vcf.gz"
-GNOMAD=file(params.gnomad) //= '/data/CCBR_Pipeliner/Exome-seek/hg38/GNOMAD/somatic-hg38-af-only-gnomad.hg38.vcf.gz' // /data/CCBR_Pipeliner/Exome-seek/hg38/GNOMAD/somatic-hg38-af-only-gnomad.hg38.vcf.gz
-PON=file(params.pon) 
+
 
 
 results_dir=params.output
-
-
-fastqinput=Channel.fromFilePairs(params.fastqs,checkIfExists: true)
-intervalbed = Channel.fromPath(params.intervals,checkIfExists: true,type: 'file')
+fastqinput=Channel.fromFilePairs(params.input)
+intervalbedin = Channel.fromPath(params.intervals,checkIfExists: true,type: 'file')
 sample_sheet=Channel.fromPath(params.sample_sheet, checkIfExists: true)
                        .ifEmpty { exit 1, "sample sheet not found" }
                        .splitCsv(header:true, sep: "\t")
@@ -28,16 +18,33 @@ sample_sheet=Channel.fromPath(params.sample_sheet, checkIfExists: true)
                        )
                                   }
 //Final Workflow
+    include {fastp; bwamem2; indelrealign; bqsr; 
+    gatherbqsr; applybqsr; samtoolsindex} from './workflow/modules/trim_align.nf'
+
+    include {mutect2; mutect2_tonly; mutect2filter; mutect2filter_tonly; 
+    pileup_paired_t; pileup_paired_n; 
+    contamination_paired; contamination_tumoronly;
+    learnreadorientationmodel; learnreadorientationmodel_tonly; 
+    mergemut2stats; mergemut2stats_tonly;
+    annotvep_tn; annotvep_tonly} from './workflow/modules/variant_calling.nf'
+
+    include {splitinterval} from "./workflow/modules/splitbed.nf"
+
+
 workflow {
-    include 'modules/qc.nf'
-    include 'modules/trim_align.nf'
-    include 'modules/variant_calling.nf'
 
     fastqinput.view()
     fastp(fastqinput)
+    splitinterval(intervalbedin)
+    
     bwamem2(fastp.out)
     indelrealign(bwamem2.out)
-    indelbambyinterval=indelrealign.out.combine(intervalbed)
+
+    indelbambyinterval=indelrealign.out.combine(splitinterval.out.flatten())
+
+    //TEMP LINE
+    //indelbambyinterval.view()
+    
     bqsr(indelbambyinterval)
     bqsrs=bqsr.out.groupTuple()
         .map { samplename,beds -> tuple( samplename, 
@@ -51,7 +58,7 @@ workflow {
     
     bamwithsample=samtoolsindex.out.join(sample_sheet).map{it.swap(3,0)}.join(samtoolsindex.out).map{it.swap(3,0)}
 
-    bambyinterval=bamwithsample.combine(intervalbed)
+    bambyinterval=bamwithsample.combine(splitinterval.out.flatten())
 
     //Paired Mutect2    
     mutect2(bambyinterval)
@@ -99,7 +106,6 @@ workflow {
 
 
     //Tumor Only Calling
-
     mutect2_tonly(bambyinterval)    
     
     //LOR     
@@ -140,8 +146,8 @@ workflow {
         
     
     //#To implement
-        //CNMOPs from the BAM BQSRs
-        //##VCF2MAF TO
+    //CNMOPs from the BAM BQSRs
+    //##VCF2MAF TO
     tn_vepin=mutect2filter.out
     .join(sample_sheet)
 
