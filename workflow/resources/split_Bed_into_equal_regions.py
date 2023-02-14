@@ -1,4 +1,8 @@
 #!/usr/bin/env python3
+"""
+Adapted from Li Tai Fang from Somaticseq program
+Fixed the integer output that is correct for bed files
+"""
 
 import sys, os, argparse, shutil, math, re
 
@@ -95,7 +99,8 @@ def split(infile, outfiles, num):
             
             # Split a big region into a smaller regino, such that the size of "current_region" is equal to the size/file requirement:
             breakpoint_i = size_per_file + start_i - current_size
-    
+            breakpoint_i= int(breakpoint_i)
+
             # Write these regions out, , reset "current_region," then add 1 to ith_split afterward to keep track:
             outfilesWritten.append( '{}{}{}.{}'.format(out_directory, os.sep, ith_split, out_basename) )
             with open( '{}{}{}.{}'.format(out_directory, os.sep, ith_split, out_basename), 'w' ) as ith_out:
@@ -124,7 +129,8 @@ def split(infile, outfiles, num):
                 while (end_i - breakpoint_i) > size_per_file:
                     
                     end_j = breakpoint_i + size_per_file
-                    
+                    end_j=int(end_j)
+
                     outfilesWritten.append( '{}{}{}.{}'.format(out_directory, os.sep, ith_split, out_basename) )
                     with open( '{}{}{}.{}'.format(out_directory, os.sep, ith_split, out_basename), 'w' ) as ith_out:
                         

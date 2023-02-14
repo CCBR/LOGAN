@@ -6,11 +6,12 @@ import argparse,os,time
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Input files')
-    parser.add_argument('--fastq',help='FQ Inputs ')
+    parser.add_argument('--input',help='FQ Inputs ')
     parser.add_argument('--output',help="Output Directory")
-    parser.add_argument('--samplesheet',help="samplesheet")
-    parser.add_argument('--beds',help="Bed folder: Default /data/nousomedr",default="/data/nousomedr/wgs/beds/*.bed")
-    parser.add_argument("--submit",action="store_true",help="Submit to SLURM?")
+    parser.add_argument('--sample_sheet',help="Sample sheet")
+    parser.add_argument("--profile",default="-profile biowulf",help="Biowulf or Local Run")
+    parser.add_argument("--resume",default="-resume",help="Resume previous run?")
+    parser.add_argument("--submit",action="store_false",help="Submit to SLURM?")
     args = parser.parse_args()
     return(args)
 
@@ -21,10 +22,10 @@ def main():
     c3="module load singularity"
     c4=["nextflow /data/SCLCgenomics/nousome/WGS_new/wgs-seek/wgs-seek.nf",
 "-c /data/SCLCgenomics/nousome/WGS_new/wgs-seek/nextflow.config",
-"--fastqs","'"+args.fastq+"'",
-"--sample_sheet",args.samplesheet, 
-"--intervals",args.beds,"-profile biowulf",
-"--output",args.output,"-resume"]
+"--input","'"+args.input+"'",
+"--sample_sheet",args.sample_sheet, 
+args.profile,args.resume,
+"--output",args.output]
     cmd1=' '.join(c4)
     code=c1+"\n"+c2+"\n"+c3+"\n"+cmd1
     time1=time.strftime("%Y_%m_%d_%H%M%S")
