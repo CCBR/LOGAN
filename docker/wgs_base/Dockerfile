@@ -1,7 +1,7 @@
 # Base image
 FROM ubuntu:20.04
 
-LABEL maintainer <vishal.koparde@nih.gov, nousomedr@nih.gov>
+LABEL maintainer <nousomedr@nih.gov,vishal.koparde@nih.gov>
 
 # Create Container filesystem specific 
 # working directory and opt directories 
@@ -176,6 +176,8 @@ RUN pip3 install --upgrade pip \
 # download static binary
 RUN wget https://github.com/brentp/somalier/releases/download/v0.2.16/somalier \
     && chmod a+rx /opt2/somalier
+ENV PATH="/opt2/somalier:$PATH"
+
 
 # Install VarScan/v2.4.4
 # Works with java8
@@ -184,6 +186,8 @@ RUN wget https://github.com/dkoboldt/varscan/raw/master/VarScan.v2.4.4.jar \
     && echo '#!/bin/bash' > /opt2/varscan \
     && echo 'java -jar /opt2/VarScan.v2.4.4.jar  "$@"' >> /opt2/varscan \
     && chmod a+rx /opt2/varscan
+ENV PATH="/opt2/varscan:$PATH"
+
 
 # Install snpEff/4.3t
 # Works with java8
@@ -229,21 +233,16 @@ RUN wget https://github.com/AstraZeneca-NGS/VarDictJava/releases/download/v1.8.2
     && rm /opt2/VarDict-1.8.2.tar
 ENV PATH="/opt2/VarDict-1.8.2/bin:$PATH"
 
-# Add Dockerfile and argparse.bash script
-# and export environment variables
-# and creating a backwards compatible
-# wrapper for Biowulf's trimmomatic/0.39
-# and set java8 as default with links
-# to alternative versions
-ADD Dockerfile /opt2/base_gatk4_wgs.dockerfile
-COPY argparse.bash /opt2
-
-
-# Add Fastp From Opengene github
+# Grab Fastp From Opengene github
 RUN wget http://opengene.org/fastp/fastp.0.23.2 \
     && mv fastp.0.23.2 fastp \
     && chmod a+x ./fastp
 ENV PATH="/opt2/fastp:$PATH"
+
+# Add Dockerfile and argparse.bash script
+# and export environment variables
+ADD Dockerfile /opt2/base_gatk4_wgs.dockerfile
+COPY argparse.bash /opt2
 
 
 WORKDIR /data2
