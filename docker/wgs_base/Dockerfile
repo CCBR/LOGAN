@@ -1,5 +1,5 @@
 # Base image
-FROM ubuntu:20.04
+FROM --platform=linux/amd64 ubuntu:20.04
 
 LABEL maintainer <nousomedr@nih.gov,vishal.koparde@nih.gov>
 
@@ -175,6 +175,8 @@ RUN pip3 install --upgrade pip \
 # Install Somalier/v0.2.16
 # download static binary
 RUN wget https://github.com/brentp/somalier/releases/download/v0.2.16/somalier \
+    && mkdir somalier \
+    && mv somalier somalier/ \
     && chmod a+rx /opt2/somalier
 ENV PATH="/opt2/somalier:$PATH"
 
@@ -186,8 +188,6 @@ RUN wget https://github.com/dkoboldt/varscan/raw/master/VarScan.v2.4.4.jar \
     && echo '#!/bin/bash' > /opt2/varscan \
     && echo 'java -jar /opt2/VarScan.v2.4.4.jar  "$@"' >> /opt2/varscan \
     && chmod a+rx /opt2/varscan
-ENV PATH="/opt2/varscan:$PATH"
-
 
 # Install snpEff/4.3t
 # Works with java8
@@ -235,7 +235,8 @@ ENV PATH="/opt2/VarDict-1.8.2/bin:$PATH"
 
 # Grab Fastp From Opengene github
 RUN wget http://opengene.org/fastp/fastp.0.23.2 \
-    && mv fastp.0.23.2 fastp \
+    && mkdir fastp \
+    && mv fastp.0.23.2 fastp/fastp \
     && chmod a+x ./fastp
 ENV PATH="/opt2/fastp:$PATH"
 
