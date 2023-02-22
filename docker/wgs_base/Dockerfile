@@ -174,10 +174,9 @@ RUN pip3 install --upgrade pip \
 
 # Install Somalier/v0.2.16
 # download static binary
-RUN wget https://github.com/brentp/somalier/releases/download/v0.2.16/somalier \
-    && mkdir somalier \
-    && mv somalier somalier/ \
-    && chmod a+rx /opt2/somalier
+RUN mkdir somalier  \
+    && wget -O somalier/somalier https://github.com/brentp/somalier/releases/download/v0.2.16/somalier \
+    && chmod a+rx /opt2/somalier/somalier
 ENV PATH="/opt2/somalier:$PATH"
 
 
