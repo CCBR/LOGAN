@@ -46,6 +46,7 @@ def main():
     code=c1+"\n"+c2+"\n"+c3+"\n"+cmd1
     time1=time.strftime("%Y_%m_%d_%H%M%S")
     outswarmmut='nf_'+time1+'.slurm'
+
     with open(outswarmmut, "a") as outfile:
         outfile.write(code+"\n")
     sbatch_mut="sbatch --cpus-per-task=2 --mem=16g --time 10-00:00:00 --partition norm --output submit_"+time1+".log --error error_"+time1+".log "+outswarmmut 
@@ -53,8 +54,10 @@ def main():
         print(sbatch_mut)
         os.system(sbatch_mut)
     else:
+        sbatch_out='run_sbatch'+time1+'.sh'
+        with open(sbatch_out, "a") as outfile:
+            outfile.write(sbatch_mut+"\n")
         print(sbatch_mut)
-
 if __name__=="__main__":
   main()
 

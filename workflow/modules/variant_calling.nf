@@ -260,6 +260,8 @@ process mergemut2stats_tonly {
 
 
 process mutect2filter {
+    publishDir(path: "${outdir}/vcfs/mutect", mode: 'copy')
+
     input:
         tuple val(sample), path(mutvcfs), path(stats), path(obs), path(pileups), path(normal_pileups),path(tumorcontamination),path(normalcontamination)
     output:
@@ -320,7 +322,7 @@ process mutect2_t_tonly {
 
 
 process mutect2filter_tonly {
-    publishDir(path: "${results_dir}/vcfs/mutect", mode: 'copy')
+    publishDir(path: "${outdir}/vcfs/mutect", mode: 'copy')
 
     input:
         tuple val(sample), path(mutvcfs), path(stats), path(obs), path(pileups),path(tumorcontamination)
@@ -357,7 +359,7 @@ process mutect2filter_tonly {
 process annotvep_tn {
     module=['vcf2maf/1.6.21','VEP/102']
     
-    publishDir(path: "${results_dir}/mafs/", mode: 'copy')
+    publishDir(path: "${outdir}/mafs/", mode: 'copy')
 
     input:
         tuple val(tumorsample), 
@@ -391,7 +393,7 @@ process annotvep_tn {
 process annotvep_tonly {
     module=['vcf2maf/1.6.21','VEP/102']
 
-    publishDir("${results_dir}/mafs/", mode: "copy")
+    publishDir("${outdir}/mafs", mode: "copy")
 
     input:
         tuple val(tumorsample), 

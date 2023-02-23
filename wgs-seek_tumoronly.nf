@@ -3,7 +3,7 @@ nextflow.enable.dsl=2
 
 date = new Date().format( 'yyyyMMdd' )
 
-publishDir=file(params.output)
+outdir=file(params.output)
 fastqinput=Channel.fromFilePairs(params.input)
 intervalbedin = Channel.fromPath(params.intervals,checkIfExists: true,type: 'file')
 

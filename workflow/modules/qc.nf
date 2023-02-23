@@ -218,6 +218,7 @@ process samtools_flagstats {
     */
     publishDir("${outdir}/QC/flagstats/", mode: "copy")
     module=['samtools/1.16.1']
+    //container: config['images']['wes_base']
     input:
         tuple val(samplename), path("${samplename}.bam"), path("${samplename}.bai")
     
@@ -225,7 +226,6 @@ process samtools_flagstats {
         path("${samplename}.samtools_flagstat.txt")
  
  
-    //container: config['images']['wes_base']
     
     script: 
     """
@@ -247,7 +247,6 @@ process vcftools {
     */
     publishDir(path:"${outdir}/QC/vcftools", mode: 'copy')
     module=['vcftools/0.1.16']
-    //envmodules: 'vcftools/0.1.16'
     //container: config['images']['wes_base']
     
     input: 
@@ -274,6 +273,8 @@ process collectvariantcallmetrics {
         Text file containing a collection of metrics relating to snps and indels 
     */
     publishDir("${outdir}/QC/variantmetrics", mode: 'copy')
+    module=['picard/2.20.8']
+    //container: config['images']['picard']
 
     input: 
         tuple path(germlinevcf),path(germlinetbi)
@@ -287,8 +288,6 @@ process collectvariantcallmetrics {
       //  prefix = os.path.join(output_qcdir,"raw_variants"),
        
     
-    module=['picard/2.20.8']
-    //container: config['images']['picard']
     
     script:
     """
@@ -323,8 +322,6 @@ process bcftools_stats {
         tuple val(samplename),  path("${samplename}.gvcf.gz"),path("${samplename}.gvcf.gz.tbi")
     output:
         path("${samplename}.germline.bcftools_stats.txt")
-
-    //message: "Running BCFtools on '{input.vcf}' input file"
     
     script: 
     """
