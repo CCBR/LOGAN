@@ -36,7 +36,7 @@ workflow {
                         row.Tumor,
                         row.Normal
                        )
-                                  }.view()
+                                  }
     }else{
         sample_sheet=fastqinput.map{samplename,f1 -> tuple (
              samplename)}.view()
