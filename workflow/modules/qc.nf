@@ -1,74 +1,90 @@
-#!/usr/bin/env nextflow
+///References to assign
+GENOME=file(params.genome)
+GENOMEDICT=file(params.genomedict)
+WGSREGION=file(params.wgsregion) 
+MILLSINDEL=file(params.millsindel) //= "/data/OpenOmics/references/genome-seek/GATK_resource_bundle/hg38bundle/Mills_and_1000G_gold_standard.indels.hg38.vcf.gz"// file(params.gold_indels1) //
+SHAPEITINDEL=file(params.shapeitindel) //params.shapeitindel =  "/data/OpenOmics/references/genome-seek/ALL.wgs.1000G_phase3.GRCh38.ncbi_remapper.20150424.shapeit2_indels.vcf.gz" //file(params.gold_indels2) //
+KGP=file(params.kgp) ///data/CCBR_Pipeliner/Exome-seek/hg38/GATK_resource_bundle/1000G_phase1.snps.high_confidence.hg38.vcf.gz"
+DBSNP=file(params.dbsnp) //= "/data/OpenOmics/references/genome-seek/GATK_resource_bundle/hg38bundle/dbsnp_138.hg38.vcf.gz"
+GNOMAD=file(params.gnomad) //= '/data/CCBR_Pipeliner/Exome-seek/hg38/GNOMAD/somatic-hg38-af-only-gnomad.hg38.vcf.gz' // /data/CCBR_Pipeliner/Exome-seek/hg38/GNOMAD/somatic-hg38-af-only-gnomad.hg38.vcf.gz
+PON=file(params.pon) 
+FASTQ_SCREEN_CONF=file(params.fastq_screen_conf)
+BACDB=file(params.KRAKENBACDB)
+SNPEFF_GENOME = params.snpeff_genome
+SNPEFF_CONFIG = file(params.snpeff_config)
+SNPEFF_BUNDLE = file(params.snpeff_bundle)
+//SOMALIER
+SITES_VCF= file(params.sites_vcf)
+ANCESTRY_DB=file(params.somalier_ancestrydb)
+SCRIPT_PATH_GENDER = file(params.script_genderPrediction)
+SCRIPT_PATH_SAMPLES = file(params.script_combineSamples)
+SCRIPT_PATH_PCA = file(params.script_ancestry)
+    
 
-/*
-QC Processes for WGS Data
-1-FC LAne
-2-FQ Screen
-3-Kraken
-4-fastqc_Bam ##If starig from BAM
-5-RERUN Ttargets bed
-6-Qualimap QC
-7-samtools flagstats
-8-vcftools
-9-collect vc metrics
-10-bcftools stats
-11-gatk-varianteval
-12snpeff
-13-somalier extract
-14-multiqc~
-*/
-
+//OUTPUT DIRECTORY IS STORED IN THE module
+outdir=file(params.output)
 
 process fc_lane {
-    
+
+    publishDir("${outdir}/QC/fc_lane/", mode:'copy')
+
     input:
-        tuple val(samplename),
-        path(fqs)
+        tuple val(samplename), path(fqs)
 
     output: 
         tuple val(samplename),
-        path("${samplename}.fc_lane")    
+        path("${samplename}.fastq.info.txt")    
     
     script:
     GET_FLOWCELL_LANES=file(params.get_flowcell_lanes)
 
     """
-    python ${GET_FLOWCELL_LANES} \
+    python $GET_FLOWCELL_LANES \
     ${fqs[0]}  \
-    ${samplename} > ${samplename}.fc_lane
+    ${samplename} > ${samplename}.fastq.info.txt
     """
 }
 
-//Uses Trimmed Files
-process fastq_screen {
 
+process fastq_screen {
+    //Uses Trimmed Files
+
+    publishDir(path: "${outdir}/QC/fastq_screen/", mode:'copy')
+
+    module=['fastq_screen/0.15.2','bowtie/2-2.5.1']
     input:
-        tuple val(samplename), 
-        path(fqs)
+    tuple val(samplename),
+        path("${samplename}.R1.trimmed.fastq.gz"),
+        path("${samplename}.R2.trimmed.fastq.gz"),
+        path("${samplename}.fastp.json"),
+        path("${samplename}.fastp.html")
 
     output:
-        tuple val(samplename),
-        path("${samplename}_fastq_screen")
+        tuple path("${samplename}.R1.trimmed_screen.html"),
+        path("${samplename}.R1.trimmed_screen.png"),
+        path("${samplename}.R1.trimmed_screen.txt"),
+        path("${samplename}.R2.trimmed_screen.html"),
+        path("${samplename}.R2.trimmed_screen.png"),
+        path("${samplename}.R2.trimmed_screen.txt")
 
     script: 
-    
-    FASTQ_SCREEN_CONF=file(params.fastq_screen_conf)
+        FASTQ_SCREEN_CONF=file(params.fastq_screen_conf)
 
-    """
-    fastq_screen --conf ${FASTQ_SCREEN_CONF} \
-        --outdir ${samplename}_fastq_screen \
+        """
+    fastq_screen --conf $FASTQ_SCREEN_CONF \
+        --outdir . \
         --threads 8 \
         --subset 1000000 \
         --aligner bowtie2 \
         --force \
-        ${fqs[0]} ${fqs[1]}
-    """
+        ${samplename}.R1.trimmed.fastq.gz ${samplename}.R2.trimmed.fastq.gz
+
+        """
 
 }
 
-///kraken
-rule kraken:
-    """
+process kraken {
+    /*
     Quality-control step to assess for potential sources of microbial contamination.
     If there are high levels of microbial contamination, Kraken will provide an
     estimation of the taxonomic composition. Kraken is used in conjunction with
@@ -77,52 +93,81 @@ rule kraken:
         Trimmed FastQ files (scatter)
     @Output:
         Kraken logfile and interative krona report
-    """
+    */
+    publishDir(path: "${outdir}/QC/kraken/", mode: 'copy')
+
+    module=['kraken/2.1.2', 'kronatools/2.8']
+    scratch '/lscratch/$SLURM_JOB_ID'
+    //scratch '/data/CCBR/rawdata/nousome/small_truth_set' //CHANGE AFTER to LSCRATCH
+
+    
     input:
         tuple val(samplename), 
         path(fqs)
 
     output:
         tuple val(samplename),
-        path("${samplename}_fastq_screen"),
-        path("${samplename}_fastq_screen")
-        path("${samplename}_fastq_screen")
-        out  = os.path.join(output_qcdir,"kraken","{samples}.trimmed.kraken_bacteria.out.txt"),
-        taxa = os.path.join(output_qcdir,"kraken","{samples}.trimmed.kraken_bacteria.taxa.txt"),
-        html = os.path.join(output_qcdir,"kraken","{samples}.trimmed.kraken_bacteria.krona.html"),
-    params:
-        rname  ='kraken',
-        outdir = os.path.join(output_qcdir, "kraken"),
-        bacdb  = config['references']['KRAKENBACDB'],
-        localdisk = config['input_params']['tmpdisk']
-    envmodules:
-        'kraken/2.1.2', 
-        'kronatools/2.8'
-    container: config['images']['kraken']
-    threads: 24
-    shell: """
-    # Setups temporary directory for
-    # intermediate files with built-in 
-    # mechanism for deletion on exit
-    #tmp=$(mktemp -d -p "{params.localdisk}")
-    #trap 'rm -rf "${{tmp}}"' EXIT
-    # Copy kraken2 db to local node storage to reduce filesystem strain
-    #cp -rv {params.bacdb} ${{tmp}}
-    #kdb_base=$(basename {params.bacdb})
+        path("${samplename}.trimmed.kraken_bacteria.out.txt"),
+        path("${samplename}.trimmed.kraken_bacteria.taxa.txt"),
+        path("${samplename}.trimmed.kraken_bacteria.krona.html")
+        
+
+    script: 
+    """
+    #Setups temporary directory for
+    #intermediate files with built-in 
+    #mechanism for deletion on exit
     
-    kraken2 --db ${{tmp}}/${{kdb_base}} \\
-        --threads {threads} --report {output.taxa} \\
-        --output {output.out} \\
-        --gzip-compressed \\
-        --paired {input.fq1} {input.fq2}
+    
+    # Copy kraken2 db to local node storage to reduce filesystem strain
+    cp -rv $BACDB .
+    kdb_base=\$(basename $BACDB)
+    
+    kraken2 --db $BACDB \
+        --threads 16 --report ${samplename}.trimmed.kraken_bacteria.taxa.txt \
+        --output ${samplename}.trimmed.kraken_bacteria.out.txt \
+        --gzip-compressed \
+        --paired ${fqs[0]} ${fqs[1]}
     # Generate Krona Report
-    cut -f2,3 {output.out} | \\
-        ktImportTaxonomy - -o {output.html}
+    cut -f2,3 ${samplename}.trimmed.kraken_bacteria.out.txt} | \
+        ktImportTaxonomy - -o ${samplename}.trimmed.kraken_bacteria.krona.html
+    """
+}
+
+process fastqc {
+    """
+    Quality-control step to assess sequencing quality of each sample.
+    FastQC generates a set of basic statistics to identify problems
+    that can arise during sequencing or library preparation.
+    @Input:
+        Recalibrated BAM file (scatter)
+    @Output:
+        FastQC report and zip file containing sequencing quality information
+    """
+    input:
+        tuple val(samplename), path("${samples}.bam")
+    output:
+        tuple val(samplename), path(zipout), path(report)
+        //zipfile =  os.path.join(output_qcdir,"{samples}_fastqc.zip"),
+        //report  =  os.path.join(output_qcdir,"{samples}_fastqc.html")
+   
+
+    //message: "Running FastQC with {threads} threads on '{input}' input file"
+    //threads: 8
+    module=['fastqc/0.11.9']
+
+    script: 
+    """
+    fastqc -t 8 \
+        -f fastq \
+        -o fastqc \
+
     """
 
 
-rule qualimap_bamqc:
-    """
+}
+process qualimap_bamqc {
+    /*
     Quality-control step to assess various post-alignment metrics 
     and a secondary method to calculate insert size. Please see
     QualiMap's website for more information about BAM QC:
@@ -131,37 +176,37 @@ rule qualimap_bamqc:
         Recalibrated BAM file (scatter)
     @Output:
         Report containing post-aligment quality-control metrics
-    """
+    */
+    publishDir("${outdir}/QC/qualimap/", mode: "copy")
+    
+    module=['qualimap/2.2.1','java/12.0.1']
+    //module: config['images']['qualimap']
+    
     input:
-        bam  = os.path.join(output_bamdir,"final_bams","{samples}.bam"),
-        bed=os.path.join(output_qcdir, "exome_targets.bed"),
+        tuple val(samplename), path("${samplename}.bam"), path("${samplename}.bai")
+
     output: 
-        txt  = os.path.join(output_qcdir,"{samples}","genome_results.txt"),
-        html = os.path.join(output_qcdir,"{samples}","qualimapReport.html")
-    params:
-        outdir = os.path.join(output_qcdir, "{samples}"),
-        rname  = "qualibam"
-    message: "Running QualiMap BAM QC with {threads} threads on '{input}' input file"
-    envmodules: 'qualimap/2.2.1'
-    container: config['images']['qualimap']
-    threads: 8
-    shell: """
+        tuple path("${samplename}_genome_results.txt"), path("${samplename}_qualimapReport.html")
+
+    script: 
+    """
     unset DISPLAY
-    qualimap bamqc -bam {input.bam} \\
-        --java-mem-size=48G \\
-        -c -ip \\
-        -gff {input.bed} \\
-        -outdir {params.outdir} \\
-        -outformat HTML \\
-        -nt {threads} \\
-        --skip-duplicated \\
-        -nw 500 \\
+    qualimap bamqc -bam ${samplename}.bam \
+        --java-mem-size=64G \
+        -c -ip \
+        -outdir ${samplename} \
+        -outformat HTML \
+        -nt 8 \
+        --skip-duplicated \
+        -nw 500 \
         -p NON-STRAND-SPECIFIC
+    mv ${samplename}/genome_results.txt ${samplename}_genome_results.txt
+    mv ${samplename}/qualimapReport.html ${samplename}_qualimapReport.html
     """
+}
 
-
-rule samtools_flagstats:
-    """
+process samtools_flagstats {
+    /*
     Quality-control step to assess alignment quality. Flagstat provides 
     counts for each of 13 categories based primarily on bit flags in the 
     FLAG field. Information on the meaning of the flags is given in the 
@@ -170,23 +215,26 @@ rule samtools_flagstats:
         Recalibrated BAM file (scatter)
     @Output:
         Text file containing alignment statistics
-    """
+    */
+    publishDir("${outdir}/QC/flagstats/", mode: "copy")
+    module=['samtools/1.16.1']
     input:
-        bam  = os.path.join(output_bamdir,"final_bams","{samples}.bam"),
+        tuple val(samplename), path("${samplename}.bam"), path("${samplename}.bai")
+    
     output:
-        txt  = os.path.join(output_qcdir,"{samples}.samtools_flagstat.txt")
-    params: 
-        rname = "samtools_flagstats"
-    message: "Running SAMtools flagstat on '{input}' input file"
-    envmodules: 'samtools/1.12'
-    container: config['images']['wes_base']
-    shell: """
-    samtools flagstat {input.bam} > {output.txt}
+        path("${samplename}.samtools_flagstat.txt")
+ 
+ 
+    //container: config['images']['wes_base']
+    
+    script: 
     """
-
-
-rule vcftools:
+    samtools flagstat ${samplename}.bam > ${samplename}.samtools_flagstat.txt
     """
+}
+
+process vcftools {    
+    /*
     Quality-control step to calculates a measure of heterozygosity on 
     a per-individual basis. The inbreeding coefficient, F, is estimated
     for each individual using a method of moments. Please see VCFtools
@@ -196,24 +244,26 @@ rule vcftools:
         Multi-sample gVCF file (indirect-gather-due-to-aggregation)
     @Output:
         Text file containing a measure of heterozygosity
-    """
+    */
+    publishDir(path:"${outdir}/QC/vcftools", mode: 'copy')
+    module=['vcftools/0.1.16']
+    //envmodules: 'vcftools/0.1.16'
+    //container: config['images']['wes_base']
+    
     input: 
-        vcf = os.path.join(output_germline_base,"VCF","raw_variants.vcf.gz"),
+        tuple path(germlinevcf),path(germlinetbi)
     output: 
-        het = os.path.join(output_qcdir,"raw_variants.het"),
-    params: 
-        prefix = os.path.join(output_qcdir,"raw_variants"),
-        rname  = "vcftools",
-    message: "Running VCFtools on '{input.vcf}' input file"
-    envmodules: 'vcftools/0.1.16'
-    container: config['images']['wes_base']
-    shell: """
-    vcftools --gzvcf {input.vcf} --het --out {params.prefix}
+       path("variants_raw_variants.het")
+    
+    
+    script: 
     """
-
-
-rule collectvariantcallmetrics:
+    vcftools --gzvcf ${germlinevcf} --het --out variants_raw_variants
     """
+}
+
+process collectvariantcallmetrics {
+    /*
     Quality-control step to collect summary metrics about snps and indels
     called in a multisample VCF file. Please see the Broad's documentation
     for more information about each field in the generated log file:
@@ -222,29 +272,37 @@ rule collectvariantcallmetrics:
         Multi-sample gVCF file (indirect-gather-due-to-aggregation)
     @Output:
         Text file containing a collection of metrics relating to snps and indels 
-    """
+    */
+    publishDir("${outdir}/QC/variantmetrics", mode: 'copy')
+
     input: 
-        vcf = os.path.join(output_germline_base,"VCF","raw_variants.vcf.gz"),
+        tuple path(germlinevcf),path(germlinetbi)
+    
     output: 
-        metrics = os.path.join(output_qcdir,"raw_variants.variant_calling_detail_metrics"),
-    params: 
-        dbsnp=config['references']['DBSNP'],
-        prefix = os.path.join(output_qcdir,"raw_variants"),
-        rname="varcallmetrics",
-    message: "Running Picard CollectVariantCallingMetrics on '{input.vcf}' input file"
-    envmodules: 'picard/2.20.8'
-    container: config['images']['picard']
-    shell: """
-    java -Xmx24g -jar ${{PICARDJARPATH}}/picard.jar \\
-        CollectVariantCallingMetrics \\
-        INPUT={input.vcf} \\
-        OUTPUT={params.prefix} \\
-        DBSNP={params.dbsnp} Validation_Stringency=SILENT
+        tuple path("raw_variants.variant_calling_detail_metrics"),
+        path("raw_variants.variant_calling_summary_metrics")
+
+    //params: 
+     //   dbsnp=config['references']['DBSNP'],
+      //  prefix = os.path.join(output_qcdir,"raw_variants"),
+       
+    
+    module=['picard/2.20.8']
+    //container: config['images']['picard']
+    
+    script:
     """
+    java -Xmx24g -jar \${PICARDJARPATH}/picard.jar \
+        CollectVariantCallingMetrics \
+        INPUT=${germlinevcf} \
+        OUTPUT= "raw_variants" \
+        DBSNP=$DBSNP Validation_Stringency=SILENT
+    """
+}
 
 
-rule bcftools_stats:
-    """
+process bcftools_stats {
+    /*
     Quality-control step to collect summary statistics from bcftools stats.
     When bcftools stats is run with one VCF file then stats by non-reference
     allele frequency, depth distribution, stats by quality and per-sample 
@@ -255,23 +313,27 @@ rule bcftools_stats:
         Per sample gVCF file (scatter)
     @Output:
         Text file containing a collection of summary statistics
-    """
-    input: 
-        vcf = os.path.join(output_germline_base,"VCF","{samples}.germline.vcf.gz"),
-    output: 
-        txt = os.path.join(output_qcdir,"{samples}.germline.bcftools_stats.txt"),
-    params: 
-        rname="bcfstats",
-    message: "Running BCFtools on '{input.vcf}' input file"
-    envmodules: 'bcftools/1.9'
-    container: config['images']['wes_base']
-    shell: """
-    bcftools stats {input.vcf} > {output.txt}
-    """
+    */
+    module=['bcftools/1.9']
+    //container: config['images']['wes_base']
 
+    publishDir("${outdir}/QC/bcftoolsstat", mode: 'copy')
 
-rule gatk_varianteval:
+    input:
+        tuple val(samplename),  path("${samplename}.gvcf.gz"),path("${samplename}.gvcf.gz.tbi")
+    output:
+        path("${samplename}.germline.bcftools_stats.txt")
+
+    //message: "Running BCFtools on '{input.vcf}' input file"
+    
+    script: 
     """
+    bcftools stats ${samplename}.gvcf.gz > ${samplename}.germline.bcftools_stats.txt
+    """
+}
+
+process gatk_varianteval {
+    /*
     Quality-control step to calculate various quality control metrics from a 
     variant callset. These metrics include the number of raw or filtered SNP 
     counts; ratio of transition mutations to transversions; concordance of a
@@ -282,31 +344,34 @@ rule gatk_varianteval:
         Per sample gVCF file (scatter)
     @Output:
         Evaluation table containing a collection of summary statistics
-    """
+    */
+    publishDir("${outdir}/QC/gatk_varianteval", mode: 'copy')
+    module=['GATK/4.2.0.0']
+
     input: 
-        vcf = os.path.join(output_germline_base,"VCF","{samples}.germline.vcf.gz"), 
+        tuple val(samplename), path("${samplename}.gvcf.gz") ,path("${samplename}.gvcf.gz.tbi")
     output: 
-        grp = os.path.join(output_qcdir,"{samples}.germline.eval.grp"),
-    params:
-        rname    = "vareval",
-        genome   = config['references']['GENOME'],
-        dbsnp    = config['references']['DBSNP'],
-        ver_gatk = config['tools']['gatk4']['version']
-    message: "Running GATK4 VariantEval on '{input.vcf}' input file"
-    envmodules: 'GATK/4.2.0.0'
-    container: config['images']['wes_base']
-    threads: 16
-    shell: """
-    gatk --java-options '-Xmx12g -XX:ParallelGCThreads={threads}' VariantEval \\
-        -R {params.genome} \\
-        -O {output.grp} \\
-        --dbsnp {params.dbsnp} \\
-        --eval {input.vcf} 
+        path("${samplename}.germline.eval.grp")
+    //params:
+     //   rname    = "vareval",
+      //  genome   = config['references']['GENOME'],
+       // dbsnp    = config['references']['DBSNP'],
+      //  ver_gatk = config['tools']['gatk4']['version']
+    //message: "Running GATK4 VariantEval on '{input.vcf}' input file"
+    //container: config['images']['wes_base']
+    //threads: 16
+    script: 
     """
-
-
-rule snpeff:
+    gatk --java-options '-Xmx12g -XX:ParallelGCThreads=16' VariantEval \
+        -R $GENOME \
+        -O ${samplename}.germline.eval.grp \
+        --dbsnp $DBSNP \
+        --eval ${samplename}.gvcf.gz
     """
+}
+
+process snpeff {
+    /*
     Data processing and quality-control step to annotate variants, predict its
     functional effects, and collect various summary statistics about variants and
     their annotations. Please see SnpEff's documentation for more information: 
@@ -315,59 +380,68 @@ rule snpeff:
         Per sample gVCF file (scatter)
     @Output:
         Evaluation table containing a collection of summary statistics
-    """
-    input:  
-        vcf = os.path.join(output_germline_base,"VCF","{samples}.germline.vcf.gz")
-    output: 
-        vcf  = os.path.join(output_qcdir,"{samples}.germline.snpeff.ann.vcf"),
-        csv  = os.path.join(output_qcdir,"{samples}.germline.snpeff.ann.csv"),
-        html = os.path.join(output_qcdir,"{samples}.germline.snpeff.ann.html"),
-    params: 
-        rname  = "snpeff",
-        genome = config['references']['SNPEFF_GENOME'],
-        config = config['references']['SNPEFF_CONFIG'],
-        bundle = config['references']['SNPEFF_BUNDLE'],
-    envmodules: 'snpEff/4.3t'
-    container: config['images']['wes_base']
-    shell: """
-    java -Xmx12g -jar $SNPEFF_JAR \\
-        -v -canon -c {params.config} \\
-        -csvstats {output.csv} \\
-        -stats {output.html} \\
-        {params.genome} \\
-        {input.vcf} > {output.vcf}
-    """
+    */
 
-rule somalier_extract:
+        //genome = config['references']['SNPEFF_GENOME'],
+        //config = config['references']['SNPEFF_CONFIG'],
+        //bundle = config['references']['SNPEFF_BUNDLE'],
+            //envmodules: 'snpEff/4.3t'
+            //container: config['images']['wes_base']
+    module=["snpEff/4.3t"]
+    publishDir("${outdir}/QC/snpeff", mode: 'copy')
+
+
+    input:  
+        tuple val(samplename), path("${samplename}.gvcf.gz"), path("${samplename}.gvcf.gz.tbi")
+    output: 
+        tuple path("${samplename}.germline.snpeff.ann.vcf"),
+        path("${samplename}.germline.snpeff.ann.csv"),
+        path("${samplename}.germline.snpeff.ann.html")
+
+    script: 
     """
+        java -Xmx12g -jar \$SNPEFF_JAR \
+        -v -canon -c $SNPEFF_CONFIG \
+        -csvstats ${samplename}.germline.snpeff.ann.csv \
+        -stats ${samplename}.germline.snpeff.ann.html \
+        $SNPEFF_GENOME \
+        ${samplename}.gvcf.gz > ${samplename}.germline.snpeff.ann.vcf
+    """
+}
+
+process somalier_extract {
+    /*
     To estimate ancestry, Somalier first extracts known sites from mapped reads
     @Input:
         Mapped and pre-processed BAM file
     @Output:
         Exracted sites in (binary) somalier format
-    """
+    */
+    publishDir("${outdir}/QC/somalier", mode: 'copy')
+
     input:
-        bam = os.path.join(output_bamdir,"final_bams","{samples}.bam"),
-        bai = os.path.join(output_bamdir,"final_bams","{samples}.bai"),
+        tuple val(samplename), path("${samplename}.bam"), path("${samplename}.bai")
     output: 
-        somalierOut = os.path.join(output_germline_base,"somalier","{samples}.somalier")
-    params:
-        sites_vcf = config['references']['SOMALIER']['SITES_VCF'],
-        genomeFasta = config['references']['GENOME'],
-        rname = 'somalier_extract'
-    container: config['images']['wes_base']
-    shell: """ 
-    echo "Extracting sites to estimate ancestry"
-    somalier extract \\
-        -d "$(dirname {output.somalierOut})" \\
-        --sites {params.sites_vcf} \\
-        -f {params.genomeFasta} \\
-        {input.bam}
+        path("output/${samplename}.somalier")
+    //params:
+    //    sites_vcf = config['references']['SOMALIER']['SITES_VCF'],
+    //    genomeFasta = config['references']['GENOME'],
+    //    rname = 'somalier_extract'
+    //container: config['images']['wes_base']
+    script: 
+    """ 
+    mkdir output
+    somalier extract \
+        -d output \
+        --sites $SITES_VCF \
+        -f $GENOME \
+        ${samplename}.bam
+    
     """
+}
 
-
-rule somalier_analysis:
-    """
+process somalier_analysis {
+    /*
     To estimate relatedness, Somalier uses extracted site information to
     compare across all samples. This step also runs the ancestry estimation
     function in Somalier.
@@ -375,56 +449,59 @@ rule somalier_analysis:
         Exracted sites in (binary) somalier format for ALL samples in the cohort
     @Output:
         Separate tab-separated value (TSV) files with relatedness and ancestry outputs
-    """
+
+    ancestry_db = config['references']['SOMALIER']['ANCESTRY_DB'],
+    sites_vcf = config['references']['SOMALIER']['SITES_VCF'],
+    genomeFasta = config['references']['GENOME'],
+    script_path_gender = config['scripts']['genderPrediction'],
+    script_path_samples = config['scripts']['combineSamples'],
+    script_path_pca = config['scripts']['ancestry'],
+    */
+    publishDir("${outdir}/QC/somalier", mode: 'copy')
+
     input:
-        somalier=expand(os.path.join(output_germline_base,"somalier","{samples}.somalier"), samples=samples),
+        path(somalierin)
+    
     output:
-        relatedness = os.path.join(output_germline_base,"somalier","relatedness.pairs.tsv"),
-        relatednessSamples = os.path.join(output_germline_base,"somalier","relatedness.samples.tsv"),
-        ancestry = os.path.join(output_germline_base,"somalier","ancestry.somalier-ancestry.tsv"),
-        finalFileGender = os.path.join(output_germline_base,"predicted.genders.tsv"),
-        finalFilePairs = os.path.join(output_germline_base,"predicted.pairs.tsv"),
-        ancestoryPlot = os.path.join(output_germline_base,"sampleAncestryPCAPlot.html"),
-        pairAncestoryHist = os.path.join(output_germline_base,"predictedPairsAncestry.pdf"),
-    params:
-        ancestry_db = config['references']['SOMALIER']['ANCESTRY_DB'],
-        sites_vcf = config['references']['SOMALIER']['SITES_VCF'],
-        genomeFasta = config['references']['GENOME'],
-        script_path_gender = config['scripts']['genderPrediction'],
-        script_path_samples = config['scripts']['combineSamples'],
-        script_path_pca = config['scripts']['ancestry'],
-        rname = 'somalier_analysis'
-    container: config['images']['wes_base']
-    shell: """ 
+        tuple path("relatedness.pairs.tsv"), path("relatedness.samples.tsv"),
+        path("ancestry.somalier-ancestry.tsv"), path("predicted.genders.tsv"),
+        path("predicted.pairs.tsv"),
+        path("sampleAncestryPCAPlot.html"),
+        path("predictedPairsAncestry.pdf")
+    
+    script:
+    """ 
     echo "Estimating relatedness"
-    somalier relate \\
-        -o "$(dirname {output.relatedness})/relatedness" \\
-        {input.somalier}
+    somalier relate \
+        -o "relatedness" \
+        $somalierin
     
     echo "Estimating ancestry"
-    somalier ancestry \\
-        -o "$(dirname {output.relatedness})/ancestry" \\
-        --labels {params.ancestry_db}/ancestry-labels-1kg.tsv \\
-        {params.ancestry_db}/*.somalier ++ \\
-        {input.somalier}
-    Rscript {params.script_path_gender} \\
-        {output.relatednessSamples} \\
-        {output.finalFileGender}    
+    somalier ancestry \
+        -o "ancestry" \
+        --labels $ANCESTRY_DB/ancestry-labels-1kg.tsv \
+        $ANCESTRY_DB/*.somalier ++ \
+        $somalierin
+
+    Rscript $SCRIPT_PATH_GENDER \
+        relatedness.samples.tsv \
+        predicted.genders.tsv    
     
-    Rscript {params.script_path_samples} \\
-        {output.relatedness} \\
-        {output.finalFilePairs}
+    Rscript $SCRIPT_PATH_SAMPLES \
+        relatedness.pairs.tsv \
+        predicted.pairs.tsv
     
-    Rscript {params.script_path_pca} \\
-        {output.ancestry} \\
-        {output.finalFilePairs} \\
-        {output.ancestoryPlot} \\
-        {output.pairAncestoryHist}
+    Rscript $SCRIPT_PATH_PCA \
+        ancestry.somalier-ancestry.tsv \
+        predicted.pairs.tsv \
+        sampleAncestryPCAPlot.html \
+        predictedPairsAncestry.pdf
     """
+}
 
 
+process multiqc {
 
-rule multiqc:
     """
     Reporting step to aggregate sample summary statistics and quality-control
     information across all samples. This will be one of the last steps of the 
@@ -436,31 +513,20 @@ rule multiqc:
     @Output:
         Interactive MulitQC report and a QC metadata table
     """
+    publishDir("${outdir}/QC/multiqc", mode: 'copy')
+    module=['multiqc/1.11']
+    
     input:  
-        expand(os.path.join(output_fqdir,"{samples}.fastq.info.txt"), samples=samples),
-        expand(os.path.join(output_qcdir,"FQscreen","{samples}.R2.trimmed_screen.txt"), samples=samples),
-        expand(os.path.join(output_qcdir,"kraken","{samples}.trimmed.kraken_bacteria.krona.html"), samples=samples),
-        expand(os.path.join(output_qcdir,"{samples}_fastqc.zip"), samples=samples),
-        expand(os.path.join(output_qcdir,"{samples}","genome_results.txt"), samples=samples),
-        expand(os.path.join(output_qcdir,"{samples}.samtools_flagstat.txt"), samples=samples),
-        expand(os.path.join(output_qcdir,"{samples}.germline.bcftools_stats.txt"), samples=samples),
-        expand(os.path.join(output_qcdir,"{samples}.germline.eval.grp"), samples=samples),
-        expand(os.path.join(output_qcdir,"{samples}.germline.snpeff.ann.html"), samples=samples),
-        os.path.join(output_qcdir,"raw_variants.het"), 
-        os.path.join(output_qcdir,"raw_variants.variant_calling_detail_metrics"),
-        os.path.join(output_germline_base,"somalier","ancestry.somalier-ancestry.tsv"),
+        path(allqcin)
+
     output: 
-        report  = os.path.join(output_qcdir,"finalQC","MultiQC_Report.html"),
-    params: 
-        rname  = "multiqc",
-        workdir = os.path.join(BASEDIR)
-    envmodules: 'multiqc/1.11'
-    container: config['images']['multiqc']
-    shell: """
-    multiqc --ignore '*/.singularity/*' \\
-        --ignore '*/*/*/*/*/*/*/*/pyflow.data/*' \\
-        --ignore 'slurmfiles/' \\
-        -f --interactive \\
-        -n {output.report} \\
-        {params.workdir}
+        path("MultiQC_Report.html")
+
+    script: 
+
     """
+    multiqc . \
+    -f --interactive \
+    -n "MultiQC_Report.html" \
+    """
+}

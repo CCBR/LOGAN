@@ -1,3 +1,16 @@
+GENOME=file(params.genome)
+GENOMEDICT=file(params.genomedict)
+WGSREGION=file(params.wgsregion) 
+MILLSINDEL=file(params.millsindel) //= "/data/OpenOmics/references/genome-seek/GATK_resource_bundle/hg38bundle/Mills_and_1000G_gold_standard.indels.hg38.vcf.gz"// file(params.gold_indels1) //
+SHAPEITINDEL=file(params.shapeitindel) //params.shapeitindel =  "/data/OpenOmics/references/genome-seek/ALL.wgs.1000G_phase3.GRCh38.ncbi_remapper.20150424.shapeit2_indels.vcf.gz" //file(params.gold_indels2) //
+KGP=file(params.kgp) ///data/CCBR_Pipeliner/Exome-seek/hg38/GATK_resource_bundle/1000G_phase1.snps.high_confidence.hg38.vcf.gz"
+DBSNP=file(params.dbsnp) //= "/data/OpenOmics/references/genome-seek/GATK_resource_bundle/hg38bundle/dbsnp_138.hg38.vcf.gz"
+GNOMAD=file(params.gnomad) //= '/data/CCBR_Pipeliner/Exome-seek/hg38/GNOMAD/somatic-hg38-af-only-gnomad.hg38.vcf.gz' // /data/CCBR_Pipeliner/Exome-seek/hg38/GNOMAD/somatic-hg38-af-only-gnomad.hg38.vcf.gz
+PON=file(params.pon) 
+
+//Output
+outdir=file(params.output)
+
 
 process mutect2 {
     input:
@@ -109,6 +122,27 @@ process contamination_paired {
 
     """
 }
+
+process pileup_paired_tonly {
+    input:
+        tuple val(tumorname), path(tumor), path(tumorbai), path(bed)
+    
+    output:
+        tuple val(tumorname),
+        path("${tumor.simpleName}_${bed.simpleName}.tumor.pileup.table")
+
+    script:
+
+    """
+    gatk --java-options -Xmx48g GetPileupSummaries \
+        -I ${tumor} \
+        -V ${KGP} \
+        -L ${bed} \
+        -O ${tumor.simpleName}_${bed.simpleName}.tumor.pileup.table 
+
+    """
+}
+
 
 process contamination_tumoronly {
     input:
@@ -257,9 +291,10 @@ process mutect2filter {
 
 
 
-process mutect2_tonly {
+process mutect2_t_tonly {
+    
     input:
-        tuple val(tumorname), path(tumor), path(tumorbai),val(normalname), path(normal), path(normalbai), path(bed)
+        tuple val(tumorname), path(tumor), path(tumorbai), path(bed)
     
     output:
         tuple val(tumorname),
@@ -285,6 +320,8 @@ process mutect2_tonly {
 
 
 process mutect2filter_tonly {
+    publishDir(path: "${results_dir}/vcfs/mutect", mode: 'copy')
+
     input:
         tuple val(sample), path(mutvcfs), path(stats), path(obs), path(pileups),path(tumorcontamination)
     output:
@@ -320,7 +357,7 @@ process mutect2filter_tonly {
 process annotvep_tn {
     module=['vcf2maf/1.6.21','VEP/102']
     
-    publishDir("${results_dir}/mafs/", mode: "copy")
+    publishDir(path: "${results_dir}/mafs/", mode: 'copy')
 
     input:
         tuple val(tumorsample), 

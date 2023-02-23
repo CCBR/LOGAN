@@ -3,24 +3,16 @@ nextflow.enable.dsl=2
 
 date = new Date().format( 'yyyyMMdd' )
 
-
-results_dir=params.output
+publishDir=file(params.output)
 fastqinput=Channel.fromFilePairs(params.input)
 intervalbedin = Channel.fromPath(params.intervals,checkIfExists: true,type: 'file')
-sample_sheet=Channel.fromPath(params.sample_sheet, checkIfExists: true)
-                       .ifEmpty { exit 1, "sample sheet not found" }
-                       .splitCsv(header:true, sep: "\t")
-                       .map { row -> tuple(
-                        row.Tumor,
-                       row.Normal
-                       )
-                                  }
+
 //Final Workflow
     include {fastp; bwamem2; indelrealign; bqsr; 
     gatherbqsr; applybqsr; samtoolsindex} from './workflow/modules/trim_align.nf'
 
-    include {mutect2; mutect2_tonly; mutect2filter; mutect2filter_tonly; 
-    pileup_paired_t; 
+    include {mutect2; mutect2_t_tonly; mutect2filter; mutect2filter_tonly; 
+    pileup_paired_tonly; 
     contamination_tumoronly;
     learnreadorientationmodel_tonly; 
     mergemut2stats_tonly;
@@ -30,8 +22,22 @@ sample_sheet=Channel.fromPath(params.sample_sheet, checkIfExists: true)
 
 
 workflow {
-
     fastqinput.view()
+
+     if(params.sample_sheet){
+        sample_sheet=Channel.fromPath(params.sample_sheet, checkIfExists: true)
+                       .ifEmpty { "sample sheet not found" }
+                       .splitCsv(header:true, sep: "\t")
+                       .map { row -> tuple(
+                        row.Tumor
+                       )
+                                  }
+    }else{
+        sample_sheet=fastqinput.map{samplename,f1 -> tuple (
+             samplename)}.view()
+        
+    }
+    
     fastp(fastqinput)
     splitinterval(intervalbedin)
     
@@ -40,8 +46,6 @@ workflow {
 
     indelbambyinterval=indelrealign.out.combine(splitinterval.out.flatten())
 
-    //TEMP LINE
-    //indelbambyinterval.view()
     
     bqsr(indelbambyinterval)
     bqsrs=bqsr.out.groupTuple()
@@ -53,22 +57,25 @@ workflow {
     tobqsr=indelrealign.out.combine(gatherbqsr.out,by:0)
     applybqsr(tobqsr) 
     samtoolsindex(applybqsr.out)
-    
-    bamwithsample=samtoolsindex.out.join(sample_sheet).map{it.swap(3,0)}.join(samtoolsindex.out).map{it.swap(3,0)}
+    //samtoolsindex.out.view()
+    //bamwithsample=samtoolsindex.out.join(sample_sheet).map{it.swap(3,0)}.join(samtoolsindex.out).map{it.swap(3,0)}
+    bamwithsample=samtoolsindex.out.join(sample_sheet)
+    .map{samplename,tumor,tumorbai -> tuple( samplename,tumor,tumorbai)
+        }
     bambyinterval=bamwithsample.combine(splitinterval.out.flatten())
 
-
+    
     //Tumor Only Calling
-    pileup_paired_t(bambyinterval)
-    pileup_paired_tout=pileup_paired_t.out.groupTuple()
+    pileup_paired_tonly(bambyinterval)
+    pileup_paired_tout=pileup_paired_tonly.out.groupTuple()
     .map{samplename,pileups-> tuple( samplename,
     pileups.toSorted{ it -> (it.name =~ /${samplename}_(.*?).tumor.pileup.table/)[0][1].toInteger() } ,
     )}
 
-    mutect2_tonly(bambyinterval)    
+    mutect2_t_tonly(bambyinterval)    
     
     //LOR     
-    mut2tout_lor=mutect2_tonly.out.groupTuple()
+    mut2tout_lor=mutect2_t_tonly.out.groupTuple()
     .map { samplename,vcfs,f1r2,stats -> tuple( samplename,
     f1r2.toSorted{ it -> (it.name =~ /${samplename}_(.*?).f1r2.tar.gz/)[0][1].toInteger() } 
     )}
@@ -76,7 +83,7 @@ workflow {
 
 
     //Stats
-    mut2tonly_mstats=mutect2_tonly.out.groupTuple()
+    mut2tonly_mstats=mutect2_t_tonly.out.groupTuple()
     .map { samplename,vcfs,f1r2,stats -> tuple( samplename,
     stats.toSorted{ it -> (it.name =~ /${samplename}_(.*?).tonly.mut2.vcf.gz.stats/)[0][1].toInteger() } 
     )}
@@ -88,7 +95,7 @@ workflow {
 
     
     //Final TUMOR ONLY FILTER
-    allmut2tonly=mutect2_tonly.out.groupTuple()
+    allmut2tonly=mutect2_t_tonly.out.groupTuple()
     .map { samplename,vcfs,f1r2,stats -> tuple( samplename,
     vcfs.toSorted{ it -> (it.name =~ /${samplename}_(.*?).tonly.mut2.vcf.gz/)[0][1].toInteger() } 
     )}
@@ -99,16 +106,12 @@ workflow {
     .join(contamination_tumoronly.out)
 
     mutect2filter_tonly(mut2tonly_filter)
-
-
-        
     
     //#To implement
     //CNMOPs from the BAM BQSRs
     //##VCF2MAF TO
 
-
-   annotvep_tonly(mutect2filter_tonly.out)
+    annotvep_tonly(mutect2filter_tonly.out)
 
 }
 

@@ -82,7 +82,7 @@ process indelrealign {
     
     """
     /usr/bin/java -Xmx32g -jar \${GATK_JAR} -T RealignerTargetCreator \
-        -I  ${samplename}.bam \
+        -I ${samplename}.bam \
         -R ${GENOME} \
         -o ${samplename}.intervals \
         -known ${MILLSINDEL} -known ${SHAPEITINDEL} 
@@ -159,7 +159,7 @@ process applybqsr {
     gatk --java-options '-Xmx32g' ApplyBQSR \
         --reference ${GENOME} \
         --input ${samplename}.ir.bam \
-        --bqsr-recal-file  ${samplename}.recal_data.grp \
+        --bqsr-recal-file ${samplename}.recal_data.grp \
         --output ${samplename}.bqsr.bam \
         --use-jdk-inflater \
         --use-jdk-deflater
@@ -181,4 +181,19 @@ process samtoolsindex{
     samtools index -@ 4 ${bam} ${bam}.bai
     """
 
+}
+
+//Save to CRAM for output and publish
+process bamtocram_tonly{
+    
+    input: 
+        tuple val(tumorname), path(tumor), path(tumorbai)
+
+    output:
+        path("${sample}.cram")
+
+    script:
+    """
+        samtools view -@ 4 -C -T $GENOME -o ${sample}.cram {$tumor}.bam
+    """
 }

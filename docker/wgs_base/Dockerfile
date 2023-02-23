@@ -236,7 +236,7 @@ ENV PATH="/opt2/VarDict-1.8.2/bin:$PATH"
 RUN wget http://opengene.org/fastp/fastp.0.23.2 \
     && mkdir fastp \
     && mv fastp.0.23.2 fastp/fastp \
-    && chmod a+x ./fastp
+    && chmod a+x fastp/fastp
 ENV PATH="/opt2/fastp:$PATH"
 
 # Add Dockerfile and argparse.bash script
