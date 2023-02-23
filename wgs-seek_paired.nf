@@ -29,14 +29,14 @@ workflow {
     fastqinput.view()
 
      if(params.sample_sheet){
-        sample_sheet=Channel.fromPath(params.sample_sheet, checkIfExists: true)
+        sample_sheet=Channel.fromPath(params.sample_sheet, checkIfExists: true).view()
                        .ifEmpty { "sample sheet not found" }
-                       .splitCsv(header:true, sep: "\t")
+                       .splitCsv(header:true, sep: "\t",strip:true)
                        .map { row -> tuple(
-                        row.Tumor
+                        row.Tumor,
                         row.Normal
                        )
-                                  }
+                                  }.view()
     }else{
         sample_sheet=fastqinput.map{samplename,f1 -> tuple (
              samplename)}.view()
