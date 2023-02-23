@@ -16,7 +16,7 @@ include {fc_lane; fastq_screen;kraken;qualimap_bamqc;
 include {deepvariant_step1;deepvariant_step2;deepvariant_step3;glnexus} from './workflow/modules/germline.nf'
 include {fastp; bwamem2; indelrealign; bqsr; 
     gatherbqsr; applybqsr; samtoolsindex} from './workflow/modules/trim_align.nf'
-include {mutect2; mutect2_tonly; mutect2filter; mutect2filter_tonly; 
+include {mutect2; mutect2_t_tonly; mutect2filter; mutect2filter_tonly; 
     pileup_paired_t; pileup_paired_n; 
     contamination_paired; contamination_tumoronly;
     learnreadorientationmodel; learnreadorientationmodel_tonly; 
@@ -124,10 +124,10 @@ workflow {
 
 
     //Tumor Only Calling
-    mutect2_tonly(bambyinterval)    
+    mutect2_t_tonly(bambyinterval)    
     
     //LOR     
-    mut2tout_lor=mutect2_tonly.out.groupTuple()
+    mut2tout_lor=mutect2_t_tonly.out.groupTuple()
     .map { samplename,vcfs,f1r2,stats -> tuple( samplename,
     f1r2.toSorted{ it -> (it.name =~ /${samplename}_(.*?).f1r2.tar.gz/)[0][1].toInteger() } 
     )}
@@ -135,7 +135,7 @@ workflow {
 
 
     //Stats
-    mut2tonly_mstats=mutect2_tonly.out.groupTuple()
+    mut2tonly_mstats=mutect2_t_tonly.out.groupTuple()
     .map { samplename,vcfs,f1r2,stats -> tuple( samplename,
     stats.toSorted{ it -> (it.name =~ /${samplename}_(.*?).tonly.mut2.vcf.gz.stats/)[0][1].toInteger() } 
     )}
@@ -148,7 +148,7 @@ workflow {
 
     
     //Final TUMOR ONLY FILTER
-    allmut2tonly=mutect2_tonly.out.groupTuple()
+    allmut2tonly=mutect2_t_tonly.out.groupTuple()
     .map { samplename,vcfs,f1r2,stats -> tuple( samplename,
     vcfs.toSorted{ it -> (it.name =~ /${samplename}_(.*?).tonly.mut2.vcf.gz/)[0][1].toInteger() } 
     )}

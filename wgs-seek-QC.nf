@@ -63,7 +63,7 @@ workflow {
     glin=deepvariant_step3.out.map{samplename,vcf,vcf_tbi,gvcf,gvcf_tbi -> gvcf}.collect()
     glnexus(glin)
 
-    //QC Steps--Add to end due to 
+    //QC Steps
     fc_lane(fastqinput)
     fastq_screen(fastp.out)
     kraken(fastqinput)
