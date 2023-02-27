@@ -13,7 +13,7 @@ include {fc_lane; fastq_screen;kraken;qualimap_bamqc;
     bcftools_stats;gatk_varianteval;
     snpeff;
     somalier_extract;somalier_analysis;multiqc} from  './workflow/modules/qc.nf'
-include {deepvariant_step1;deepvariant_step2;deepvariant_step3;glnexus} from './workflow/modules/germline.nf'
+include {deepvariant_step1;deepvariant_step2;deepvariant_step3;deepvariant_combined;glnexus} from './workflow/modules/germline.nf'
 include {fastp; bwamem2; indelrealign; bqsr; 
     gatherbqsr; applybqsr; samtoolsindex} from './workflow/modules/trim_align.nf'
 include {mutect2; mutect2_t_tonly; mutect2filter; mutect2filter_tonly; 
