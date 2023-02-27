@@ -184,7 +184,8 @@ workflow {
     glout=glnexus.out.map{germlinev,germlinenorm,tbi->tuple(germlinenorm,tbi)}
     vcftools(glout)
     collectvariantcallmetrics(glout)
-    bcfin=deepvariant_step3.out.map{samplename,vcf,vcf_tbi,gvcf,gvcf_tbi -> tuple(samplename,gvcf,gvcf_tbi)}
+    bcfin=deepvariant_combined.out.map{samplename,vcf,vcf_tbi,gvcf,gvcf_tbi -> tuple(samplename,gvcf,gvcf_tbi)}
+    //bcfin=deepvariant_step3.out.map{samplename,vcf,vcf_tbi,gvcf,gvcf_tbi -> tuple(samplename,gvcf,gvcf_tbi)}
     bcftools_stats(bcfin)
     gatk_varianteval(bcfin)
     snpeff(bcfin)
