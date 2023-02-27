@@ -58,7 +58,7 @@ process bwamem2{
 
      bwa-mem2 mem -M \
         -R '@RG\\tID:${samplename}\\tSM:${samplename}\\tPL:illumina\\tLB:${samplename}\\tPU:${samplename}\\tCN:hgsc\\tDS:wes' \
-        -t 12 \
+        -t 16 \
         ${GENOME} \
         ${samplename}.R1.trimmed.fastq.gz ${samplename}.R2.trimmed.fastq.gz | \
     samblaster -M | \

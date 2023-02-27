@@ -10,6 +10,7 @@ intervalbedin = file(params.intervals)
 outdir=file(params.output)
 
 //Processes
+//Deep Variant
 process deepvariant_step1 {
     module=['deepvariant/1.4.0']
     
@@ -62,9 +63,9 @@ process deepvariant_step2 {
 }
 
 
-
+//Step 3 DV
 process deepvariant_step3 {
-    //scratch '/lscratch/$SLURM_JOB_ID/dv'
+    scratch '/lscratch/$SLURM_JOB_ID/dv'
     publishDir("${outdir}/deepvariant", mode: 'copy')
 
     module=['deepvariant/1.4.0']
@@ -87,6 +88,34 @@ process deepvariant_step3 {
     --gvcf_outfile ${samplename}.gvcf.gz \
     --nonvariant_site_tfrecord_path .
     """
+}
+
+//Combined DeepVariant
+process deepvariant_combined {
+    module=['deepvariant/1.4.0']
+    scratch '/lscratch/$SLURM_JOB_ID/dv'
+
+    publishDir("${outdir}/germline_deepvariant", mode: 'copy')
+
+    input:
+        tuple val(samplename), path("${samplename}.bam"), path("${samplename}.bai"), path(bed)
+    
+    output:
+        tuple val(samplename), path("${samplename}.gvcf.gz"), path("${samplename}.gvcf.gz.tbi"),
+        path("${samplename}.vcf.gz"), path("${samplename}.vcf.gz.tbi")
+
+
+    script:     
+    """
+    run_deepvariant \
+        --model_type=WGS \
+        --ref=$GENOME \
+        --reads=${samplename}.bam \
+        --output_gvcf= ${samplename}.gvcf.gz \
+        --output_vcf=${samplename}.vcf.gz \
+        --num_shards=16 
+    """
+
 }
 
 process glnexus {

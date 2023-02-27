@@ -53,7 +53,7 @@ workflow {
     bambyinterval=bwamem2.out.combine(splitinterval.out.flatten())
 
     //GERMLINE CALLING
-    deepvariant_step1(bambyinterval) 
+    /*deepvariant_step1(bambyinterval) 
     deepvariant_1_sorted=deepvariant_step1.out.groupTuple()
         .map { samplename,tfbeds,gvcfbed -> tuple( samplename, 
         tfbeds.toSorted{ it -> (it.name =~ /${samplename}.tfrecord_(.*?).bed.gz/)[0][1].toInteger() } ,
@@ -61,6 +61,9 @@ workflow {
         }
     deepvariant_step2(deepvariant_1_sorted) | deepvariant_step3 
     glin=deepvariant_step3.out.map{samplename,vcf,vcf_tbi,gvcf,gvcf_tbi -> gvcf}.collect()
+    */
+    deepvariant_combined(bwamem2.out)
+    glin=deepvariant_combined.out.map{samplename,vcf,vcf_tbi,gvcf,gvcf_tbi -> gvcf}.collect()
     glnexus(glin)
 
     //Indel Realignment after BQSR
@@ -195,7 +198,7 @@ workflow {
     fqs_out=fastq_screen.out.collect() 
     //map{r1_ht,r1_png,r1_txt,r2_ht,r2_png,r2_txt-> r2_txt}.collect()
 
-    kraken_out=kraken.out.map{samplename,txt,taxa,krona -> tuple(txt,taxa,krona)}.collect()
+    kraken_out=kraken.out.map{samplename,taxa,krona -> tuple(taxa,krona)}.collect()
     qualimap_out=qualimap_bamqc.out.map{genome,rep->tuple(genome,rep)}.collect()
     samtools_flagstats_out=samtools_flagstats.out.collect()
     bcftools_stats_out= bcftools_stats.out.collect()

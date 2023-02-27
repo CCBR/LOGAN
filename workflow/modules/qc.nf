@@ -107,7 +107,7 @@ process kraken {
 
     output:
         tuple val(samplename),
-        path("${samplename}.trimmed.kraken_bacteria.out.txt"),
+        //path("${samplename}.trimmed.kraken_bacteria.out.txt"),
         path("${samplename}.trimmed.kraken_bacteria.taxa.txt"),
         path("${samplename}.trimmed.kraken_bacteria.krona.html")
         
@@ -125,11 +125,11 @@ process kraken {
     
     kraken2 --db $BACDB \
         --threads 16 --report ${samplename}.trimmed.kraken_bacteria.taxa.txt \
-        --output ${samplename}.trimmed.kraken_bacteria.out.txt \
+        --output - \
         --gzip-compressed \
         --paired ${fqs[0]} ${fqs[1]}
     # Generate Krona Report
-    cut -f2,3 ${samplename}.trimmed.kraken_bacteria.out.txt} | \
+    cut -f2,3 ${samplename}.trimmed.kraken_bacteria.taxa.txt} | \
         ktImportTaxonomy - -o ${samplename}.trimmed.kraken_bacteria.krona.html
     """
 }
