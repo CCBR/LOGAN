@@ -95,10 +95,10 @@ process deepvariant_combined {
     module=['deepvariant/1.4.0']
     scratch '/lscratch/$SLURM_JOB_ID/dv'
 
-    publishDir("${outdir}/germline_deepvariant", mode: 'copy')
+    publishDir("${outdir}/deepvariant", mode: 'copy')
 
     input:
-        tuple val(samplename), path("${samplename}.bam"), path("${samplename}.bai"), path(bed)
+        tuple val(samplename), path("${samplename}.bam"), path("${samplename}.bai")
     
     output:
         tuple val(samplename), path("${samplename}.gvcf.gz"), path("${samplename}.gvcf.gz.tbi"),

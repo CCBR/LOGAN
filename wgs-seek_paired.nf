@@ -170,10 +170,11 @@ workflow {
     tn_vepin=mutect2filter.out
     .join(sample_sheet)
 
-   annotvep_tn(tn_vepin)
-   annotvep_tonly(mutect2filter_tonly.out)
+    annotvep_tn(tn_vepin)
+    annotvep_tonly(mutect2filter_tonly.out)
 
-    //QC Steps
+    //PCGR Annotator/CivIC?
+
 
     //QC Steps
     fc_lane(fastqinput)
