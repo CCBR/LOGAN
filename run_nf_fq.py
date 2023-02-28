@@ -49,7 +49,7 @@ def main():
 
     with open(outswarmmut, "a") as outfile:
         outfile.write(code+"\n")
-    sbatch_mut="sbatch --cpus-per-task=2 --mem=16g --time 10-00:00:00 --partition norm --output submit_"+time1+".log --error error_"+time1+".log "+outswarmmut 
+    sbatch_mut="sbatch --cpus-per-task=2 --mem=16g --time 10-00:00:00 --partition norm --output submit_"+time1+".log --error error_"+time1+".log --mail-type=BEGIN,TIME_LIMIT_90,END "+outswarmmut 
     if args.submit==True:
         print(sbatch_mut)
         os.system(sbatch_mut)
