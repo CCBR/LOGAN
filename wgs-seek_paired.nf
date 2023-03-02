@@ -53,7 +53,8 @@ workflow {
     bambyinterval=bwamem2.out.combine(splitinterval.out.flatten())
 
     //GERMLINE CALLING
-    /*deepvariant_step1(bambyinterval) 
+    
+    deepvariant_step1(bambyinterval) 
     deepvariant_1_sorted=deepvariant_step1.out.groupTuple()
         .map { samplename,tfbeds,gvcfbed -> tuple( samplename, 
         tfbeds.toSorted{ it -> (it.name =~ /${samplename}.tfrecord_(.*?).bed.gz/)[0][1].toInteger() } ,
@@ -61,9 +62,13 @@ workflow {
         }
     deepvariant_step2(deepvariant_1_sorted) | deepvariant_step3 
     glin=deepvariant_step3.out.map{samplename,vcf,vcf_tbi,gvcf,gvcf_tbi -> gvcf}.collect()
+    
+    /*Deepvariant combined vs separated Steps
+    //deepvariant_combined(bwamem2.out)
+    //glin=deepvariant_combined.out.map{samplename,vcf,vcf_tbi,gvcf,gvcf_tbi -> gvcf}.collect()
     */
-    deepvariant_combined(bwamem2.out)
-    glin=deepvariant_combined.out.map{samplename,vcf,vcf_tbi,gvcf,gvcf_tbi -> gvcf}.collect()
+
+    glin=deepvariant_step3.out.map{samplename,vcf,vcf_tbi,gvcf,gvcf_tbi -> gvcf}.collect()
     glnexus(glin)
 
     //Indel Realignment after BQSR
@@ -185,16 +190,17 @@ workflow {
     glout=glnexus.out.map{germlinev,germlinenorm,tbi->tuple(germlinenorm,tbi)}
     vcftools(glout)
     collectvariantcallmetrics(glout)
-    bcfin=deepvariant_combined.out.map{samplename,vcf,vcf_tbi,gvcf,gvcf_tbi -> tuple(samplename,gvcf,gvcf_tbi)}
-    //bcfin=deepvariant_step3.out.map{samplename,vcf,vcf_tbi,gvcf,gvcf_tbi -> tuple(samplename,gvcf,gvcf_tbi)}
+    //bcfin=deepvariant_combined.out.map{samplename,vcf,vcf_tbi,gvcf,gvcf_tbi -> tuple(samplename,gvcf,gvcf_tbi)}
+    bcfin=deepvariant_step3.out.map{samplename,vcf,vcf_tbi,gvcf,gvcf_tbi -> tuple(samplename,gvcf,gvcf_tbi)}
     bcftools_stats(bcfin)
     gatk_varianteval(bcfin)
     snpeff(bcfin)
     somalier_extract(bwamem2.out) 
     som_in=somalier_extract.out.collect()
     somalier_analysis(som_in)
+    
+    
     //FASTQC DOWN THE LINE ADD
-
     //MULTIQC
     fclane_out=fc_lane.out.map{samplename,info->info}.collect()
     fqs_out=fastq_screen.out.collect() 

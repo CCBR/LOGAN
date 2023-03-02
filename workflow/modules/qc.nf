@@ -192,7 +192,7 @@ process qualimap_bamqc {
     """
     unset DISPLAY
     qualimap bamqc -bam ${samplename}.bam \
-        --java-mem-size=64G \
+        --java-mem-size=72G \
         -c -ip \
         -outdir ${samplename} \
         -outformat HTML \

@@ -70,6 +70,10 @@ process bwamem2{
 }
 
 process indelrealign {
+    /*
+    Briefly, RealignerTargetCreator runs faster with increasing -nt threads, 
+    while IndelRealigner shows diminishing returns for increasing scatter
+    */
     tag { name }
     module=['GATK/3.8-1']
     
@@ -86,12 +90,14 @@ process indelrealign {
         -I ${samplename}.bam \
         -R ${GENOME} \
         -o ${samplename}.intervals \
+        -nt 16 \
         -known ${MILLSINDEL} -known ${SHAPEITINDEL} 
     
     /usr/bin/java -Xmx32g -jar \${GATK_JAR} -T IndelRealigner \
         -R ${GENOME} \
         -I ${samplename}.bam \
         -known ${MILLSINDEL} -known ${SHAPEITINDEL} \
+        -nt 16 \
         --use_jdk_inflater \
         --use_jdk_deflater \
         -targetIntervals ${samplename}.intervals \
