@@ -197,6 +197,7 @@ process qualimap_bamqc {
         -outdir ${samplename} \
         -outformat HTML \
         -nt 8 \
+        --gd HUMAN \
         --skip-duplicated \
         -nw 500 \
         -p NON-STRAND-SPECIFIC

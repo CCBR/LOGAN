@@ -97,7 +97,6 @@ process indelrealign {
         -R ${GENOME} \
         -I ${samplename}.bam \
         -known ${MILLSINDEL} -known ${SHAPEITINDEL} \
-        -nt 16 \
         --use_jdk_inflater \
         --use_jdk_deflater \
         -targetIntervals ${samplename}.intervals \
