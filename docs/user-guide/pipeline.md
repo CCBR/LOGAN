@@ -1,9 +1,9 @@
-# How to run
+# How to run WGS-Seek
 
 ## Guide
 
-* `run_nf_fq` - Starts a next nextflow run
-
+* `./run_nf_fq` - Starts a next nextflow run
+Supports runs from Fastq and either Tumor-Normal or Tumor-only Sequencing
 
 ## Running Nextflow
 Multiple options required for running

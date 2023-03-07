@@ -1,0 +1,10 @@
+site_name: CCBR wgs-seek
+site_description: >-
+  CCBR Whole Genome Sequencing Pipeline 
+nav:
+  - Home: 'index.md'
+  - Pipeline:
+    - Tumor-Normal:  'user-guide/pipeline.md'
+theme:
+    name: readthedocs
+    highlightjs: true
