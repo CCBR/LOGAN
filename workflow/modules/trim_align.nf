@@ -152,7 +152,7 @@ process gatherbqsr {
 process applybqsr {
     /*
     Base quality recalibration for all samples to 
-    */    
+    */   
     input:
         tuple val(samplename),path("${samplename}.ir.bam"), path("${samplename}.recal_data.grp")
 
@@ -176,6 +176,7 @@ process applybqsr {
 
 
 process samtoolsindex{
+publishDir(path: "${outdir}/bams/BQSR", mode: 'copy') 
   input:
     tuple val(bamname), path(bam)
     

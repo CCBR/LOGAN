@@ -4,7 +4,6 @@ nextflow.enable.dsl=2
 date = new Date().format( 'yyyyMMdd' )
 
 publishDir=file(params.output)
-fastqinput=Channel.fromFilePairs(params.input)
 intervalbedin = Channel.fromPath(params.intervals,checkIfExists: true,type: 'file')
 
 //Final Workflow
@@ -26,12 +25,21 @@ include {splitinterval} from "./workflow/modules/splitbed.nf"
 
 
 workflow {
-    fastqinput.view()
-
-     if(params.sample_sheet){
+    if(params.fastqinput){
+        fastqinput=Channel.fromFilePairs(params.fastq_input).view()
+    }else if(params.file_input) {
+        fastqinput=Channel.fromPath(params.file_input).view()
+                        .splitCsv(header: false, sep: "\t", strip:true)
+                        .map{ sample,fq1,fq2 -> 
+                        tuple(sample, tuple(file(fq1),file(fq2)))
+                                  }
+                       .view()
+    }
+    
+    if(params.sample_sheet){
         sample_sheet=Channel.fromPath(params.sample_sheet, checkIfExists: true).view()
                        .ifEmpty { "sample sheet not found" }
-                       .splitCsv(header:true, sep: "\t",strip:true)
+                       .splitCsv(header:true, sep: "\t", strip:true)
                        .map { row -> tuple(
                         row.Tumor,
                         row.Normal
@@ -42,6 +50,7 @@ workflow {
              samplename)}.view()
         
     }
+
 
     fastp(fastqinput)
     splitinterval(intervalbedin)

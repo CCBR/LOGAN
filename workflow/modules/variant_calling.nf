@@ -260,7 +260,9 @@ process mergemut2stats_tonly {
 
 
 process mutect2filter {
-    publishDir(path: "${outdir}/vcfs/mutect", mode: 'copy')
+        
+
+    publishDir(path: "${outdir}/vcfs/mutect2", mode: 'copy')
 
     input:
         tuple val(sample), path(mutvcfs), path(stats), path(obs), path(pileups), path(normal_pileups),path(tumorcontamination),path(normalcontamination)
