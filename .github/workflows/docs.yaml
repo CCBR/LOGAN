@@ -22,5 +22,5 @@ jobs:
         with:
           python-version: 3.x
       - run: pip install mkdocs
-      - run: mkdocs build --config-file docs/mkdocs.yml --site-dir docs/site
+      - run: mkdocs build --config-file mkdocs.yml
       - run: mkdocs gh-deploy --force --clean --verbose
