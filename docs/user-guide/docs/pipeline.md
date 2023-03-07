@@ -2,8 +2,7 @@
 
 ## Guide
 
-* `run_nf_fq` - Runs a new Nextflow run 
-
+* `run_nf_fq` - Starts a next nextflow run!
 
 
 ## Running Nextflow
