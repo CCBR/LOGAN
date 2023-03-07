@@ -1,4 +1,4 @@
-# WGS-seek 🔬 [![docs](https://github.com/dnousome/wgs-seek/workflows/docs/badge.svg)](https://github.com/dnousome/wgs-seek/actions/workflows/docs.yml) [![Docker Pulls](https://img.shields.io/docker/pulls/nciccbr/ccbr_wes_base)](https://hub.docker.com/r/nciccbr/ccbr_wes_base) [![GitHub issues](https://img.shields.io/github/issues/dnousome/wgs-seek?color=brightgreen)](https://github.com/dnousome/wgs-seek/issues)  [![GitHub license](https://img.shields.io/github/license/dnousome/wgs-seek)](https://github.com/dnousome/wgs-seek/blob/master/LICENSE) 
+# WGS-seek 🔬 [![Docker Pulls](https://img.shields.io/docker/pulls/nciccbr/ccbr_wes_base)](https://hub.docker.com/r/nciccbr/ccbr_wes_base) [![GitHub issues](https://img.shields.io/github/issues/dnousome/wgs-seek?color=brightgreen)](https://github.com/dnousome/wgs-seek/issues)  [![GitHub license](https://img.shields.io/github/license/dnousome/wgs-seek)](https://github.com/dnousome/wgs-seek/blob/master/LICENSE) 
 
 > **_Whole Genome-Sequencing Pipeline_**. This is the home of the pipeline, wgs-seek. Its long-term goals: to accurately call germline and somatic variants, to infer CNVs, and to boldly annotate variants like no pipeline before!
 
@@ -34,7 +34,6 @@ cd wgs-seek/
 ```
 
 ## Contribute 
-
 This site is a living document, created for and by members like you. wgs-seek is maintained by the members of CCBR and is improved by continous feedback! We encourage you to contribute new content and make improvements to existing content via pull request to our [repository](https://github.com/dnousome/wgs-seek/pulls).
 
 
