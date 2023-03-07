@@ -1,7 +1,0 @@
-site_name: CCBR wgs-seek
-nav:
-  - Home: 'index.md'
-  - Pipeline: 'pipeline.md'
-theme:
-    name: readthedocs
-    highlightjs: true
