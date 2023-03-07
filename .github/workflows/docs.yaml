@@ -25,6 +25,6 @@ jobs:
           python-version: 3.x
       - run: pip install mkdocs
       - name: Build site
-        run: mkdocs build --config-file ./docs/mkdocs.yml
+        run: mkdocs build 
       - name: Deploy
         run: mkdocs gh-deploy --force --clean --verbose
