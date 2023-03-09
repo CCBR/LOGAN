@@ -26,7 +26,7 @@ def main():
     c2="module load nextflow"
     c3="module load singularity"
     if args.fqinput:
-        in1="--fastq_input "+'"'+args.fqinput+'"'
+        in1="--fastqinput "+'"'+args.fqinput+'"'
     elif args.fileinput:
         in1="--file_input "+args.fileinput
     if args.paired:

@@ -298,8 +298,8 @@ process mutect2filter {
 process mutect2_t_tonly {
     
     input:
-        tuple val(tumorname), path(tumor), path(tumorbai), path(bed)
-    
+        tuple val(tumorname), path(tumor), path(tumorbai), val(normalname), path(normal), path(normalbai), path(bed)
+
     output:
         tuple val(tumorname),
         path("${tumor.simpleName}_${bed.simpleName}.tonly.mut2.vcf.gz"),

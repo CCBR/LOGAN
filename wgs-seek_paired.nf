@@ -25,7 +25,7 @@ include {splitinterval} from "./workflow/modules/splitbed.nf"
 
 
 workflow {
-    if(params.fastqinput){
+    if(params.fastq_input){
         fastqinput=Channel.fromFilePairs(params.fastq_input).view()
     }else if(params.file_input) {
         fastqinput=Channel.fromPath(params.file_input).view()
