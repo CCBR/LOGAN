@@ -298,8 +298,8 @@ process mutect2filter {
 process mutect2_t_tonly {
     
     input:
-        tuple val(tumorname), path(tumor), path(tumorbai), val(normalname), path(normal), path(normalbai), path(bed)
-
+        tuple val(tumorname), path(tumor), path(tumorbai), path(bed)
+    
     output:
         tuple val(tumorname),
         path("${tumor.simpleName}_${bed.simpleName}.tonly.mut2.vcf.gz"),
@@ -324,7 +324,7 @@ process mutect2_t_tonly {
 
 
 process mutect2filter_tonly {
-    publishDir(path: "${outdir}/vcfs/mutect", mode: 'copy')
+    publishDir(path: "${outdir}/vcfs/mutect2", mode: 'copy')
 
     input:
         tuple val(sample), path(mutvcfs), path(stats), path(obs), path(pileups),path(tumorcontamination)

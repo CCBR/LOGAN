@@ -7,7 +7,7 @@ KGP=file(params.kgp) ///data/CCBR_Pipeliner/Exome-seek/hg38/GATK_resource_bundle
 DBSNP=file(params.dbsnp) //= "/data/OpenOmics/references/genome-seek/GATK_resource_bundle/hg38bundle/dbsnp_138.hg38.vcf.gz"
 GNOMAD=file(params.gnomad) //= '/data/CCBR_Pipeliner/Exome-seek/hg38/GNOMAD/somatic-hg38-af-only-gnomad.hg38.vcf.gz' // /data/CCBR_Pipeliner/Exome-seek/hg38/GNOMAD/somatic-hg38-af-only-gnomad.hg38.vcf.gz
 PON=file(params.pon) 
-publishDir=file(params.output)
+outdir=file(params.output)
 
 
 process fastp{
@@ -176,8 +176,9 @@ process applybqsr {
 
 
 process samtoolsindex{
-publishDir(path: "${outdir}/bams/BQSR", mode: 'copy') 
-  input:
+    publishDir(path: "${outdir}/bams/BQSR", mode: 'copy') 
+    
+    input:
     tuple val(bamname), path(bam)
     
     output:

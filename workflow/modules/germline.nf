@@ -25,7 +25,8 @@ process deepvariant_step1 {
 
     script:     
     """
-    mkdir outputshard gvcf
+    mkdir -p outputshard
+    mkdir -p gvcf
     make_examples \
     --mode calling \
     --ref $GENOME \

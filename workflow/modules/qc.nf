@@ -21,7 +21,7 @@ SCRIPT_PATH_SAMPLES = file(params.script_combineSamples)
 SCRIPT_PATH_PCA = file(params.script_ancestry)
     
 
-//OUTPUT DIRECTORY IS STORED IN THE module
+//OUTPUT DIRECTORY 
 outdir=file(params.output)
 
 process fc_lane {

@@ -22,11 +22,12 @@ def parse_args():
 def main():
     args=parse_args()
     dirname=os.path.dirname(os.path.realpath(__file__))
+    outdirname= os.path.basename(os.getcwd())
     c1="#!/usr/bin/bash"
     c2="module load nextflow"
     c3="module load singularity"
     if args.fqinput:
-        in1="--fastqinput "+'"'+args.fqinput+'"'
+        in1="--fastq_input "+'"'+args.fqinput+'"'
     elif args.fileinput:
         in1="--file_input "+args.fileinput
     if args.paired:
@@ -52,8 +53,8 @@ def main():
     cmd1=' '.join(c4)
     code=c1+"\n"+c2+"\n"+c3+"\n"+cmd1
     time1=time.strftime("%Y_%m_%d_%H%M%S")
-    outswarmmut='wgs_nf_'+time1+'.slurm'
-
+    #outswarmmut='wgs_nf_'+time1+'.slurm'
+    outswarmmut=outdirname+"_"+time1+'.slurm'
     with open(outswarmmut, "a") as outfile:
         outfile.write(code+"\n")
     sbatch_mut="sbatch --cpus-per-task=2 --mem=16g --time 10-00:00:00 --partition norm --output submit_"+time1+".log --error error_"+time1+".log --mail-type=BEGIN,TIME_LIMIT_90,END "+outswarmmut 

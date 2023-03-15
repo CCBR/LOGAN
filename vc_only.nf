@@ -3,7 +3,7 @@ nextflow.enable.dsl=2
 
 date = new Date().format( 'yyyyMMdd' )
 
-outdir=file(params.output)
+publishDir=file(params.output)
 intervalbedin = Channel.fromPath(params.intervals,checkIfExists: true,type: 'file')
 
 //Final Workflow
@@ -24,18 +24,7 @@ include {mutect2; mutect2_t_tonly; mutect2filter; mutect2filter_tonly;
 include {splitinterval} from "./workflow/modules/splitbed.nf"
 
 
-workflow {
-    if(params.fastq_input){
-        fastqinput=Channel.fromFilePairs(params.fastq_input).view()
-    }else if(params.file_input) {
-        fastqinput=Channel.fromPath(params.file_input).view()
-                        .splitCsv(header: false, sep: "\t", strip:true)
-                        .map{ sample,fq1,fq2 -> 
-                        tuple(sample, tuple(file(fq1),file(fq2)))
-                                  }
-                       .view()
-    }
-    
+workflow{
     if(params.sample_sheet){
         sample_sheet=Channel.fromPath(params.sample_sheet, checkIfExists: true).view()
                        .ifEmpty { "sample sheet not found" }
@@ -45,56 +34,15 @@ workflow {
                         row.Normal
                        )
                                   }
-    }else{
-        sample_sheet=fastqinput.map{samplename,f1 -> tuple (
-             samplename)}.view()
-        
     }
-
-
-    fastp(fastqinput)
+   bamby1=Channel.fromPath(params.bam_input)
+   .map{it-> tuple(it.simpleName,it,file("${it}.bai"))}
+    
     splitinterval(intervalbedin)
     
-    bwamem2(fastp.out)
-    indelrealign(bwamem2.out)
+   bamwithsample=bamby1.join(sample_sheet).map{it.swap(3,0)}.join(bamby1).map{it.swap(3,0)}.view()
 
-    indelbambyinterval=indelrealign.out.combine(splitinterval.out.flatten())
-    bambyinterval=bwamem2.out.combine(splitinterval.out.flatten())
-
-    //GERMLINE CALLING
-    
-    deepvariant_step1(bambyinterval) 
-    deepvariant_1_sorted=deepvariant_step1.out.groupTuple()
-        .map { samplename,tfbeds,gvcfbed -> tuple( samplename, 
-        tfbeds.toSorted{ it -> (it.name =~ /${samplename}.tfrecord_(.*?).bed.gz/)[0][1].toInteger() } ,
-        gvcfbed.toSorted{ it -> (it.name =~ /${samplename}.gvcf.tfrecord_(.*?).bed.gz/)[0][1].toInteger() } )
-        }
-    deepvariant_step2(deepvariant_1_sorted) | deepvariant_step3 
-    glin=deepvariant_step3.out.map{samplename,vcf,vcf_tbi,gvcf,gvcf_tbi -> gvcf}.collect()
-    
-    /*Deepvariant combined vs separated Steps
-    //deepvariant_combined(bwamem2.out)
-    //glin=deepvariant_combined.out.map{samplename,vcf,vcf_tbi,gvcf,gvcf_tbi -> gvcf}.collect()
-    */
-
-    glin=deepvariant_step3.out.map{samplename,vcf,vcf_tbi,gvcf,gvcf_tbi -> gvcf}.collect()
-    glnexus(glin)
-
-    //Indel Realignment after BQSR
-    bqsr(indelbambyinterval)
-    bqsrs=bqsr.out.groupTuple()
-        .map { samplename,beds -> tuple( samplename, 
-        beds.toSorted{ it -> (it.name =~ /${samplename}_(.*?).recal_data.grp/)[0][1].toInteger() } )
-        }
-    gatherbqsr(bqsrs)
-
-    tobqsr=indelrealign.out.combine(gatherbqsr.out,by:0)
-    applybqsr(tobqsr) 
-    samtoolsindex(applybqsr.out)
-    
-    bamwithsample=samtoolsindex.out.join(sample_sheet).map{it.swap(3,0)}.join(samtoolsindex.out).map{it.swap(3,0)}
-
-    bambyinterval=bamwithsample.combine(splitinterval.out.flatten())
+   bambyinterval=bamwithsample.combine(splitinterval.out.flatten())
 
     //Paired Mutect2    
     mutect2(bambyinterval)
@@ -162,8 +110,6 @@ workflow {
 
     //Contamination
     contamination_tumoronly(pileup_paired_tout)
-
-
     
     //Final TUMOR ONLY FILTER
     allmut2tonly=mutect2_t_tonly.out.groupTuple()
@@ -189,46 +135,4 @@ workflow {
     annotvep_tonly(mutect2filter_tonly.out)
 
     //PCGR Annotator/CivIC?
-
-
-    //QC Steps
-    fc_lane(fastqinput)
-    fastq_screen(fastp.out)
-    kraken(fastqinput)
-    qualimap_bamqc(bwamem2.out)
-    samtools_flagstats(bwamem2.out)
-    glout=glnexus.out.map{germlinev,germlinenorm,tbi->tuple(germlinenorm,tbi)}
-    vcftools(glout)
-    collectvariantcallmetrics(glout)
-    //bcfin=deepvariant_combined.out.map{samplename,vcf,vcf_tbi,gvcf,gvcf_tbi -> tuple(samplename,gvcf,gvcf_tbi)}
-    bcfin=deepvariant_step3.out.map{samplename,vcf,vcf_tbi,gvcf,gvcf_tbi -> tuple(samplename,gvcf,gvcf_tbi)}
-    bcftools_stats(bcfin)
-    gatk_varianteval(bcfin)
-    snpeff(bcfin)
-    somalier_extract(bwamem2.out) 
-    som_in=somalier_extract.out.collect()
-    somalier_analysis(som_in)
-    
-    
-    //FASTQC DOWN THE LINE ADD
-    //MULTIQC
-    fclane_out=fc_lane.out.map{samplename,info->info}.collect()
-    fqs_out=fastq_screen.out.collect() 
-    //map{r1_ht,r1_png,r1_txt,r2_ht,r2_png,r2_txt-> r2_txt}.collect()
-
-    kraken_out=kraken.out.map{samplename,taxa,krona -> tuple(taxa,krona)}.collect()
-    qualimap_out=qualimap_bamqc.out.map{genome,rep->tuple(genome,rep)}.collect()
-    samtools_flagstats_out=samtools_flagstats.out.collect()
-    bcftools_stats_out= bcftools_stats.out.collect()
-    gatk_varianteval_out= gatk_varianteval.out.collect()
-    snpeff_out=snpeff.out.collect()//map{vcf,csv,html->vcf,csv,html}.collect()
-    vcftools_out=vcftools.out
-    collectvariantcallmetrics_out=collectvariantcallmetrics.out//.map{details,summary->details,summary}
-    somalier_analysis_out=somalier_analysis.out.collect()
-
-    conall=fclane_out.concat(fqs_out,kraken_out,qualimap_out,samtools_flagstats_out,bcftools_stats_out,
-    gatk_varianteval_out,snpeff_out,vcftools_out,collectvariantcallmetrics_out,somalier_analysis_out).flatten().toList()
-    multiqc(conall)
 }
-
-
