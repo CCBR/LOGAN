@@ -1,7 +1,7 @@
 # Base image
 FROM --platform=linux/amd64 ubuntu:20.04
 
-LABEL maintainer <nousomedr@nih.gov,vishal.koparde@nih.gov>
+LABEL maintainer <vishal.koparde@nih.gov,nousomedr@nih.gov,>
 
 # Create Container filesystem specific 
 # working directory and opt directories 
@@ -93,8 +93,8 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get install -y \
       zlib1g-dev \
       zlibc
 
-# Common bioinformatics tools
-# bwa/0.7.17  bowtie/1.2.3  bowtie2/2.3.5.1 
+# Common bioinformatics tools 
+# bwa/0.7.17-4  bowtie/1.2.3  bowtie2/2.3.5.1 
 # bedtools/2.27.1  bedops/2.4.37  samtools/1.10 
 # bcftools/1.10.2  vcftools/0.1.16  trimmomatic/0.39
 # tabix/1.10.2
@@ -110,7 +110,7 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get install -y \
       trimmomatic \
       vcftools
 
-# Install Sambamba/0.8.1 for CNTRL-Freec
+# Install Sambamba/0.8.1 for CTRL-Freec
 # not available to apt-get on Ubuntu 20.04
 RUN wget https://github.com/biod/sambamba/releases/download/v0.8.1/sambamba-0.8.1-linux-amd64-static.gz \
     && gzip -d /opt2/sambamba-0.8.1-linux-amd64-static.gz \

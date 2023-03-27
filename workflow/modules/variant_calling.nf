@@ -39,6 +39,14 @@ process mutect2 {
     --f1r2-tar-gz ${tumor.simpleName}_${bed.simpleName}.f1r2.tar.gz \
     --independent-mates
     """
+
+    stub:
+    
+    """
+    touch ${tumor.simpleName}_${bed.simpleName}.mut2.vcf.gz
+    touch ${tumor.simpleName}_${bed.simpleName}.f1r2.tar.gz
+    touch ${tumor.simpleName}_${bed.simpleName}.mut2.vcf.gz.stats
+    """
 }
 
 
@@ -60,6 +68,14 @@ process pileup_paired_t {
         -O ${tumor.simpleName}_${bed.simpleName}.tumor.pileup.table 
 
     """
+
+    stub:
+    
+    """
+    touch ${tumor.simpleName}_${bed.simpleName}.tumor.pileup.table
+
+    """
+
 }
 
 
@@ -81,10 +97,21 @@ process pileup_paired_n {
         -O ${tumor.simpleName}_${bed.simpleName}.normal.pileup.table 
 
     """
+    
+    stub:
+    """
+    touch ${tumor.simpleName}_${bed.simpleName}.normal.pileup.table
+    """
+
 }
 
 
 process contamination_paired {
+
+    publishDir(path: "${outdir}/contamination/", mode: 'copy')
+
+
+    //OUTPUT THE CONTAMINATION TABLE
     input:
         tuple val(tumorname),
         path(tumor_pileups),
@@ -121,6 +148,16 @@ process contamination_paired {
         -O ${tumorname}_normal.contamination.table
 
     """
+
+    stub:
+    """
+    touch ${tumorname}_allpileups.table
+    touch ${tumorname}_normal.allpileups.table
+    touch ${tumorname}.contamination.table
+    touch ${tumorname}_normal.contamination.table
+    """
+
+    
 }
 
 process pileup_paired_tonly {
@@ -141,10 +178,19 @@ process pileup_paired_tonly {
         -O ${tumor.simpleName}_${bed.simpleName}.tumor.pileup.table 
 
     """
+
+    stub:
+    """
+    touch ${tumor.simpleName}_${bed.simpleName}.tumor.pileup.table
+
+    """
+
 }
 
 
 process contamination_tumoronly {
+    publishDir(path: "${outdir}/contamination/", mode: 'copy')
+
     input:
         tuple val(tumorname),
         path(tumor_pileups)
@@ -169,6 +215,13 @@ process contamination_tumoronly {
         -O ${tumorname}.contamination.table
 
     """
+
+    stub:
+    """
+    touch ${tumorname}_allpileups.table
+    touch ${tumorname}.contamination.table
+    """
+
 }
 
 
@@ -190,6 +243,10 @@ process learnreadorientationmodel {
         --input ${f1r2in}
     """
 
+    stub:
+    """
+    touch ${sample}.read-orientation-model.tar.gz
+    """
 }
 
 
@@ -211,6 +268,10 @@ process learnreadorientationmodel_tonly {
         --input ${f1r2in}
     """
 
+    stub:
+    """
+    touch ${sample}.read-orientation-model.tar.gz
+    """
 }
 
 
@@ -233,6 +294,11 @@ process mergemut2stats {
         -O ${sample}.final.stats
     """
 
+    stub:
+    """
+    touch ${sample}.final.stats
+    """
+
 }
 
 
@@ -253,6 +319,11 @@ process mergemut2stats_tonly {
     gatk MergeMutectStats \
         --stats ${statsin} \
         -O ${sample}.final.stats
+    """
+
+    stub:
+    """
+    touch ${sample}.final.stats
     """
 
 }
@@ -291,6 +362,15 @@ process mutect2filter {
         --exclude-filtered \
         --output ${sample}.final.mut2.vcf.gz
     """
+
+    stub:
+    """
+    touch ${sample}.marked.vcf.gz
+    touch ${sample}.final.mut2.vcf.gz
+    touch ${sample}.marked.vcf.gz.filteringStats.tsv
+    """
+
+
 }
 
 
@@ -320,6 +400,15 @@ process mutect2_t_tonly {
     --f1r2-tar-gz ${tumor.simpleName}_${bed.simpleName}.f1r2.tar.gz \
     --independent-mates    
     """
+
+    stub:
+    """
+    touch ${tumor.simpleName}_${bed.simpleName}.tonly.mut2.vcf.gz
+    touch ${tumor.simpleName}_${bed.simpleName}.f1r2.tar.gz
+    touch ${tumor.simpleName}_${bed.simpleName}.tonly.mut2.vcf.gz.stats
+    """
+
+
 }
 
 
@@ -352,6 +441,13 @@ process mutect2filter_tonly {
         --variant ${sample}.tonly.marked.vcf.gz \
         --exclude-filtered \
         --output ${sample}.tonly.final.mut2.vcf.gz
+    """
+
+    stub:
+    """
+    touch ${sample}.tonly.marked.vcf.gz
+    touch ${sample}.tonly.final.mut2.vcf.gz
+    touch ${sample}.tonly.marked.vcf.gz.filteringStats.tsv
     """
 }
 
@@ -389,6 +485,11 @@ process annotvep_tn {
     --ncbi-build GRCh38 --species homo_sapiens --ref-fasta ${GENOME}
 
     """
+
+    stub:
+    """
+    touch ${tumorsample}.maf
+    """
 }
 
 
@@ -420,5 +521,10 @@ process annotvep_tonly {
     --vep-data \${VEP_CACHEDIR} \
     --ncbi-build GRCh38 --species homo_sapiens --ref-fasta ${GENOME}
 
+    """
+
+    stub:
+    """
+    touch ${tumorsample}.tonly.maf
     """
 }

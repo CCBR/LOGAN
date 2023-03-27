@@ -37,6 +37,14 @@ process deepvariant_step1 {
     --gvcf gvcf/${samplename}.gvcf.tfrecord_${bed}.gz 
     """
 
+    stub:
+    """
+    mkdir -p outputshard
+    mkdir -p gvcf
+    touch outputshard/${samplename}.tfrecord_${bed}.gz
+    touch gvcf/${samplename}.gvcf.tfrecord_${bed}.gz 
+    """
+
 }
 
 //Step 2 requires GPU
@@ -61,6 +69,12 @@ process deepvariant_step2 {
     --checkpoint $MODEL \
     --num_readers 16
     """
+
+    stub:
+    """
+    touch ${samplename}_call_variants_output.tfrecord.gz
+    """
+
 }
 
 
@@ -89,6 +103,14 @@ process deepvariant_step3 {
     --gvcf_outfile ${samplename}.gvcf.gz \
     --nonvariant_site_tfrecord_path .
     """
+
+    stub:
+    """
+    touch ${samplename}.vcf.gz ${samplename}.vcf.gz.tbi
+    touch ${samplename}.gvcf.gz   ${samplename}.gvcf.gz.tbi
+
+    """
+
 }
 
 //Combined DeepVariant
@@ -116,6 +138,15 @@ process deepvariant_combined {
         --output_vcf=${samplename}.vcf.gz \
         --num_shards=16 
     """
+
+
+    stub:
+    """
+    touch ${samplename}.vcf.gz ${samplename}.vcf.gz.tbi
+    touch ${samplename}.gvcf.gz  ${samplename}.gvcf.gz.tbi
+    
+    """
+
 
 }
 
@@ -151,6 +182,12 @@ process glnexus {
         --threads 8 \
         germline.norm.vcf.gz
     
+    """
+
+    stub:
+    """
+        touch germline.v.bcf
+        touch germline.norm.vcf.gz germline.norm.vcf.gz.tbi
     """
 }
 

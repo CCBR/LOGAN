@@ -1,40 +1,28 @@
-#!/usr/bin/env nextflow
-nextflow.enable.dsl=2
-
-date = new Date().format( 'yyyyMMdd' )
-
-outdir=file(params.output)
+//All Worksflows in One Place         
 intervalbedin = Channel.fromPath(params.intervals,checkIfExists: true,type: 'file')
 
-//Final Workflow
+
 include {fc_lane; fastq_screen;kraken;qualimap_bamqc;
     samtools_flagstats;vcftools;collectvariantcallmetrics;
     bcftools_stats;gatk_varianteval;
     snpeff;
-    somalier_extract;somalier_analysis;multiqc} from  './workflow/modules/qc.nf'
-include {deepvariant_step1;deepvariant_step2;deepvariant_step3;deepvariant_combined;glnexus} from './workflow/modules/germline.nf'
+    somalier_extract;somalier_analysis;multiqc} from  './qc.nf'
+include {deepvariant_step1;deepvariant_step2;deepvariant_step3;
+    deepvariant_combined;glnexus} from './germline.nf'
 include {fastp; bwamem2; indelrealign; bqsr; 
-    gatherbqsr; applybqsr; samtoolsindex} from './workflow/modules/trim_align.nf'
+    gatherbqsr; applybqsr; samtoolsindex} from './trim_align.nf'
 include {mutect2; mutect2_t_tonly; mutect2filter; mutect2filter_tonly; 
     pileup_paired_t; pileup_paired_n; 
     contamination_paired; contamination_tumoronly;
     learnreadorientationmodel; learnreadorientationmodel_tonly; 
     mergemut2stats; mergemut2stats_tonly;
-    annotvep_tn; annotvep_tonly} from './workflow/modules/variant_calling.nf'
-include {splitinterval} from "./workflow/modules/splitbed.nf"
+    annotvep_tn; annotvep_tonly} from './variant_calling.nf'
+include {splitinterval} from "./splitbed.nf"
 
-log.info """\
-         W G S S E E K   P I P E L I N E    
-         =============================
-         genome: ${params.genome}
-         outdir: ${params.output}
-         Samplesheet: ${params.sample_sheet}
 
-         """
-         .stripIndent()
 
-         
-workflow {
+workflow INPUT_PIPE {
+    
     if(params.fastq_input){
         fastqinput=Channel.fromFilePairs(params.fastq_input).view()
     }else if(params.file_input) {
@@ -61,36 +49,28 @@ workflow {
         
     }
 
+    emit:
+        fastqinput
+        sample_sheet
 
+}
+
+workflow TRIM_ALIGN_PIPE {
+    take:
+        fastqinput
+        sample_sheet
+    main: 
     fastp(fastqinput)
     splitinterval(intervalbedin)
     
     bwamem2(fastp.out)
     indelrealign(bwamem2.out)
 
+//Indel Realignment after BQSR FOR ALL BAMS 
     indelbambyinterval=indelrealign.out.combine(splitinterval.out.flatten())
     bambyinterval=bwamem2.out.combine(splitinterval.out.flatten())
-
-    //GERMLINE CALLING
     
-    deepvariant_step1(bambyinterval) 
-    deepvariant_1_sorted=deepvariant_step1.out.groupTuple()
-        .map { samplename,tfbeds,gvcfbed -> tuple( samplename, 
-        tfbeds.toSorted{ it -> (it.name =~ /${samplename}.tfrecord_(.*?).bed.gz/)[0][1].toInteger() } ,
-        gvcfbed.toSorted{ it -> (it.name =~ /${samplename}.gvcf.tfrecord_(.*?).bed.gz/)[0][1].toInteger() } )
-        }
-    deepvariant_step2(deepvariant_1_sorted) | deepvariant_step3 
-    glin=deepvariant_step3.out.map{samplename,vcf,vcf_tbi,gvcf,gvcf_tbi -> gvcf}.collect()
-    
-    /*Deepvariant combined vs separated Steps
-    //deepvariant_combined(bwamem2.out)
-    //glin=deepvariant_combined.out.map{samplename,vcf,vcf_tbi,gvcf,gvcf_tbi -> gvcf}.collect()
-    */
-
-    glin=deepvariant_step3.out.map{samplename,vcf,vcf_tbi,gvcf,gvcf_tbi -> gvcf}.collect()
-    glnexus(glin)
-
-    //Indel Realignment after BQSR
+        
     bqsr(indelbambyinterval)
     bqsrs=bqsr.out.groupTuple()
         .map { samplename,beds -> tuple( samplename, 
@@ -104,8 +84,44 @@ workflow {
     
     bamwithsample=samtoolsindex.out.combine(sample_sheet,by:0).map{it.swap(3,0)}.combine(samtoolsindex.out,by:0).map{it.swap(3,0)}
 
+    emit:
+        bamwithsample
+        bambyinterval
+        fastpout=fastp.out
+        fastqin=fastqinput
+        splitout=splitinterval.out
+        indelbambyinterval
+        sample_sheet
+}
 
-    bambyinterval=bamwithsample.combine(splitinterval.out.flatten())
+workflow GERMLINE_PIPE {
+    //GERMLINE REQUIRES only BAMBYINTERVAL
+    take:
+        bambyinterval
+    main:
+    deepvariant_step1(bambyinterval) 
+    deepvariant_1_sorted=deepvariant_step1.out.groupTuple()
+        .map { samplename,tfbeds,gvcfbed -> tuple( samplename, 
+        tfbeds.toSorted{ it -> (it.name =~ /${samplename}.tfrecord_(.*?).bed.gz/)[0][1].toInteger() } ,
+        gvcfbed.toSorted{ it -> (it.name =~ /${samplename}.gvcf.tfrecord_(.*?).bed.gz/)[0][1].toInteger() } )
+        }
+    deepvariant_step2(deepvariant_1_sorted) | deepvariant_step3 
+    glin=deepvariant_step3.out.map{samplename,vcf,vcf_tbi,gvcf,gvcf_tbi -> gvcf}.collect()
+    
+    glin=deepvariant_step3.out.map{samplename,vcf,vcf_tbi,gvcf,gvcf_tbi -> gvcf}.collect()
+    glnexus(glin)
+
+}
+    
+workflow VARIANTCALL_PIPE {
+    take:
+    //Input is the BAMby interval
+        bamwithsample
+        splitout
+        sample_sheet
+        
+    main: 
+    bambyinterval=bamwithsample.combine(splitout.flatten())
 
     //Paired Mutect2    
     mutect2(bambyinterval)
@@ -173,8 +189,6 @@ workflow {
 
     //Contamination
     contamination_tumoronly(pileup_paired_tout)
-
-
     
     //Final TUMOR ONLY FILTER
     allmut2tonly=mutect2_t_tonly.out.groupTuple()
@@ -198,10 +212,14 @@ workflow {
 
     annotvep_tn(tn_vepin)
     annotvep_tonly(mutect2filter_tonly.out)
+    // Immplment PCGR Annotator/CivIC?
+}
 
-    //PCGR Annotator/CivIC?
 
 
+workflow QC_PIPE {
+    
+    main:
     //QC Steps
     fc_lane(fastqinput)
     fastq_screen(fastp.out)
@@ -243,3 +261,40 @@ workflow {
 }
 
 
+//Variant Calling from BAM only
+workflow INPUT_BAMVC_PIPE {
+    
+   if(params.sample_sheet){
+        sample_sheet=Channel.fromPath(params.sample_sheet, checkIfExists: true).view()
+                       .ifEmpty { "sample sheet not found" }
+                       .splitCsv(header:true, sep: "\t", strip:true)
+                       .map { row -> tuple(
+                        row.Tumor,
+                        row.Normal
+                       )
+                                  }
+    } 
+    
+    //Either BAM Input or File sheet input 
+    if(params.bam_input){
+        baminputonly=Channel.fromPath(params.bam_input)
+           .map{it-> tuple(it.simpleName,it,file("${it}.bai"))}
+    }else if(params.file_input) {
+        baminputonly=Channel.fromPath(params.file_input)
+                        .splitCsv(header: false, sep: "\t", strip:true)
+                        .map{ sample,bam -> 
+                        tuple(sample, file(bam),file("${bam}.bai"))
+                                  }
+    }
+
+    
+    splitinterval(intervalbedin)
+    
+    bamwithsample=baminputonly.combine(sample_sheet,by:0).map{it.swap(3,0)}.combine(baminputonly,by:0).map{it.swap(3,0)}.view()
+    
+    emit:
+        bamwithsample
+        splitout=splitinterval.out
+        sample_sheet
+
+}

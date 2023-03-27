@@ -36,6 +36,14 @@ process fastp{
         --html ${samplename}.fastp.html
     """
 
+    stub:
+    """
+    touch ${samplename}.R1.trimmed.fastq.gz
+    touch ${samplename}.R2.trimmed.fastq.gz
+    touch ${samplename}.fastp.json
+    touch ${samplename}.fastp.html
+
+    """
 }
 
 
@@ -57,7 +65,7 @@ process bwamem2{
     """
 
      bwa-mem2 mem -M \
-        -R '@RG\\tID:${samplename}\\tSM:${samplename}\\tPL:illumina\\tLB:${samplename}\\tPU:${samplename}\\tCN:hgsc\\tDS:wes' \
+        -R '@RG\\tID:${samplename}\\tSM:${samplename}\\tPL:illumina\\tLB:${samplename}\\tPU:${samplename}\\tCN:hgsc\\tDS:wgs' \
         -t 16 \
         ${GENOME} \
         ${samplename}.R1.trimmed.fastq.gz ${samplename}.R2.trimmed.fastq.gz | \
@@ -66,6 +74,11 @@ process bwamem2{
 
     samtools index -@ 8 ${samplename}.bam ${samplename}.bai
 
+    """
+
+    stub:
+    """
+    touch ${samplename}.bam ${samplename}.bai
     """
 }
 
@@ -103,6 +116,12 @@ process indelrealign {
         -o  ${samplename}.ir.bam
     """
     
+
+    stub:
+    """
+    touch ${samplename}.ir.bam 
+    """
+
 }
 
 
@@ -126,8 +145,13 @@ process bqsr {
     --known-sites ${MILLSINDEL} --known-sites ${SHAPEITINDEL} \
     --output ${samplename}_${bed.simpleName}.recal_data.grp \
     --intervals ${bed}
-
     """
+
+    stub:
+    """
+    touch ${samplename}_${bed.simpleName}.recal_data.grp 
+    """
+
 }
 
 process gatherbqsr {
@@ -145,6 +169,11 @@ process gatherbqsr {
     --input ${strin} \
     --output ${samplename}.recal_data.grp
 
+    """
+
+    stub:
+    """
+    touch ${samplename}.recal_data.grp
     """
 }
 
@@ -171,6 +200,12 @@ process applybqsr {
         --use-jdk-deflater
 
     """
+
+    stub:
+    """
+    touch ${samplename}.bqsr.bam
+    """
+
 }
 
 
@@ -187,6 +222,11 @@ process samtoolsindex{
     script:
     """
     samtools index -@ 4 ${bam} ${bam}.bai
+    """
+
+    stub:
+    """
+    touch ${bam}.bai
     """
 
 }

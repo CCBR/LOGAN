@@ -23,8 +23,18 @@ include {mutect2; mutect2_t_tonly; mutect2filter; mutect2filter_tonly;
     annotvep_tn; annotvep_tonly} from './workflow/modules/variant_calling.nf'
 include {splitinterval} from "./workflow/modules/splitbed.nf"
 
+log.info """\
+         W G S S E E K   P I P E L I N E    
+         =============================
+         genome: ${params.genome}
+         outdir: ${params.output}
+         Samplesheet: ${params.sample_sheet}
 
-workflow{
+         """
+         .stripIndent()
+         
+
+workflow {
     if(params.sample_sheet){
         sample_sheet=Channel.fromPath(params.sample_sheet, checkIfExists: true).view()
                        .ifEmpty { "sample sheet not found" }
@@ -34,14 +44,25 @@ workflow{
                         row.Normal
                        )
                                   }
+    } 
+    
+    //Either BAM Input or File sheet input 
+    if(params.bam_input){
+        baminputonly=Channel.fromPath(params.bam_input)
+           .map{it-> tuple(it.simpleName,it,file("${it}.bai"))}
+    }else if(params.file_input) {
+        baminputonly=Channel.fromPath(params.file_input)
+                        .splitCsv(header: false, sep: "\t", strip:true)
+                        .map{ sample,bam -> 
+                        tuple(sample, file(bam),file("${bam}.bai"))
+                                  }
     }
-   bamby1=Channel.fromPath(params.bam_input)
-   .map{it-> tuple(it.simpleName,it,file("${it}.bai"))}
+
     
     splitinterval(intervalbedin)
     
-   bamwithsample=bamby1.join(sample_sheet).map{it.swap(3,0)}.join(bamby1).map{it.swap(3,0)}.view()
-
+   bamwithsample=baminputonly.combine(sample_sheet,by:0).map{it.swap(3,0)}.combine(baminputonly,by:0).map{it.swap(3,0)}.view()
+    
    bambyinterval=bamwithsample.combine(splitinterval.out.flatten())
 
     //Paired Mutect2    
@@ -135,4 +156,5 @@ workflow{
     annotvep_tonly(mutect2filter_tonly.out)
 
     //PCGR Annotator/CivIC?
+
 }
