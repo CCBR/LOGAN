@@ -13,6 +13,7 @@ BACDB=file(params.KRAKENBACDB)
 SNPEFF_GENOME = params.snpeff_genome
 SNPEFF_CONFIG = file(params.snpeff_config)
 SNPEFF_BUNDLE = file(params.snpeff_bundle)
+
 //SOMALIER
 SITES_VCF= file(params.sites_vcf)
 ANCESTRY_DB=file(params.somalier_ancestrydb)
@@ -42,6 +43,11 @@ process fc_lane {
     python $GET_FLOWCELL_LANES \
     ${fqs[0]}  \
     ${samplename} > ${samplename}.fastq.info.txt
+    """
+
+    stub: 
+    """
+    touch ${samplename}.fastq.info.txt
     """
 }
 
@@ -81,6 +87,12 @@ process fastq_screen {
 
         """
 
+    stub: 
+    """
+    touch ${samplename}.R1.trimmed_screen.html ${samplename}.R1.trimmed_screen.png
+    touch ${samplename}.R1.trimmed_screen.txt ${samplename}.R2.trimmed_screen.html
+    touch ${samplename}.R2.trimmed_screen.png ${samplename}.R2.trimmed_screen.txt
+    """
 }
 
 process kraken {
@@ -132,6 +144,12 @@ process kraken {
     cut -f2,3 ${samplename}.trimmed.kraken_bacteria.taxa.txt} | \
         ktImportTaxonomy - -o ${samplename}.trimmed.kraken_bacteria.krona.html
     """
+
+    stub: 
+    """
+    touch  ${samplename}.trimmed.kraken_bacteria.taxa.txt ${samplename}.trimmed.kraken_bacteria.krona.html
+    """
+
 }
 
 process fastqc {
@@ -144,13 +162,14 @@ process fastqc {
     @Output:
         FastQC report and zip file containing sequencing quality information
     """
+
+    publishDir(path: "${outdir}/QC/fastqc/", mode: 'copy')
+
     input:
-        tuple val(samplename), path("${samples}.bam")
+        tuple val(samplename), path("${samplename}.bam"), path("${samplename}.bai")
     output:
-        tuple val(samplename), path(zipout), path(report)
-        //zipfile =  os.path.join(output_qcdir,"{samples}_fastqc.zip"),
-        //report  =  os.path.join(output_qcdir,"{samples}_fastqc.html")
-   
+        tuple val(samplename), path("${samplename}.fastqc.html"), path("${samplename}.fastqc.zip")
+
 
     //message: "Running FastQC with {threads} threads on '{input}' input file"
     //threads: 8
@@ -159,13 +178,18 @@ process fastqc {
     script: 
     """
     fastqc -t 8 \
-        -f fastq \
+        -f bam \
         -o fastqc \
+        ${samplename}.bam 
 
     """
 
-
+    stub: 
+    """
+    touch  ${samplename}.trimmed.kraken_bacteria.taxa.txt ${samplename}.trimmed.kraken_bacteria.krona.html
+    """
 }
+
 process qualimap_bamqc {
     /*
     Quality-control step to assess various post-alignment metrics 
@@ -204,6 +228,11 @@ process qualimap_bamqc {
     mv ${samplename}/genome_results.txt ${samplename}_genome_results.txt
     mv ${samplename}/qualimapReport.html ${samplename}_qualimapReport.html
     """
+
+    stub:
+    """
+    touch ${samplename}_genome_results.txt ${samplename}_qualimapReport.html
+    """
 }
 
 process samtools_flagstats {
@@ -225,12 +254,15 @@ process samtools_flagstats {
     
     output:
         path("${samplename}.samtools_flagstat.txt")
- 
- 
-    
+
     script: 
     """
     samtools flagstat ${samplename}.bam > ${samplename}.samtools_flagstat.txt
+    """
+
+    stub:
+    """
+    touch ${samplename}.samtools_flagstat.txt    
     """
 }
 
@@ -260,6 +292,11 @@ process vcftools {
     """
     vcftools --gzvcf ${germlinevcf} --het --out variants_raw_variants
     """
+
+    stub:
+    """
+    touch variants_raw_variants.het
+    """
 }
 
 process collectvariantcallmetrics {
@@ -288,8 +325,6 @@ process collectvariantcallmetrics {
      //   dbsnp=config['references']['DBSNP'],
       //  prefix = os.path.join(output_qcdir,"raw_variants"),
        
-    
-    
     script:
     """
     java -Xmx24g -jar \${PICARDJARPATH}/picard.jar \
@@ -298,6 +333,12 @@ process collectvariantcallmetrics {
         OUTPUT= "raw_variants" \
         DBSNP=$DBSNP Validation_Stringency=SILENT
     """
+    
+    stub:
+    """
+    touch raw_variants.variant_calling_detail_metrics raw_variants.variant_calling_summary_metrics
+    """
+
 }
 
 
@@ -328,6 +369,12 @@ process bcftools_stats {
     """
     bcftools stats ${samplename}.gvcf.gz > ${samplename}.germline.bcftools_stats.txt
     """
+
+    stub:
+    """
+    touch ${samplename}.germline.bcftools_stats.txt
+    """
+
 }
 
 process gatk_varianteval {
@@ -366,6 +413,13 @@ process gatk_varianteval {
         --dbsnp $DBSNP \
         --eval ${samplename}.gvcf.gz
     """
+
+    stub:
+
+    """
+    touch ${samplename}.germline.eval.grp
+    """
+
 }
 
 process snpeff {
@@ -405,6 +459,14 @@ process snpeff {
         $SNPEFF_GENOME \
         ${samplename}.gvcf.gz > ${samplename}.germline.snpeff.ann.vcf
     """
+
+    stub:
+
+    """
+    touch ${samplename}.germline.snpeff.ann.vcf
+    touch ${samplename}.germline.snpeff.ann.csv
+    touch ${samplename}.germline.snpeff.ann.html
+    """
 }
 
 process somalier_extract {
@@ -434,7 +496,12 @@ process somalier_extract {
         --sites $SITES_VCF \
         -f $GENOME \
         ${samplename}.bam
-    
+    """
+
+    stub:
+    """
+    mkdir output
+    touch output/${samplename}.somalier 
     """
 }
 
@@ -495,6 +562,16 @@ process somalier_analysis {
         sampleAncestryPCAPlot.html \
         predictedPairsAncestry.pdf
     """
+    
+    stub:
+
+    """
+    touch relatedness.pairs.tsv
+    touch relatedness.samples.tsv
+    touch ancestry.somalier-ancestry.tsv predicted.genders.tsv
+    touch predicted.pairs.tsv sampleAncestryPCAPlot.html
+    touch predictedPairsAncestry.pdf
+    """
 }
 
 
@@ -526,5 +603,11 @@ process multiqc {
     multiqc . \
     -f --interactive \
     -n "MultiQC_Report.html" \
+    """
+
+    stub:
+
+    """
+    touch MultiQC_Report.html
     """
 }

@@ -24,14 +24,13 @@ include {splitinterval} from "./splitbed.nf"
 workflow INPUT_PIPE {
     
     if(params.fastq_input){
-        fastqinput=Channel.fromFilePairs(params.fastq_input).view()
+        fastqinput=Channel.fromFilePairs(params.fastq_input)
     }else if(params.file_input) {
-        fastqinput=Channel.fromPath(params.file_input).view()
+        fastqinput=Channel.fromPath(params.file_input)
                         .splitCsv(header: false, sep: "\t", strip:true)
                         .map{ sample,fq1,fq2 -> 
                         tuple(sample, tuple(file(fq1),file(fq2)))
                                   }
-                       .view()
     }
     
     if(params.sample_sheet){
@@ -45,7 +44,7 @@ workflow INPUT_PIPE {
                                   }
     }else{
         sample_sheet=fastqinput.map{samplename,f1 -> tuple (
-             samplename)}.view()
+             samplename)}
         
     }
 
@@ -82,6 +81,8 @@ workflow TRIM_ALIGN_PIPE {
     applybqsr(tobqsr) 
     samtoolsindex(applybqsr.out)
     
+    samtoolsindex.out.view()
+    sample_sheet.view()
     bamwithsample=samtoolsindex.out.combine(sample_sheet,by:0).map{it.swap(3,0)}.combine(samtoolsindex.out,by:0).map{it.swap(3,0)}
 
     emit:
@@ -92,6 +93,7 @@ workflow TRIM_ALIGN_PIPE {
         splitout=splitinterval.out
         indelbambyinterval
         sample_sheet
+        bwamem2out=bwamem2.out
 }
 
 workflow GERMLINE_PIPE {
@@ -111,6 +113,8 @@ workflow GERMLINE_PIPE {
     glin=deepvariant_step3.out.map{samplename,vcf,vcf_tbi,gvcf,gvcf_tbi -> gvcf}.collect()
     glnexus(glin)
 
+    emit:
+        glnexusout=glnexus.out
 }
     
 workflow VARIANTCALL_PIPE {
@@ -218,35 +222,41 @@ workflow VARIANTCALL_PIPE {
 
 
 workflow QC_PIPE {
-    
+    take:
+        fastqin
+        fastpout
+        bwamem2out
+        glnexusout
+        
+
+
     main:
     //QC Steps
-    fc_lane(fastqinput)
-    fastq_screen(fastp.out)
-    kraken(fastqinput)
-    qualimap_bamqc(bwamem2.out)
-    samtools_flagstats(bwamem2.out)
-    glout=glnexus.out.map{germlinev,germlinenorm,tbi->tuple(germlinenorm,tbi)}
+    fc_lane(fastqin)
+    fastq_screen(fastpout)
+    kraken(fastqin)
+    qualimap_bamqc(bwamem2out)
+    samtools_flagstats(bwamem2out)
+    fastqc(bwamem2out)
+    glout=glnexusout.map{germlinev,germlinenorm,tbi->tuple(germlinenorm,tbi)}
     vcftools(glout)
     collectvariantcallmetrics(glout)
-    //bcfin=deepvariant_combined.out.map{samplename,vcf,vcf_tbi,gvcf,gvcf_tbi -> tuple(samplename,gvcf,gvcf_tbi)}
     bcfin=deepvariant_step3.out.map{samplename,vcf,vcf_tbi,gvcf,gvcf_tbi -> tuple(samplename,gvcf,gvcf_tbi)}
     bcftools_stats(bcfin)
     gatk_varianteval(bcfin)
     snpeff(bcfin)
-    somalier_extract(bwamem2.out) 
+    somalier_extract(bwamem2out) 
     som_in=somalier_extract.out.collect()
     somalier_analysis(som_in)
     
     
-    //FASTQC DOWN THE LINE ADD
-    //MULTIQC
+    //Prep for MultiQC input
     fclane_out=fc_lane.out.map{samplename,info->info}.collect()
     fqs_out=fastq_screen.out.collect() 
-    //map{r1_ht,r1_png,r1_txt,r2_ht,r2_png,r2_txt-> r2_txt}.collect()
 
     kraken_out=kraken.out.map{samplename,taxa,krona -> tuple(taxa,krona)}.collect()
     qualimap_out=qualimap_bamqc.out.map{genome,rep->tuple(genome,rep)}.collect()
+    fastqc_out=fastqc.out.map{samplename,html,zip->tuple(html,zip)}.collect()
     samtools_flagstats_out=samtools_flagstats.out.collect()
     bcftools_stats_out= bcftools_stats.out.collect()
     gatk_varianteval_out= gatk_varianteval.out.collect()
@@ -298,3 +308,4 @@ workflow INPUT_BAMVC_PIPE {
         sample_sheet
 
 }
+

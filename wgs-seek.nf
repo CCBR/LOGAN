@@ -10,11 +10,16 @@ PIPE_GERMLINE=params.PIPE_GERMLINE
 PIPE_VC=params.PIPE_VC
 PIPE_QC=params.PIPE_QC
 PIPE_BAMVC=params.PIPE_BAMVC
+PIPE_TONLY_TRIM=params.PIPE_TONLY_TRIM
+PIPE_TONLY_VC=params.PIPE_TONLY_VC
 
-//Final Workflow
 
 include {INPUT_PIPE;TRIM_ALIGN_PIPE;
-GERMLINE_PIPE;VARIANTCALL_PIPE;INPUT_BAMVC_PIPE} from "./workflow/modules/workflows.nf"
+    GERMLINE_PIPE;VARIANTCALL_PIPE;INPUT_BAMVC_PIPE} from "./workflow/modules/workflows.nf"
+
+include {INPUT_TONLY_PIPE;TRIM_ALIGN_TONLY_PIPE;
+    VARIANT_TONLY_PIPE} from "./workflow/modules/workflows_tonly.nf"
+
 
 log.info """\
          W G S S E E K   P I P E L I N E    
@@ -22,18 +27,20 @@ log.info """\
          genome: ${params.genome}
          outdir: ${params.output}
          Samplesheet: ${params.sample_sheet}
-
+         Samples: ${params.fastq_input} ${params.file_input}
          """
          .stripIndent()
 
 
-
+//Final Workflow
 workflow {
 
     if (PIPE_TRIM){
         INPUT_PIPE()
         TRIM_ALIGN_PIPE(INPUT_PIPE.out.fastqinput,INPUT_PIPE.out.sample_sheet)
     } 
+
+    //GermlineVC Pipelines
     if (PIPE_GERMLINE){
         INPUT_PIPE()
         TRIM_ALIGN_PIPE(INPUT_PIPE.out.fastqinput,INPUT_PIPE.out.sample_sheet)
@@ -44,11 +51,28 @@ workflow {
         TRIM_ALIGN_PIPE(INPUT_PIPE.out.fastqinput,INPUT_PIPE.out.sample_sheet)
         VARIANTCALL_PIPE(TRIM_ALIGN_PIPE.out.bamwithsample,TRIM_ALIGN_PIPE.out.splitout,TRIM_ALIGN_PIPE.out.sample_sheet)
     }
+    if (PIPE_QC){
+        INPUT_PIPE()
+        TRIM_ALIGN_PIPE(INPUT_PIPE.out.fastqinput,INPUT_PIPE.out.sample_sheet)
+        QC_PIPE(TRIM_ALIGN_PIPE.out.fastqin,TRIM_ALIGN_PIPE.out.fastpout,TRIM_ALIGN_PIPE.out.bwamem2out,GERMLINE_PIPE.out.glxnexusout)
+
+    }  
     if (PIPE_BAMVC){
         INPUT_BAMVC_PIPE()
         VARIANTCALL_PIPE(INPUT_BAMVC_PIPE.out.bamwithsample,INPUT_BAMVC_PIPE.out.splitout,INPUT_BAMVC_PIPE.out.sample_sheet)
+    }  
 
-    }   
+
+    ///Tumor Only Section
+    if (PIPE_TONLY_TRIM){
+        INPUT_TONLY_PIPE()
+        TRIM_ALIGN_TONLY_PIPE(INPUT_TONLY_PIPE.out.fastqinput,INPUT_TONLY_PIPE.out.sample_sheet)
+    }
+    if (PIPE_TONLY_VC){
+        INPUT_TONLY_PIPE()
+        TRIM_ALIGN_TONLY_PIPE(INPUT_TONLY_PIPE.out.fastqinput,INPUT_TONLY_PIPE.out.sample_sheet)
+        VARIANT_TONLY_PIPE(TRIM_ALIGN_TONLY_PIPE.out.bamwithsample,TRIM_ALIGN_TONLY_PIPE.out.splitout,TRIM_ALIGN_TONLY_PIPE.out.sample_sheet)
+    }
 }
     
 

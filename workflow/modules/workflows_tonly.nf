@@ -1,30 +1,31 @@
-#!/usr/bin/env nextflow
-nextflow.enable.dsl=2
-
-date = new Date().format( 'yyyyMMdd' )
-
-outdir=file(params.output)
-fastqinput=Channel.fromFilePairs(params.input)
+//All Worksflows in One Place         
 intervalbedin = Channel.fromPath(params.intervals,checkIfExists: true,type: 'file')
 
-//Final Workflow
-    include {fastp; bwamem2; indelrealign; bqsr; 
-    gatherbqsr; applybqsr; samtoolsindex} from './workflow/modules/trim_align.nf'
 
-    include {mutect2; mutect2_t_tonly; mutect2filter; mutect2filter_tonly; 
-    pileup_paired_tonly; 
-    contamination_tumoronly;
-    learnreadorientationmodel_tonly; 
-    mergemut2stats_tonly;
-    annotvep_tonly} from './workflow/modules/variant_calling.nf'
+include {fc_lane; fastq_screen;kraken;qualimap_bamqc;
+    samtools_flagstats;vcftools;collectvariantcallmetrics;
+    bcftools_stats;gatk_varianteval;
+    snpeff;
+    somalier_extract;somalier_analysis;multiqc} from  './qc.nf'
+include {deepvariant_step1;deepvariant_step2;deepvariant_step3;
+    deepvariant_combined;glnexus} from './germline.nf'
+include {fastp; bwamem2; indelrealign; bqsr; 
+    gatherbqsr; applybqsr; samtoolsindex} from './trim_align.nf'
+include {mutect2; mutect2_t_tonly; mutect2filter; mutect2filter_tonly; 
+    pileup_paired_t; pileup_paired_n; pileup_paired_tonly;
+    contamination_paired; contamination_tumoronly;
+    learnreadorientationmodel; learnreadorientationmodel_tonly; 
+    mergemut2stats; mergemut2stats_tonly;
+    annotvep_tn; annotvep_tonly} from './variant_calling.nf'
+include {splitinterval} from "./splitbed.nf"
 
-    include {splitinterval} from "./workflow/modules/splitbed.nf"
 
 
-workflow {
-    fastqinput.view()
+workflow INPUT_TONLY_PIPE {
+    fastqinput=Channel.fromFilePairs(params.fastq_input)
 
-     if(params.sample_sheet){
+ 
+  if(params.sample_sheet){
         sample_sheet=Channel.fromPath(params.sample_sheet, checkIfExists: true)
                        .ifEmpty { "sample sheet not found" }
                        .splitCsv(header:true, sep: "\t")
@@ -34,10 +35,22 @@ workflow {
                                   }
     }else{
         sample_sheet=fastqinput.map{samplename,f1 -> tuple (
-             samplename)}
+             samplename)}.view()
         
     }
     
+    emit:
+        fastqinput
+        sample_sheet
+
+}
+
+workflow TRIM_ALIGN_TONLY_PIPE {
+    take:
+        fastqinput
+        sample_sheet
+
+    main:
     fastp(fastqinput)
     splitinterval(intervalbedin)
     
@@ -64,8 +77,28 @@ workflow {
         }
     bambyinterval=bamwithsample.combine(splitinterval.out.flatten())
 
+     emit:
+        bamwithsample
+        bambyinterval
+        fastpout=fastp.out
+        fastqin=fastqinput
+        splitout=splitinterval.out
+        indelbambyinterval
+        sample_sheet
+        bwamem2out=bwamem2.out
+
+}
+
+workflow VARIANT_TONLY_PIPE {
+    take:
+    //Input is the BAMby interval
+        bamwithsample
+        splitout
+        sample_sheet
+
+    main:
     
-    //Tumor Only Calling
+    bambyinterval=bamwithsample.combine(splitout.flatten())
     pileup_paired_tonly(bambyinterval)
     pileup_paired_tout=pileup_paired_tonly.out.groupTuple()
     .map{samplename,pileups-> tuple( samplename,
@@ -115,4 +148,43 @@ workflow {
 
 }
 
+
+workflow QC_TONLY_PIPE {
+    take:
+        fastqin
+        fastpin
+        bwamem2out
+
+    main:
+    //QC Steps For Tumor-Only-No Germline Variant QC
+    fc_lane(fastqin)
+    fastq_screen(fastpout)
+    kraken(fastqin)
+    qualimap_bamqc(bwamem2out)
+    fastqc(bwamem2out)
+    samtools_flagstats(bwamem2out)
+
+
+    somalier_extract(bwamem2out) 
+    som_in=somalier_extract.out.collect()
+    somalier_analysis(som_in)
+    
+    
+    //Prep for MultiQC input
+    fclane_out=fc_lane.out.map{samplename,info->info}.collect()
+    fqs_out=fastq_screen.out.collect() 
+
+    kraken_out=kraken.out.map{samplename,taxa,krona -> tuple(taxa,krona)}.collect()
+    qualimap_out=qualimap_bamqc.out.map{genome,rep->tuple(genome,rep)}.collect()
+    fastqc_out=fastqc.out.map{samplename,html,zip->tuple(html,zip)}.collect()
+
+    samtools_flagstats_out=samtools_flagstats.out.collect()
+    somalier_analysis_out=somalier_analysis.out.collect()
+
+    conall=fclane_out.concat(fqs_out,kraken_out,qualimap_out,fastqc_out,
+    samtools_flagstats_out,
+    somalier_analysis_out).flatten().toList()
+    
+    multiqc(conall)
+}
 

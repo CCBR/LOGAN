@@ -226,13 +226,13 @@ process contamination_tumoronly {
 
 
 process learnreadorientationmodel {
+    publishDir(path: "${outdir}/vcfs/mutect2", mode: 'copy')
+
     input:
-    tuple val(sample),
-    path(f1r2)
+        tuple val(sample), path(f1r2)
       
     output:
-    tuple val(sample),
-    path("${sample}.read-orientation-model.tar.gz")
+        tuple val(sample), path("${sample}.read-orientation-model.tar.gz")
 
     script: 
     f1r2in = f1r2.join(" --input ")
@@ -251,13 +251,13 @@ process learnreadorientationmodel {
 
 
 process learnreadorientationmodel_tonly {
+    publishDir(path: "${outdir}/vcfs/mutect2", mode: 'copy')
+
     input:
-    tuple val(sample),
-    path(f1r2)
+        tuple val(sample), path(f1r2)
       
     output:
-    tuple val(sample),
-    path("${sample}.read-orientation-model.tar.gz")
+    tuple val(sample), path("${sample}.read-orientation-model.tar.gz")
 
     script: 
     f1r2in = f1r2.join(" --input ")
@@ -277,13 +277,13 @@ process learnreadorientationmodel_tonly {
 
 
 process mergemut2stats {
+    publishDir(path: "${outdir}/vcfs/mutect2", mode: 'copy')
+
     input:
-    tuple val(sample),
-    path(stats)
+        tuple val(sample), path(stats)
       
     output:
-    tuple val(sample),
-    path("${sample}.final.stats")
+        tuple val(sample), path("${sample}.final.stats")
 
     script: 
     statsin = stats.join(" --stats ")
@@ -304,13 +304,13 @@ process mergemut2stats {
 
 
 process mergemut2stats_tonly {
+    publishDir(path: "${outdir}/vcfs/mutect2", mode: 'copy')
+
     input:
-    tuple val(sample),
-    path(stats)
+        tuple val(sample), path(stats)
       
     output:
-    tuple val(sample),
-    path("${sample}.final.stats")
+        tuple val(sample), path("${sample}.final.stats")
 
     script: 
     statsin = stats.join(" --stats ")
@@ -332,13 +332,13 @@ process mergemut2stats_tonly {
 
 process mutect2filter {
         
-
     publishDir(path: "${outdir}/vcfs/mutect2", mode: 'copy')
 
     input:
         tuple val(sample), path(mutvcfs), path(stats), path(obs), path(pileups), path(normal_pileups),path(tumorcontamination),path(normalcontamination)
     output:
         tuple val(sample), path("${sample}.marked.vcf.gz"),path("${sample}.final.mut2.vcf.gz"),path("${sample}.marked.vcf.gz.filteringStats.tsv")
+    
     script:
     //Include the stats and  concat ${mutvcfs} -Oz -o ${sample}.concat.vcf.gz
     mut2in = mutvcfs.join(" -I ")
