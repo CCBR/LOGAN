@@ -108,8 +108,7 @@ process pileup_paired_n {
 
 process contamination_paired {
 
-    publishDir(path: "${outdir}/contamination/", mode: 'copy')
-
+    publishDir(path: "${outdir}/vcfs/mutect2", mode: 'copy')
 
     //OUTPUT THE CONTAMINATION TABLE
     input:
@@ -189,7 +188,7 @@ process pileup_paired_tonly {
 
 
 process contamination_tumoronly {
-    publishDir(path: "${outdir}/contamination/", mode: 'copy')
+    publishDir(path: "${outdir}/vcfs/mutect2/", mode: 'copy')
 
     input:
         tuple val(tumorname),
@@ -337,8 +336,8 @@ process mutect2filter {
     input:
         tuple val(sample), path(mutvcfs), path(stats), path(obs), path(pileups), path(normal_pileups),path(tumorcontamination),path(normalcontamination)
     output:
-        tuple val(sample), path("${sample}.marked.vcf.gz"),path("${sample}.final.mut2.vcf.gz"),path("${sample}.marked.vcf.gz.filteringStats.tsv")
-    
+        tuple val(sample), path("${sample}.concat.vcf.gz"),path("${sample}.marked.vcf.gz"),path("${sample}.final.mut2.vcf.gz"),path("${sample}.marked.vcf.gz.filteringStats.tsv")
+
     script:
     //Include the stats and  concat ${mutvcfs} -Oz -o ${sample}.concat.vcf.gz
     mut2in = mutvcfs.join(" -I ")
@@ -365,6 +364,7 @@ process mutect2filter {
 
     stub:
     """
+    touch ${sample}.concat.vcf.gz
     touch ${sample}.marked.vcf.gz
     touch ${sample}.final.mut2.vcf.gz
     touch ${sample}.marked.vcf.gz.filteringStats.tsv
@@ -418,15 +418,15 @@ process mutect2filter_tonly {
     input:
         tuple val(sample), path(mutvcfs), path(stats), path(obs), path(pileups),path(tumorcontamination)
     output:
-        tuple val(sample), path("${sample}.tonly.marked.vcf.gz"),path("${sample}.tonly.final.mut2.vcf.gz"),path("${sample}.tonly.marked.vcf.gz.filteringStats.tsv")
+        tuple val(sample), path("${sample}.tonly.concat.vcf.gz"), path("${sample}.tonly.marked.vcf.gz"),path("${sample}.tonly.final.mut2.vcf.gz"),path("${sample}.tonly.marked.vcf.gz.filteringStats.tsv")
     script:
     //Include the stats and  concat ${mutvcfs} -Oz -o ${sample}.concat.vcf.gz
     mut2in = mutvcfs.join(" -I ")
 
 
     """
-    gatk GatherVcfs -I ${mut2in} -O ${sample}.concat.vcf.gz 
-    gatk IndexFeatureFile -I ${sample}.concat.vcf.gz 
+    gatk GatherVcfs -I ${mut2in} -O ${sample}.tonly.concat.vcf.gz 
+    gatk IndexFeatureFile -I ${sample}.tonly.concat.vcf.gz 
     gatk FilterMutectCalls \
         -R ${GENOME} \
         -V ${sample}.concat.vcf.gz \
@@ -445,6 +445,7 @@ process mutect2filter_tonly {
 
     stub:
     """
+    touch ${sample}.tonly.concat.vcf.gz
     touch ${sample}.tonly.marked.vcf.gz
     touch ${sample}.tonly.final.mut2.vcf.gz
     touch ${sample}.tonly.marked.vcf.gz.filteringStats.tsv
@@ -461,6 +462,7 @@ process annotvep_tn {
 
     input:
         tuple val(tumorsample), 
+        path("${sample}.concat.vcf.gz"),
         path("${tumorsample}.marked.vcf.gz"), 
         path("${tumorsample}.final.mut2.vcf.gz"), 
         path("${tumorsample}.marked.vcf.gz.filteringStats.tsv"), 
@@ -500,6 +502,7 @@ process annotvep_tonly {
 
     input:
         tuple val(tumorsample), 
+        path("${sample}.tonly.concat.vcf.gz"),
         path("${tumorsample}.tonly.marked.vcf.gz"),
         path("${tumorsample}.tonly.final.mut2.vcf.gz"),
         path("${tumorsample}.tonly.marked.vcf.gz.filteringStats.tsv")

@@ -187,7 +187,8 @@ process glnexus {
     stub:
     """
         touch germline.v.bcf
-        touch germline.norm.vcf.gz germline.norm.vcf.gz.tbi
+        touch germline.norm.vcf.gz 
+        touch germline.norm.vcf.gz.tbi
     """
 }
 

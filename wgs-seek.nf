@@ -5,17 +5,17 @@ date = new Date().format( 'yyyyMMdd' )
 
 
 //SUB WORKFLOWS to SPLIT
-PIPE_TRIM=params.PIPE_TRIM
+PIPE_ALIGN=params.PIPE_ALIGN
 PIPE_GERMLINE=params.PIPE_GERMLINE
 PIPE_VC=params.PIPE_VC
 PIPE_QC=params.PIPE_QC
 PIPE_BAMVC=params.PIPE_BAMVC
-PIPE_TONLY_TRIM=params.PIPE_TONLY_TRIM
+PIPE_TONLY_ALIGN=params.PIPE_TONLY_ALIGN
 PIPE_TONLY_VC=params.PIPE_TONLY_VC
 
 
 include {INPUT_PIPE;TRIM_ALIGN_PIPE;
-    GERMLINE_PIPE;VARIANTCALL_PIPE;INPUT_BAMVC_PIPE} from "./workflow/modules/workflows.nf"
+    GERMLINE_PIPE;VARIANTCALL_PIPE;INPUT_BAMVC_PIPE;QC_PIPE} from "./workflow/modules/workflows.nf"
 
 include {INPUT_TONLY_PIPE;TRIM_ALIGN_TONLY_PIPE;
     VARIANT_TONLY_PIPE} from "./workflow/modules/workflows_tonly.nf"
@@ -35,7 +35,7 @@ log.info """\
 //Final Workflow
 workflow {
 
-    if (PIPE_TRIM){
+    if (PIPE_ALIGN){
         INPUT_PIPE()
         TRIM_ALIGN_PIPE(INPUT_PIPE.out.fastqinput,INPUT_PIPE.out.sample_sheet)
     } 
@@ -54,7 +54,8 @@ workflow {
     if (PIPE_QC){
         INPUT_PIPE()
         TRIM_ALIGN_PIPE(INPUT_PIPE.out.fastqinput,INPUT_PIPE.out.sample_sheet)
-        QC_PIPE(TRIM_ALIGN_PIPE.out.fastqin,TRIM_ALIGN_PIPE.out.fastpout,TRIM_ALIGN_PIPE.out.bwamem2out,GERMLINE_PIPE.out.glxnexusout)
+        GERMLINE_PIPE(TRIM_ALIGN_PIPE.out.bambyinterval)
+        QC_PIPE(TRIM_ALIGN_PIPE.out.fastqin,TRIM_ALIGN_PIPE.out.fastpout,TRIM_ALIGN_PIPE.out.bwamem2out,GERMLINE_PIPE.out.glnexusout,GERMLINE_PIPE.out.bcfout)
 
     }  
     if (PIPE_BAMVC){
@@ -64,7 +65,7 @@ workflow {
 
 
     ///Tumor Only Section
-    if (PIPE_TONLY_TRIM){
+    if (PIPE_TONLY_ALIGN){
         INPUT_TONLY_PIPE()
         TRIM_ALIGN_TONLY_PIPE(INPUT_TONLY_PIPE.out.fastqinput,INPUT_TONLY_PIPE.out.sample_sheet)
     }

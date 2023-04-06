@@ -186,7 +186,7 @@ process fastqc {
 
     stub: 
     """
-    touch  ${samplename}.trimmed.kraken_bacteria.taxa.txt ${samplename}.trimmed.kraken_bacteria.krona.html
+    touch  ${samplename}.fastqc.html ${samplename}.fastqc.zip
     """
 }
 

@@ -1,24 +1,35 @@
 #!/usr/bin/env python3
 # -*- coding: UTF-8 -*-
+'''
+    PIPELINE TYPE
+    Align --PIPE_ALIGN-TRIM ALIGN
+    Variant Calls--PIPE_VC-Variant calling step after align
+    Germline Calls DV--PIPE_GERMLINE-Germline after align
+    QC requires Alignment, Germline--PIPE_QC--After everything
+    --PIPE_BAMVC-BAM variant calling only
+    --PIPE_TONLY_TRIM-Trim and Align
+    --PIPE_TONLY_TRIM-Trim and Align
+'''
 
 import argparse,os,time
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Input files')
-    parser.add_argument('--fqinput',help='FQ Inputs')
-    parser.add_argument('--fileinput',help="Files input")
-    parser.add_argument('--baminput',help="Files input")
+    parser.add_argument('--fastq',help='FQ Inputs')
+    parser.add_argument('--filelist',help="Files input")
+    parser.add_argument('--bam',help="Files input")
+    parser.add_argument("--mode",help="Mode?")
+    parser.add_argument("--paired",help="Paired")
     parser.add_argument('--output',help="Output Directory")
     parser.add_argument('--sample_sheet',help="Sample sheet")
     parser.add_argument("--profile",default="biowulf",help="Biowulf or Local Run")
     parser.add_argument("--resume",action="store_true",default="True",help="Resume previous run?")
     parser.add_argument("--submit",action="store_false",help="Submit to SLURM?",default="False")
-    parser.add_argument("--QC",action="store_false",help="run QC Steps")
-    parser.add_argument("--paired",help="Paired Tumor normal run?")
-
     args = parser.parse_args()
     return(args)
 
+
+    
 def main():
     args=parse_args()
     dirname=os.path.dirname(os.path.realpath(__file__))
@@ -26,18 +37,40 @@ def main():
     c1="#!/usr/bin/bash"
     c2="module load nextflow"
     c3="module load singularity"
-    if args.fqinput:
-        in1="--fastq_input "+'"'+args.fqinput+'"'
-    elif args.fileinput:
-        in1="--file_input "+args.fileinput
     if args.paired:
-        wgs_path='run '+ dirname +'/wgs-seek_paired.nf'
+        if args.mode=="align":
+            mode="--PIPE_ALIGN"
+        elif args.mode=="vc":
+            mode="--PIPE_VC"
+        elif args.mode=="germline":
+            mode="--PIPE_GERMLINE"
+        elif args.mode=="qc":
+            mode="--PIPE_QC"
+        if args.fastq:
+            in1="--fastq_input "+args.fastq
+        elif args.filelist:
+            in1="--file_input "+args.fileinput
+        elif args.bam:
+            in1="--bam "+args.bam
+        if args.sample_sheet:
+            sample_path="--sample_sheet '"+args.sample_sheet+"'"
+        else:
+            print("missing sample sheet for paired mode!")
     else:
-        wgs_path='run '+ dirname +'/wgs-seek_tumoronly.nf'
-    if args.sample_sheet:
-        sample_path="--sample_sheet "+args.sample_sheet
-    else:
-        sample_path=""
+        if args.mode=="align":
+            mode="--PIPE_TONLY_ALIGN"
+            sample_path=""
+            if args.fastq:
+                in1="--fastq_input "+args.fastq
+            elif args.filelist:
+                in1="--file_input "+args.fileinput
+        if args.mode=="vc":
+            mode="--PIPE_TONLY_VC"
+            sample_path=""
+            if args.fastq:
+                in1="--fastq_input "+args.fastq
+            elif args.filelist:
+                in1="--file_input "+args.fileinput
     if args.profile=="biowulf":
         profile="-profile biowulf"
     else: 
@@ -46,10 +79,9 @@ def main():
         resume="-resume"
     else:
         resume=""
-    c4=["nextflow",wgs_path,
-"-c "+ dirname +"/nextflow.config",in1,
-    profile,resume,sample_path,
-"--output",'"'+args.output+'"']
+    c4=["nextflow run",dirname + '/wgs-seek.nf',"-c "+ dirname +"/nextflow.config",
+        in1,profile,resume,sample_path,mode,
+        "--output '" +args.output+"'"]
     cmd1=' '.join(c4)
     code=c1+"\n"+c2+"\n"+c3+"\n"+cmd1
     time1=time.strftime("%Y_%m_%d_%H%M%S")

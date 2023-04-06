@@ -2,7 +2,7 @@
 intervalbedin = Channel.fromPath(params.intervals,checkIfExists: true,type: 'file')
 
 
-include {fc_lane; fastq_screen;kraken;qualimap_bamqc;
+include {fc_lane; fastq_screen;kraken;qualimap_bamqc;fastqc;
     samtools_flagstats;vcftools;collectvariantcallmetrics;
     bcftools_stats;gatk_varianteval;
     snpeff;
@@ -108,13 +108,13 @@ workflow GERMLINE_PIPE {
         gvcfbed.toSorted{ it -> (it.name =~ /${samplename}.gvcf.tfrecord_(.*?).bed.gz/)[0][1].toInteger() } )
         }
     deepvariant_step2(deepvariant_1_sorted) | deepvariant_step3 
-    glin=deepvariant_step3.out.map{samplename,vcf,vcf_tbi,gvcf,gvcf_tbi -> gvcf}.collect()
-    
-    glin=deepvariant_step3.out.map{samplename,vcf,vcf_tbi,gvcf,gvcf_tbi -> gvcf}.collect()
-    glnexus(glin)
+    glin=deepvariant_step3.out.map{samplename,vcf,vcf_tbi,gvcf,gvcf_tbi -> gvcf}.collect()   
 
+    glnexus(glin)
     emit:
         glnexusout=glnexus.out
+        bcfout=deepvariant_step3.out
+    
 }
     
 workflow VARIANTCALL_PIPE {
@@ -227,8 +227,7 @@ workflow QC_PIPE {
         fastpout
         bwamem2out
         glnexusout
-        
-
+        bcfout
 
     main:
     //QC Steps
@@ -238,18 +237,21 @@ workflow QC_PIPE {
     qualimap_bamqc(bwamem2out)
     samtools_flagstats(bwamem2out)
     fastqc(bwamem2out)
+    //Cohort VCF
     glout=glnexusout.map{germlinev,germlinenorm,tbi->tuple(germlinenorm,tbi)}
     vcftools(glout)
     collectvariantcallmetrics(glout)
-    bcfin=deepvariant_step3.out.map{samplename,vcf,vcf_tbi,gvcf,gvcf_tbi -> tuple(samplename,gvcf,gvcf_tbi)}
+    //Per sample VCFs
+    bcfin=bcfout.map{samplename,vcf,vcf_tbi,gvcf,gvcf_tbi -> tuple(samplename,gvcf,gvcf_tbi)}
     bcftools_stats(bcfin)
     gatk_varianteval(bcfin)
     snpeff(bcfin)
+    //Somalier
     somalier_extract(bwamem2out) 
     som_in=somalier_extract.out.collect()
     somalier_analysis(som_in)
-    
-    
+    //
+
     //Prep for MultiQC input
     fclane_out=fc_lane.out.map{samplename,info->info}.collect()
     fqs_out=fastq_screen.out.collect() 
