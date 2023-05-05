@@ -16,7 +16,7 @@ process splitinterval {
     SPLIT_BED=file(params.splitbed)
 
     """
-    mkdir bedout
+    mkdir -p bedout
     python ${SPLIT_BED} -infile ${BED_IN} -num 32 -out 'bedout/bed'
     """
 }

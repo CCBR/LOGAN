@@ -429,7 +429,7 @@ process mutect2filter_tonly {
     gatk IndexFeatureFile -I ${sample}.tonly.concat.vcf.gz 
     gatk FilterMutectCalls \
         -R ${GENOME} \
-        -V ${sample}.concat.vcf.gz \
+        -V ${sample}.tonly.concat.vcf.gz \
         --ob-priors ${obs} \
         --contamination-table ${tumorcontamination} \
         --stats ${stats} \

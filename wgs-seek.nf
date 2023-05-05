@@ -12,13 +12,16 @@ PIPE_QC=params.PIPE_QC
 PIPE_BAMVC=params.PIPE_BAMVC
 PIPE_TONLY_ALIGN=params.PIPE_TONLY_ALIGN
 PIPE_TONLY_VC=params.PIPE_TONLY_VC
+PIPE_TONLY_BAMVC=params.PIPE_TONLY_BAMVC
+
+
 
 
 include {INPUT_PIPE;TRIM_ALIGN_PIPE;
     GERMLINE_PIPE;VARIANTCALL_PIPE;INPUT_BAMVC_PIPE;QC_PIPE} from "./workflow/modules/workflows.nf"
 
 include {INPUT_TONLY_PIPE;TRIM_ALIGN_TONLY_PIPE;
-    VARIANT_TONLY_PIPE} from "./workflow/modules/workflows_tonly.nf"
+    VARIANT_TONLY_PIPE;INPUT_TONLY_BAMVC_PIPE} from "./workflow/modules/workflows_tonly.nf"
 
 
 log.info """\
@@ -27,7 +30,7 @@ log.info """\
          genome: ${params.genome}
          outdir: ${params.output}
          Samplesheet: ${params.sample_sheet}
-         Samples: ${params.fastq_input} ${params.file_input}
+         Samples: ${params.fastq_input} ${params.file_input} ${params.bam_input}
          """
          .stripIndent()
 
@@ -40,12 +43,14 @@ workflow {
         TRIM_ALIGN_PIPE(INPUT_PIPE.out.fastqinput,INPUT_PIPE.out.sample_sheet)
     } 
 
-    //GermlineVC Pipelines
+    //GermlineVC 
     if (PIPE_GERMLINE){
         INPUT_PIPE()
         TRIM_ALIGN_PIPE(INPUT_PIPE.out.fastqinput,INPUT_PIPE.out.sample_sheet)
         GERMLINE_PIPE(TRIM_ALIGN_PIPE.out.bambyinterval)
     }
+
+    //Tumor-Normal Pipelines
     if (PIPE_VC){
         INPUT_PIPE()
         TRIM_ALIGN_PIPE(INPUT_PIPE.out.fastqinput,INPUT_PIPE.out.sample_sheet)
@@ -64,7 +69,7 @@ workflow {
     }  
 
 
-    ///Tumor Only Section
+    ///Tumor Only Pipelines
     if (PIPE_TONLY_ALIGN){
         INPUT_TONLY_PIPE()
         TRIM_ALIGN_TONLY_PIPE(INPUT_TONLY_PIPE.out.fastqinput,INPUT_TONLY_PIPE.out.sample_sheet)
@@ -73,7 +78,13 @@ workflow {
         INPUT_TONLY_PIPE()
         TRIM_ALIGN_TONLY_PIPE(INPUT_TONLY_PIPE.out.fastqinput,INPUT_TONLY_PIPE.out.sample_sheet)
         VARIANT_TONLY_PIPE(TRIM_ALIGN_TONLY_PIPE.out.bamwithsample,TRIM_ALIGN_TONLY_PIPE.out.splitout,TRIM_ALIGN_TONLY_PIPE.out.sample_sheet)
-    }
+    }    
+
+    //Variant Calling from BAM only/Tumor Only
+    if (PIPE_TONLY_BAMVC){
+        INPUT_TONLY_BAMVC_PIPE()
+        VARIANT_TONLY_PIPE(INPUT_TONLY_BAMVC_PIPE.out.bamwithsample,INPUT_TONLY_BAMVC_PIPE.out.splitout,INPUT_TONLY_BAMVC_PIPE.out.sample_sheet)
+    }  
 }
     
 

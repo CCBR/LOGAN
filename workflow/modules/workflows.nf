@@ -9,8 +9,8 @@ include {fc_lane; fastq_screen;kraken;qualimap_bamqc;fastqc;
     somalier_extract;somalier_analysis;multiqc} from  './qc.nf'
 include {deepvariant_step1;deepvariant_step2;deepvariant_step3;
     deepvariant_combined;glnexus} from './germline.nf'
-include {fastp; bwamem2; indelrealign; bqsr; 
-    gatherbqsr; applybqsr; samtoolsindex} from './trim_align.nf'
+include {fastp; bwamem2; //indelrealign; 
+    bqsr; gatherbqsr; applybqsr; samtoolsindex} from './trim_align.nf'
 include {mutect2; mutect2_t_tonly; mutect2filter; mutect2filter_tonly; 
     pileup_paired_t; pileup_paired_n; 
     contamination_paired; contamination_tumoronly;
@@ -63,21 +63,22 @@ workflow TRIM_ALIGN_PIPE {
     splitinterval(intervalbedin)
     
     bwamem2(fastp.out)
-    indelrealign(bwamem2.out)
 
-//Indel Realignment after BQSR FOR ALL BAMS 
-    indelbambyinterval=indelrealign.out.combine(splitinterval.out.flatten())
+    //indelrealign(bwamem2.out)
+
+    //indelbambyinterval=indelrealign.out.combine(splitinterval.out.flatten())
+    bqsrbambyinterval=bwamem2.out.combine(splitinterval.out.flatten())
     bambyinterval=bwamem2.out.combine(splitinterval.out.flatten())
     
         
-    bqsr(indelbambyinterval)
+    bqsr(bqsrbambyinterval)
     bqsrs=bqsr.out.groupTuple()
         .map { samplename,beds -> tuple( samplename, 
         beds.toSorted{ it -> (it.name =~ /${samplename}_(.*?).recal_data.grp/)[0][1].toInteger() } )
         }
     gatherbqsr(bqsrs)
 
-    tobqsr=indelrealign.out.combine(gatherbqsr.out,by:0)
+    tobqsr=bwamem2.out.combine(gatherbqsr.out,by:0)
     applybqsr(tobqsr) 
     samtoolsindex(applybqsr.out)
     
@@ -91,7 +92,8 @@ workflow TRIM_ALIGN_PIPE {
         fastpout=fastp.out
         fastqin=fastqinput
         splitout=splitinterval.out
-        indelbambyinterval
+        //indelbambyinterval
+        bqsrbambyinterval
         sample_sheet
         bwamem2out=bwamem2.out
 }

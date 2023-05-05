@@ -128,10 +128,10 @@ process indelrealign {
 
 process bqsr {
     /*
-    Base quality recalibration for all samples to 
+    Base quality recalibration for all samples 
     */    
     input:
-        tuple val(samplename), path("${samplename}.ir.bam"), path(bed)
+        tuple val(samplename), path("${samplename}.bam"), path("${samplename}.bai"), path(bed)
 
     output:
         tuple val(samplename),path("${samplename}_${bed.simpleName}.recal_data.grp"),emit: bqsrby
@@ -140,7 +140,7 @@ process bqsr {
     script:
     """
     gatk --java-options '-Xmx32g' BaseRecalibrator \
-    --input ${samplename}.ir.bam \
+    --input ${samplename}.bam \
     --reference ${GENOME} \
     --known-sites ${MILLSINDEL} --known-sites ${SHAPEITINDEL} \
     --output ${samplename}_${bed.simpleName}.recal_data.grp \
@@ -183,17 +183,17 @@ process applybqsr {
     Base quality recalibration for all samples to 
     */   
     input:
-        tuple val(samplename),path("${samplename}.ir.bam"), path("${samplename}.recal_data.grp")
+        tuple val(samplename), path("${samplename}.bam"), path("${samplename}.bai"), path("${samplename}.recal_data.grp")
 
     output:
-        tuple val(samplename),path("${samplename}.bqsr.bam")
+        tuple val(samplename), path("${samplename}.bqsr.bam")
 
     script:
     """
 
     gatk --java-options '-Xmx32g' ApplyBQSR \
         --reference ${GENOME} \
-        --input ${samplename}.ir.bam \
+        --input ${samplename}.bam \
         --bqsr-recal-file ${samplename}.recal_data.grp \
         --output ${samplename}.bqsr.bam \
         --use-jdk-inflater \

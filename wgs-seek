@@ -11,20 +11,20 @@
     --PIPE_TONLY_TRIM-Trim and Align
 '''
 
-import argparse,os,time
+import argparse, os, time, sys, subprocess, re, json
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Input files')
     parser.add_argument('--fastq',help='FQ Inputs')
     parser.add_argument('--filelist',help="Files input")
     parser.add_argument('--bam',help="Files input")
-    parser.add_argument("--mode",help="Mode?")
-    parser.add_argument("--paired",help="Paired")
+    parser.add_argument('--mode',help='Mode?')
+    parser.add_argument('--paired',help='Paired')
     parser.add_argument('--output',help="Output Directory")
     parser.add_argument('--sample_sheet',help="Sample sheet")
-    parser.add_argument("--profile",default="biowulf",help="Biowulf or Local Run")
-    parser.add_argument("--resume",action="store_true",default="True",help="Resume previous run?")
-    parser.add_argument("--submit",action="store_false",help="Submit to SLURM?",default="False")
+    parser.add_argument('--profile',default="biowulf",help="Biowulf or Local Run")
+    parser.add_argument('--resume',action="store_true",default="True",help="Resume previous run?")
+    parser.add_argument('--submit',action="store_false",help="Submit to SLURM?",default="False")
     args = parser.parse_args()
     return(args)
 
@@ -37,6 +37,7 @@ def main():
     c1="#!/usr/bin/bash"
     c2="module load nextflow"
     c3="module load singularity"
+    #Paired Mode-> either align/VC/germline with FASTQ
     if args.paired:
         if args.mode=="align":
             mode="--PIPE_ALIGN"
@@ -57,18 +58,22 @@ def main():
         else:
             print("missing sample sheet for paired mode!")
     else:
+    #Tumor Only- fastq only
         if args.mode=="align":
             mode="--PIPE_TONLY_ALIGN"
             sample_path=""
             if args.fastq:
-                in1="--fastq_input "+args.fastq
+                in1="--fastq_input '"+args.fastq+"'"
             elif args.filelist:
                 in1="--file_input "+args.fileinput
         if args.mode=="vc":
-            mode="--PIPE_TONLY_VC"
             sample_path=""
             if args.fastq:
-                in1="--fastq_input "+args.fastq
+                mode="--PIPE_TONLY_VC"
+                in1="--fastq_input '"+args.fastq+"'"
+            elif args.bam:
+                mode="--PIPE_TONLY_BAMVC"
+                in1="--bam_input '"+args.bam+"'"
             elif args.filelist:
                 in1="--file_input "+args.fileinput
     if args.profile=="biowulf":
