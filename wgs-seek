@@ -38,7 +38,8 @@ def main():
     c2="module load nextflow"
     c3="module load singularity"
     #Paired Mode-> either align/VC/germline with FASTQ
-    if args.paired:
+    if args.paired and args.sample_sheet:
+        sample_path="--sample_sheet '"+args.sample_sheet+"'"
         if args.mode=="align":
             mode="--PIPE_ALIGN"
         elif args.mode=="vc":
@@ -48,15 +49,13 @@ def main():
         elif args.mode=="qc":
             mode="--PIPE_QC"
         if args.fastq:
-            in1="--fastq_input "+args.fastq
+            in1="--fastq_input '"+args.fastq+"'"
         elif args.filelist:
-            in1="--file_input "+args.fileinput
+            in1="--file_input "+args.filelist
         elif args.bam:
             in1="--bam "+args.bam
-        if args.sample_sheet:
-            sample_path="--sample_sheet '"+args.sample_sheet+"'"
         else:
-            print("missing sample sheet for paired mode!")
+            print("Missing sample sheet for paired mode or you would like Tumro only mode!")
     else:
     #Tumor Only- fastq only
         if args.mode=="align":
@@ -65,7 +64,7 @@ def main():
             if args.fastq:
                 in1="--fastq_input '"+args.fastq+"'"
             elif args.filelist:
-                in1="--file_input "+args.fileinput
+                in1="--file_input "+args.filelist
         if args.mode=="vc":
             sample_path=""
             if args.fastq:
@@ -75,7 +74,8 @@ def main():
                 mode="--PIPE_TONLY_BAMVC"
                 in1="--bam_input '"+args.bam+"'"
             elif args.filelist:
-                in1="--file_input "+args.fileinput
+                mode="--PIPE_TONLY_BAMVC"
+                in1="--file_input "+args.filelist
     if args.profile=="biowulf":
         profile="-profile biowulf"
     else: 

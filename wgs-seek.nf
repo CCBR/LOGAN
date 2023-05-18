@@ -13,7 +13,7 @@ PIPE_BAMVC=params.PIPE_BAMVC
 PIPE_TONLY_ALIGN=params.PIPE_TONLY_ALIGN
 PIPE_TONLY_VC=params.PIPE_TONLY_VC
 PIPE_TONLY_BAMVC=params.PIPE_TONLY_BAMVC
-
+PIPE_TONLY_QC=params.PIPE_TONLY_QC
 
 
 
@@ -21,7 +21,7 @@ include {INPUT_PIPE;TRIM_ALIGN_PIPE;
     GERMLINE_PIPE;VARIANTCALL_PIPE;INPUT_BAMVC_PIPE;QC_PIPE} from "./workflow/modules/workflows.nf"
 
 include {INPUT_TONLY_PIPE;TRIM_ALIGN_TONLY_PIPE;
-    VARIANT_TONLY_PIPE;INPUT_TONLY_BAMVC_PIPE} from "./workflow/modules/workflows_tonly.nf"
+    VARIANT_TONLY_PIPE;INPUT_TONLY_BAMVC_PIPE;QC_TONLY_PIPE} from "./workflow/modules/workflows_tonly.nf"
 
 
 log.info """\
@@ -79,6 +79,12 @@ workflow {
         TRIM_ALIGN_TONLY_PIPE(INPUT_TONLY_PIPE.out.fastqinput,INPUT_TONLY_PIPE.out.sample_sheet)
         VARIANT_TONLY_PIPE(TRIM_ALIGN_TONLY_PIPE.out.bamwithsample,TRIM_ALIGN_TONLY_PIPE.out.splitout,TRIM_ALIGN_TONLY_PIPE.out.sample_sheet)
     }    
+    if (PIPE_TONLY_QC){
+        INPUT_TONLY_PIPE()
+        TRIM_ALIGN_TONLY_PIPE(INPUT_TONLY_PIPE.out.fastqinput,INPUT_TONLY_PIPE.out.sample_sheet)
+        QC_TONLY_PIPE(TRIM_ALIGN_TONLY_PIPE.out.fastqin,TRIM_ALIGN_TONLY_PIPE.out.fastpout,TRIM_ALIGN_TONLY_PIPE.out.bwamem2out)
+
+    }  
 
     //Variant Calling from BAM only/Tumor Only
     if (PIPE_TONLY_BAMVC){

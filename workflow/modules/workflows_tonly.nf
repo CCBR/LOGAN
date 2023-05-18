@@ -153,7 +153,7 @@ workflow VARIANT_TONLY_PIPE {
 workflow QC_TONLY_PIPE {
     take:
         fastqin
-        fastpin
+        fastpout
         bwamem2out
 
     main:

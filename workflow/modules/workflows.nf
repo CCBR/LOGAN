@@ -16,6 +16,7 @@ include {mutect2; mutect2_t_tonly; mutect2filter; mutect2filter_tonly;
     contamination_paired; contamination_tumoronly;
     learnreadorientationmodel; learnreadorientationmodel_tonly; 
     mergemut2stats; mergemut2stats_tonly;
+    strelka; combineVariants_strelka;
     annotvep_tn; annotvep_tonly} from './variant_calling.nf'
 include {splitinterval} from "./splitbed.nf"
 
@@ -210,7 +211,19 @@ workflow VARIANTCALL_PIPE {
     mutect2filter_tonly(mut2tonly_filter)
 
 
-    //#To implement
+    //Strelka
+    strelka(bambyinterval)
+    strelkaout=strelka.out.groupTuple()
+    .map { samplename,vcfs,indels -> tuple( samplename,
+    vcfs.toSorted{ it -> (it.name =~ /${samplename}_(.*?).somatic.snvs.vcf.gz/)[0][1].toInteger() },
+    indels.toSorted{ it -> (it.name =~ /${samplename}_(.*?).somatic.indels.vcf.gz/)[0][1].toInteger() }  
+    )}
+
+    combineVariants_strelka(strelkaout)
+
+    //Vardict
+
+    
     //CNMOPs from the BAM BQSRs
     //##VCF2MAF TO
     tn_vepin=mutect2filter.out
@@ -228,8 +241,8 @@ workflow QC_PIPE {
         fastqin
         fastpout
         bwamem2out
-        glnexusout
-        bcfout
+        glnexusout //GLnexus germline output
+        bcfout //DV germline output
 
     main:
     //QC Steps
