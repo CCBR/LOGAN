@@ -19,7 +19,7 @@ jobs:
     - name: Tumor-normal FastQ Dry Run
       run: |
         docker run -v $PWD:/opt2 nextflow/nextflow:22.10.8 \
-        /opt2/wgs-seek --fastq_input \
+        wgs-seek --fastq_input \
         /opt2/.tests/Sample10_ARK1_S37.R1.fastq.gz /opt2/.tests/Sample10_ARK1_S37.R2.fastq.gz \
         /opt2/.tests/Sample11_ACI_158_S38.R1.fastq.gz /opt2/.tests/Sample11_ACI_158_S38.R2.fastq.gz \
         /opt2/.tests/Sample4_CRL1622_S31.R1.fastq.gz /opt2/.tests/Sample4_CRL1622_S31.R2.fastq.gz \
@@ -28,7 +28,7 @@ jobs:
     - name: Tumor-only FastQ Dry Run
       run: |
         docker run -v $PWD:/opt2 nextflow/nextflow:22.10.8 \
-        /opt2/wgs-seek --fastq_input \
+        wgs-seek --fastq_input \
         /opt2/.tests/Sample10_ARK1_S37.R1.fastq.gz /opt2/.tests/Sample10_ARK1_S37.R2.fastq.gz \
         /opt2/.tests/Sample11_ACI_158_S38.R1.fastq.gz /opt2/.tests/Sample11_ACI_158_S38.R2.fastq.gz \
         /opt2/.tests/Sample4_CRL1622_S31.R1.fastq.gz /opt2/.tests/Sample4_CRL1622_S31.R2.fastq.gz \
