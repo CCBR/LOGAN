@@ -81,11 +81,11 @@ workflow TRIM_ALIGN_PIPE {
 
     tobqsr=bwamem2.out.combine(gatherbqsr.out,by:0)
     applybqsr(tobqsr) 
-    samtoolsindex(applybqsr.out)
+    //samtoolsindex(applybqsr.out)
     
-    samtoolsindex.out.view()
-    sample_sheet.view()
-    bamwithsample=samtoolsindex.out.combine(sample_sheet,by:0).map{it.swap(3,0)}.combine(samtoolsindex.out,by:0).map{it.swap(3,0)}
+    //samtoolsindex.out.view()
+    //sample_sheet.view()
+    bamwithsample=applybqsr.out.combine(sample_sheet,by:0).map{it.swap(3,0)}.combine(applybqsr.out,by:0).map{it.swap(3,0)}
 
     emit:
         bamwithsample
@@ -96,7 +96,7 @@ workflow TRIM_ALIGN_PIPE {
         //indelbambyinterval
         bqsrbambyinterval
         sample_sheet
-        bwamem2out=bwamem2.out
+        bqsrout=applybqsr.out
 }
 
 workflow GERMLINE_PIPE {
@@ -240,7 +240,7 @@ workflow QC_PIPE {
     take:
         fastqin
         fastpout
-        bwamem2out
+        applybqsr
         glnexusout //GLnexus germline output
         bcfout //DV germline output
 
@@ -249,9 +249,9 @@ workflow QC_PIPE {
     fc_lane(fastqin)
     fastq_screen(fastpout)
     kraken(fastqin)
-    qualimap_bamqc(bwamem2out)
-    samtools_flagstats(bwamem2out)
-    fastqc(bwamem2out)
+    qualimap_bamqc(applybqsr)
+    samtools_flagstats(applybqsr)
+    fastqc(applybqsr)
     //Cohort VCF
     glout=glnexusout.map{germlinev,germlinenorm,tbi->tuple(germlinenorm,tbi)}
     vcftools(glout)
@@ -262,7 +262,7 @@ workflow QC_PIPE {
     gatk_varianteval(bcfin)
     snpeff(bcfin)
     //Somalier
-    somalier_extract(bwamem2out) 
+    somalier_extract(applybqsr) 
     som_in=somalier_extract.out.collect()
     somalier_analysis(som_in)
     //

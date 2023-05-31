@@ -82,7 +82,7 @@ workflow {
     if (PIPE_TONLY_QC){
         INPUT_TONLY_PIPE()
         TRIM_ALIGN_TONLY_PIPE(INPUT_TONLY_PIPE.out.fastqinput,INPUT_TONLY_PIPE.out.sample_sheet)
-        QC_TONLY_PIPE(TRIM_ALIGN_TONLY_PIPE.out.fastqin,TRIM_ALIGN_TONLY_PIPE.out.fastpout,TRIM_ALIGN_TONLY_PIPE.out.bwamem2out)
+        QC_TONLY_PIPE(TRIM_ALIGN_TONLY_PIPE.out.fastqin,TRIM_ALIGN_TONLY_PIPE.out.fastpout,TRIM_ALIGN_TONLY_PIPE.out.bqsrout)
 
     }  
 

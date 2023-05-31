@@ -76,6 +76,14 @@ def main():
             elif args.filelist:
                 mode="--PIPE_TONLY_BAMVC"
                 in1="--file_input "+args.filelist
+        if args.mode=="qc":
+            sample_path=""
+            if args.fastq:
+                mode="--PIPE_TONLY_QC"
+                in1="--fastq_input '"+args.fastq+"'"
+            elif args.bam:
+                mode="--PIPE_TONLY_QC"
+                in1="--bam_input '"+args.bam+"'"
     if args.profile=="biowulf":
         profile="-profile biowulf"
     else: 

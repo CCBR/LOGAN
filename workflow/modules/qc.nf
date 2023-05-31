@@ -166,10 +166,9 @@ process fastqc {
     publishDir(path: "${outdir}/QC/fastqc/", mode: 'copy')
 
     input:
-        tuple val(samplename), path("${samplename}.bam"), path("${samplename}.bai")
+        tuple val(samplename), path("${samplename}.bqsr.bam"), path("${samplename}.bqsr.bai")
     output:
-        tuple val(samplename), path("${samplename}.fastqc.html"), path("${samplename}.fastqc.zip")
-
+        tuple val(samplename), path("${samplename}_fastqc.html"), path("${samplename}_fastqc.zip")
 
     //message: "Running FastQC with {threads} threads on '{input}' input file"
     //threads: 8
@@ -177,16 +176,18 @@ process fastqc {
 
     script: 
     """
+    mkdir -p fastqc
     fastqc -t 8 \
         -f bam \
         -o fastqc \
-        ${samplename}.bam 
-
+        ${samplename}.bqsr.bam 
+    mv fastqc/${samplename}.bqsr_fastqc.html ${samplename}_fastqc.html
+    mv fastqc/${samplename}.bqsr_fastqc.zip ${samplename}_fastqc.zip
     """
 
     stub: 
     """
-    touch  ${samplename}.fastqc.html ${samplename}.fastqc.zip
+    touch  ${samplename}_fastqc.html ${samplename}_fastqc.zip
     """
 }
 
@@ -207,7 +208,7 @@ process qualimap_bamqc {
     //module: config['images']['qualimap']
     
     input:
-        tuple val(samplename), path("${samplename}.bam"), path("${samplename}.bai")
+        tuple val(samplename), path("${samplename}.bqsr.bam"), path("${samplename}.bqsr.bai")
 
     output: 
         tuple path("${samplename}_genome_results.txt"), path("${samplename}_qualimapReport.html")
@@ -215,8 +216,8 @@ process qualimap_bamqc {
     script: 
     """
     unset DISPLAY
-    qualimap bamqc -bam ${samplename}.bam \
-        --java-mem-size=96G \
+    qualimap bamqc -bam ${samplename}.bqsr.bam \
+        --java-mem-size=112G \
         -c -ip \
         -outdir ${samplename} \
         -outformat HTML \
@@ -248,16 +249,16 @@ process samtools_flagstats {
     */
     publishDir("${outdir}/QC/flagstats/", mode: "copy")
     module=['samtools/1.16.1']
-    //container: config['images']['wes_base']
+
     input:
-        tuple val(samplename), path("${samplename}.bam"), path("${samplename}.bai")
+        tuple val(samplename), path("${samplename}.bqsr.bam"), path("${samplename}.bqsr.bai")
     
     output:
         path("${samplename}.samtools_flagstat.txt")
 
     script: 
     """
-    samtools flagstat ${samplename}.bam > ${samplename}.samtools_flagstat.txt
+    samtools flagstat ${samplename}.bqsr.bam > ${samplename}.samtools_flagstat.txt
     """
 
     stub:
@@ -490,7 +491,7 @@ process somalier_extract {
     //container: config['images']['wes_base']
     script: 
     """ 
-    mkdir output
+    mkdir -p output
     somalier extract \
         -d output \
         --sites $SITES_VCF \
@@ -500,7 +501,7 @@ process somalier_extract {
 
     stub:
     """
-    mkdir output
+    mkdir -p output
     touch output/${samplename}.somalier 
     """
 }

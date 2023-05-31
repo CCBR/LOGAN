@@ -5,7 +5,7 @@ intervalbedin = Channel.fromPath(params.intervals,checkIfExists: true,type: 'fil
 include {fc_lane; fastq_screen;kraken;qualimap_bamqc;
     samtools_flagstats;vcftools;collectvariantcallmetrics;
     bcftools_stats;gatk_varianteval;
-    snpeff;
+    snpeff;fastqc;
     somalier_extract;somalier_analysis;multiqc} from  './qc.nf'
 include {deepvariant_step1;deepvariant_step2;deepvariant_step3;
     deepvariant_combined;glnexus} from './germline.nf'
@@ -69,10 +69,10 @@ workflow TRIM_ALIGN_TONLY_PIPE {
 
     tobqsr=bwamem2.out.combine(gatherbqsr.out,by:0)
     applybqsr(tobqsr) 
-    samtoolsindex(applybqsr.out)
+    //samtoolsindex(applybqsr.out)
     //samtoolsindex.out.view()
     //bamwithsample=samtoolsindex.out.join(sample_sheet).map{it.swap(3,0)}.join(samtoolsindex.out).map{it.swap(3,0)}
-    bamwithsample=samtoolsindex.out.join(sample_sheet)
+    bamwithsample=applybqsr.out.join(sample_sheet)
     .map{samplename,tumor,tumorbai -> tuple( samplename,tumor,tumorbai)
         }
     bambyinterval=bamwithsample.combine(splitinterval.out.flatten())
@@ -86,7 +86,7 @@ workflow TRIM_ALIGN_TONLY_PIPE {
         //indelbambyinterval
         bqsrbambyinterval
         sample_sheet
-        bwamem2out=bwamem2.out
+        bqsrout=applybqsr.out
 
 }
 
@@ -154,19 +154,21 @@ workflow QC_TONLY_PIPE {
     take:
         fastqin
         fastpout
-        bwamem2out
+        bqsrout
 
     main:
     //QC Steps For Tumor-Only-No Germline Variant QC
     fc_lane(fastqin)
     fastq_screen(fastpout)
     kraken(fastqin)
-    qualimap_bamqc(bwamem2out)
-    fastqc(bwamem2out)
-    samtools_flagstats(bwamem2out)
+
+    //BQSR BAMs 
+    fastqc(bqsrout)
+    samtools_flagstats(bqsrout)
+    qualimap_bamqc(bqsrout)
 
 
-    somalier_extract(bwamem2out) 
+    somalier_extract(bqsrout) 
     som_in=somalier_extract.out.collect()
     somalier_analysis(som_in)
     

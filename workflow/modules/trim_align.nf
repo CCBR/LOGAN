@@ -186,7 +186,7 @@ process applybqsr {
         tuple val(samplename), path("${samplename}.bam"), path("${samplename}.bai"), path("${samplename}.recal_data.grp")
 
     output:
-        tuple val(samplename), path("${samplename}.bqsr.bam")
+        tuple val(samplename), path("${samplename}.bqsr.bam"),  path("${samplename}.bqsr.bai")
 
     script:
     """
@@ -203,7 +203,7 @@ process applybqsr {
 
     stub:
     """
-    touch ${samplename}.bqsr.bam
+    touch ${samplename}.bqsr.bam ${samplename}.bqsr.bai
     """
 
 }
