@@ -265,7 +265,6 @@ workflow QC_PIPE {
     somalier_extract(applybqsr) 
     som_in=somalier_extract.out.collect()
     somalier_analysis(som_in)
-    //
 
     //Prep for MultiQC input
     fclane_out=fc_lane.out.map{samplename,info->info}.collect()
