@@ -182,6 +182,8 @@ process applybqsr {
     /*
     Base quality recalibration for all samples to 
     */   
+    publishDir(path: "${outdir}/bams/BQSR", mode: 'copy') 
+
     input:
         tuple val(samplename), path("${samplename}.bam"), path("${samplename}.bai"), path("${samplename}.recal_data.grp")
 
