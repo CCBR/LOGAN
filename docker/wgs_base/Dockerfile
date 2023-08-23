@@ -143,7 +143,7 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get install -y \
       apt-transport-https \
       software-properties-common
 
-# Install R (4.0) -- (edgeR needs 3.6) -- and R packages
+# Install R (4.0) -- and R packages
 # ggplot2  dplyr  plotly  htmlwidgets  tidyr and a few extras
 # For more information, check out: https://cran.r-project.org/bin/linux/ubuntu/
 RUN apt-key adv --keyserver keyserver.ubuntu.com --recv-keys E298A3A825C0D65DFD57CBB651716619E084DAB9 \
