@@ -3,13 +3,13 @@
 > **_Whole Genome-Sequencing Pipeline_**. This is the home of the pipeline, wgs-seek. Its long-term goals: to accurately call germline and somatic variants, to infer CNVs, and to boldly annotate variants like no pipeline before!
 
 ## Overview
-Welcome to genome-seek! Before getting started, we highly recommend reading through [wgs-seek's documentation](https://dnousome.github.io/wgs-seek).
+Welcome to wgs-seek! Before getting started, we highly recommend reading through [wgs-seek's documentation](https://dnousome.github.io/wgs-seek).
 
 The **`./wgs-seek`** pipeline is composed several inter-related sub commands to setup and run the pipeline across different systems. Each of the available sub commands perform different functions: 
 
  * [<code>wgs-seek <b>run</b></code>](https://dnousome.github.io/wgs-seek/usage/run/): Run the WGS pipeline with your input files.
 
-WGS-seek is a comprehensive whole exome-sequencing pipeline following the Broad's set of best practices. It relies on technologies like [Singularity<sup>1</sup>](https://singularity.lbl.gov/) to maintain the highest-level of reproducibility. The pipeline consists of a series of data processing and quality-control steps orchestrated by [Nextflow<sup>2</sup>](https://nextflow.io/), a flexible and scalable workflow management system, to submit jobs to a cluster or cloud provider.
+WGS-seek is a comprehensive whole genome-sequencing pipeline following the Broad's set of best practices. It relies on technologies like [Singularity<sup>1</sup>](https://singularity.lbl.gov/) to maintain the highest-level of reproducibility. The pipeline consists of a series of data processing and quality-control steps orchestrated by [Nextflow<sup>2</sup>](https://nextflow.io/), a flexible and scalable workflow management system, to submit jobs to a cluster or cloud provider.
 
 The pipeline is compatible with data generated from Illumina short-read sequencing technologies. As input, it accepts a set of FASTQ or BAM files and can be run locally on a compute instance, on-premise using a cluster. A user can define the method or mode of execution. The pipeline can submit jobs to a cluster using a job scheduler like SLURM. A hybrid approach ensures the pipeline is accessible to all users.
 
@@ -22,7 +22,7 @@ Original pipelining and code forked heavily from the CCBR Exome-seek Pipeline [E
 ## Dependencies
 **Requires:** `singularity>=3.5`  `nextflow>=22.10.2`
 
-[singularity](https://singularity.lbl.gov/all-releases) must be installed on the target system. Snakemake orchestrates the execution of each step in the pipeline. To guarantee the highest level of reproducibility, each step relies on versioned images from [DockerHub](https://hub.docker.com/orgs/nciccbr/repositories). Snakemake uses singaularity to pull these images onto the local filesystem prior to job execution, and as so, snakemake and singularity are the only two dependencies.
+[singularity](https://singularity.lbl.gov/all-releases) must be installed on the target system. Snakemake orchestrates the execution of each step in the pipeline. To guarantee the highest level of reproducibility, each step relies on versioned images from [DockerHub](https://hub.docker.com/orgs/nciccbr/repositories). Nextflow uses singularity to pull these images onto the local filesystem prior to job execution, and as so, nextflow and singularity are the only two dependencies.
 
 ## Installation
 Please clone this repository to your local filesystem using the following command:
