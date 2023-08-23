@@ -18,6 +18,7 @@ include {mutect2; mutect2_t_tonly; mutect2filter; mutect2filter_tonly;
     mergemut2stats; mergemut2stats_tonly;
     strelka; combineVariants_strelka;
     annotvep_tn; annotvep_tonly} from './variant_calling.nf'
+include {svaba_somatic} from './structural_variant.nf'
 include {splitinterval} from "./splitbed.nf"
 
 
@@ -234,6 +235,16 @@ workflow VARIANTCALL_PIPE {
     // Immplment PCGR Annotator/CivIC?
 }
 
+
+workflow SV_PIPE {
+    take:
+        bamwithsample
+        
+    main: 
+
+        //Paired svaba
+        svaba_somatic(bamwithsample)    
+}
 
 
 workflow QC_PIPE {
