@@ -1,7 +1,7 @@
 # Base image
 FROM --platform=linux/amd64 ubuntu:20.04
 
-LABEL maintainer <vishal.koparde@nih.gov,nousomedr@nih.gov,>
+LABEL maintainer <vishal.koparde@nih.gov, nousomedr@nih.gov>
 
 # Create Container filesystem specific 
 # working directory and opt directories 
@@ -232,12 +232,35 @@ RUN wget https://github.com/AstraZeneca-NGS/VarDictJava/releases/download/v1.8.2
     && rm /opt2/VarDict-1.8.2.tar
 ENV PATH="/opt2/VarDict-1.8.2/bin:$PATH"
 
-# Grab Fastp From Opengene github
+# Fastp From Opengene github
 RUN wget http://opengene.org/fastp/fastp.0.23.2 \
     && mkdir fastp \
     && mv fastp.0.23.2 fastp/fastp \
     && chmod a+x fastp/fastp
 ENV PATH="/opt2/fastp:$PATH"
+
+# HMFtools for PURPLE/COBALT/AMBER
+RUN wget https://github.com/hartwigmedical/hmftools/releases/download/amber-v3.9/amber-3.9.jar \
+    && wget https://github.com/hartwigmedical/hmftools/releases/download/cobalt-v1.15.1/cobalt_v1.15.1.jar \
+    && wget https://github.com/hartwigmedical/hmftools/releases/download/purple-v3.9/purple_v3.9.jar \
+    && mkdir hmftools \
+    && mv amber-3.9.jar hmftools/amber.jar \
+    && mv cobalt_v1.15.1.jar hmftools/cobalt.jar \
+    && mv purple_v3.9.jar hmftools/purple.jar \
+    && chmod a+x hmftools/amber.jar
+ENV PATH="/opt2/hmftools:$PATH"
+
+# SvABA
+RUN wget -O svaba_1.2.0 https://github.com/walaj/svaba/releases/download/v1.2.0/svaba \
+    && mkdir svaba \ 
+    && mv svaba_1.2.0 svaba/svaba
+#RUN git clone --recursive https://github.com/walaj/svaba \
+#    && /opt2/svaba \
+#    && ./configure \
+#    && make \
+#    && make install
+ENV PATH="/opt2/svaba:$PATH"
+
 
 # Add Dockerfile and argparse.bash script
 # and export environment variables
