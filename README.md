@@ -3,7 +3,7 @@
 > **_Whole Genome-Sequencing Pipeline_**. This is the home of the pipeline, wgs-seek. Its long-term goals: to accurately call germline and somatic variants, to infer CNVs, and to boldly annotate variants like no pipeline before!
 
 ## Overview
-Welcome to genome-seek! Before getting started, we highly recommend reading through [wgs-seek's documentation](https://dnousome.github.io/wgs-seek).
+Welcome to wgs-seek! Before getting started, we highly recommend reading through [wgs-seek's documentation](https://dnousome.github.io/wgs-seek).
 
 The **`./wgs-seek`** pipeline is composed several inter-related sub commands to setup and run the pipeline across different systems. Each of the available sub commands perform different functions: 
 
