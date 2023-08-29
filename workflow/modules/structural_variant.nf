@@ -6,7 +6,7 @@ SHAPEITINDEL=file(params.shapeitindel) //ALL.wgs.1000G_phase3.GRCh38.ncbi_remapp
 KGP=file(params.kgp) //1000G_phase1.snps.high_confidence.hg38.vcf.gz"
 DBSNP=file(params.dbsnp) //dbsnp_138.hg38.vcf.gz"
 DBSNP_INDEL=file(params.dbsnp_indel) //dbsnp_138.hg38.vcf.gz"
-
+BWAGENOME=file(params.bwagenome)
 GNOMAD=file(params.gnomad) //somatic-hg38-af-only-gnomad.hg38.vcf.gz
 PON=file(params.pon) 
 
@@ -31,7 +31,7 @@ process svaba_somatic {
     script:
 
     """
-    /data/nousomedr/programs/svaba run -t ${tumor} -n ${normal} -p {$task.cpus} -D $DBSNP_INDEL -a somatic_run -G $GENOME
+    /data/nousomedr/programs/svaba run -t ${tumor} -n ${normal} -p $task.cpus -D $DBSNP_INDEL -a somatic_run -G $BWAGENOME
 
     """
 
