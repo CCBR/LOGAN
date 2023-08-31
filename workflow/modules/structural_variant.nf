@@ -31,7 +31,7 @@ process svaba_somatic {
     script:
 
     """
-    /data/nousomedr/programs/svaba run -t ${tumor} -n ${normal} -p $task.cpus -D $DBSNP_INDEL -a $tumor.simpleName -G $BWAGENOME
+    /data/nousomedr/programs/svaba run -t ${tumor} -n ${normal} -p $task.cpus -D $DBSNP_INDEL -a ${tumor.simpleName} -G $BWAGENOME
     """
 
     stub:
