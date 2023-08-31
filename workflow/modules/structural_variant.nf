@@ -27,12 +27,11 @@ process svaba_somatic {
         path("${tumor.simpleName}.discordants.txt.gz"),
         path("${tumor.simpleName}.alignments.txt.gz")
 
-    
+    1_MOSJ_p15_S1.bps.txt.gz
     script:
 
     """
-    /data/nousomedr/programs/svaba run -t ${tumor} -n ${normal} -p $task.cpus -D $DBSNP_INDEL -a somatic_run -G $BWAGENOME
-
+    /data/nousomedr/programs/svaba run -t ${tumor} -n ${normal} -p $task.cpus -D $DBSNP_INDEL -a $tumor.simpleName -G $BWAGENOME
     """
 
     stub:
