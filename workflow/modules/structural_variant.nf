@@ -24,7 +24,7 @@ process svaba_somatic {
         tuple val(tumorname),
         path("${tumor.simpleName}.bps.txt.gz"),
         path("${tumor.simpleName}.contigs.bam"),
-        path("${tumor.simpleName}.discordants.txt.gz"),
+        path("${tumor.simpleName}.discordant.txt.gz"),
         path("${tumor.simpleName}.alignments.txt.gz")
 
     script:
