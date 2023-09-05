@@ -25,10 +25,17 @@ process svaba_somatic {
         path("${tumor.simpleName}.bps.txt.gz"),
         path("${tumor.simpleName}.contigs.bam"),
         path("${tumor.simpleName}.discordant.txt.gz"),
-        path("${tumor.simpleName}.alignments.txt.gz")
+        path("${tumor.simpleName}.alignments.txt.gz"),
+        path("${tumor.simpleName}.svaba.germline.indel.vcf"),
+        path("${tumor.simpleName}.svaba.germline.sv.vcf"),
+        path("${tumor.simpleName}.svaba.somatic.indel.vcf"),
+        path("${tumor.simpleName}.svaba.somatic.sv.vcf"),
+        path("${tumor.simpleName}.svaba.unfiltered.germline.indel.vcf"),
+        path("${tumor.simpleName}.svaba.unfiltered.germline.sv.vcf"),
+        path("${tumor.simpleName}.svaba.unfiltered.somatic.indel.vcf"),
+        path("${tumor.simpleName}.svaba.unfiltered.somatic.sv.vcf")
 
     script:
-
     """
     /data/nousomedr/programs/svaba run -t ${tumor} -n ${normal} -p $task.cpus -D $DBSNP_INDEL -a ${tumor.simpleName} -G $BWAGENOME
     """
