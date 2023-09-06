@@ -647,6 +647,88 @@ process mutect2filter_tonly {
 }
 
 
+process varscan_tn {
+    
+    input:
+        tuple val(tumorname), path(tumor), path(tumorbai), path(bed)
+    
+    output:
+        tuple val(tumorname),
+        path("${tumor.simpleName}_${bed.simpleName}.vardict.vcf"),
+    
+    script:
+
+    """
+    tumor_purity=$( echo "1-$(printf '%.6f' $(tail -n -1 {input.tumor_summary} | cut -f2 ))" | bc -l)
+    normal_purity=$( echo "1-$(printf '%.6f' $(tail -n -1 {input.normal_summary} | cut -f2 ))" | bc -l)
+    varscan_opts="--strand-filter 1 --min-var-freq 0.01 --min-avg-qual 30 --somatic-p-value 0.05 --output-vcf 1 --normal-purity $normal_purity --tumor-purity $tumor_purity"
+    dual_pileup="samtools mpileup -d 10000 -q 15 -Q 15 -f {params.genome} {input.normal} {input.tumor}"
+    varscan_cmd="varscan somatic <($dual_pileup) {output.vcf} $varscan_opts --mpileup 1"    
+    eval "$varscan_cmd"
+
+
+    # VarScan can output ambiguous IUPAC bases/codes
+    # the awk one-liner resets them to N, from:
+    # https://github.com/fpbarthel/GLASS/issues/23
+    awk '{{gsub(/\y[W|K|Y|R|S|M]\y/,"N",$4); OFS = "\t"; print}}' {output.vcf}.snp \\
+        | sed '/^$/d' > {output.vcf}.snp_temp
+    awk '{{gsub(/\y[W|K|Y|R|S|M]\y/,"N",$4); OFS = "\t"; print}}' {output.vcf}.indel \\
+        | sed '/^$/d' > {output.vcf}.indel_temp
+
+
+    """
+
+    stub:
+    
+    """
+    touch ${tumor.simpleName}_${bed.simpleName}.vardict.vcf
+    
+
+    """
+
+
+}
+
+
+process neusomatic {
+    input:
+        tuple val(tumorname), path(tumor), path(tumorbai), path(bed)
+    
+    output:
+        tuple val(tumorname),
+        path("${tumor.simpleName}_${bed.simpleName}.vardict.vcf"),
+    
+    script:
+
+    """
+    tumor_purity=$( echo "1-$(printf '%.6f' $(tail -n -1 {input.tumor_summary} | cut -f2 ))" | bc -l)
+    normal_purity=$( echo "1-$(printf '%.6f' $(tail -n -1 {input.normal_summary} | cut -f2 ))" | bc -l)
+    varscan_opts="--strand-filter 1 --min-var-freq 0.01 --min-avg-qual 30 --somatic-p-value 0.05 --output-vcf 1 --normal-purity $normal_purity --tumor-purity $tumor_purity"
+    dual_pileup="samtools mpileup -d 10000 -q 15 -Q 15 -f {params.genome} {input.normal} {input.tumor}"
+    varscan_cmd="varscan somatic <($dual_pileup) {output.vcf} $varscan_opts --mpileup 1"    
+    eval "$varscan_cmd"
+
+
+    # VarScan can output ambiguous IUPAC bases/codes
+    # the awk one-liner resets them to N, from:
+    # https://github.com/fpbarthel/GLASS/issues/23
+    awk '{{gsub(/\y[W|K|Y|R|S|M]\y/,"N",$4); OFS = "\t"; print}}' {output.vcf}.snp \\
+        | sed '/^$/d' > {output.vcf}.snp_temp
+    awk '{{gsub(/\y[W|K|Y|R|S|M]\y/,"N",$4); OFS = "\t"; print}}' {output.vcf}.indel \\
+        | sed '/^$/d' > {output.vcf}.indel_temp
+
+
+    """
+
+    stub:
+    
+    """
+    touch ${tumor.simpleName}_${bed.simpleName}.vardict.vcf
+    
+
+    """
+
+}
 
 
 process annotvep_tn {
