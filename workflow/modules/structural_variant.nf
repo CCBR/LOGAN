@@ -33,7 +33,9 @@ process svaba_somatic {
         path("${tumor.simpleName}.svaba.unfiltered.germline.indel.vcf"),
         path("${tumor.simpleName}.svaba.unfiltered.germline.sv.vcf"),
         path("${tumor.simpleName}.svaba.unfiltered.somatic.indel.vcf"),
-        path("${tumor.simpleName}.svaba.unfiltered.somatic.sv.vcf")
+        path("${tumor.simpleName}.svaba.unfiltered.somatic.sv.vcf"),
+        path("${tumor.simpleName}.log")
+
 
     script:
     """
@@ -50,4 +52,75 @@ process svaba_somatic {
     """
 }
 
+
+process manta_somatic {
+    //https://github.com/illumina/manta
+    publishDir(path: "${outdir}/SV/manta", mode: 'copy') 
+
+    input:
+        tuple val(tumorname), path(tumor), path(tumorbai),val(normalname), path(normal), path(normalbai)
+    
+    output:
+        tuple val(tumorname),
+        path("${tumor.simpleName}.diplodSV.vcf.gz"),
+        path("${tumor.simpleName}.somaticSV.vcf.gz"),
+        path("${tumor.simpleName}.candidateSV.vcf.gz"),
+        path("${tumor.simpleName}.candidateSmallIndels.vcf.gz")
+
+    script:
+    """
+    mkdir -p wd
+
+    configManta.py \
+    --normalBam=${normal} \
+    --tumorBam=${tumor} \
+    --referenceFasta=$GENOME \
+    --runDir=wd
+
+    wd/runWorkflow.py -m local -j 10 -g 10
+    
+    mv wd/results/variants/diploidSV.vcf.gz ${tumor.simpleName}.diplodSV.vcf.gz
+    mv wd/results/variants/somaticSV.vcf.gz ${tumor.simpleName}.somaticSV.vcf.gz
+    mv wd/results/variants/candidateSV.vcf.gz ${tumor.simpleName}.candidateSV.vcf.gz
+    mv wd/results/variants/candidateSmallIndels.vcf.gz ${tumor.simpleName}.candidateSmallIndels.vcf.gz
+
+    """
+
+    stub:
+    
+    """
+    touch ${tumor.simpleName}.diplodSV.vcf.gz
+    touch ${tumor.simpleName}.somaticSV.vcf.gz
+    touch ${tumor.simpleName}.candidateSV.vcf.gz
+    touch ${tumor.simpleName}.candidateSmallIndels.vcf.gz
+    """
+}
+
+
+process annotsv_tn{
+     //AnnotSV for Manta/Svaba works with either vcf.gz or .vcf files
+     //Requires bedtools,bcftools
+
+    publishDir(path: "${outdir}/SV/annotated", mode: 'copy') 
+
+    input:
+        tuple val(tumorname), path(somaticvcf)
+
+    output:
+        tuple val(tumorname),
+        path("${tumor.simpleName}.tsv"),
+        path("${tumor.simpleName}.unannotated.tsv"),
+
+
+    script:
+    """
+    AnnotSV -SVinputFile ${tumor}.vcf.gz -SVinputInfo 1 -outputFile ${tumor.simpleName} -outputDir .
+    """
+
+    stub:
+    """
+    touch "${tumor.simpleName}.tsv"
+    touch "${tumor.simpleName}.unannotated.tsv"
+    """
+}
 
