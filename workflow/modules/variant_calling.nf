@@ -546,7 +546,6 @@ process combineVariants_vardict {
     
     vcfin = vardictout.join(" ")
 
-
     //Concat all somatic snvs/indesl across all beds
     """
 
@@ -647,86 +646,66 @@ process mutect2filter_tonly {
 }
 
 
+
 process varscan_tn {
-    
+    module=['samtools/1.9','VarScan/2.4.6']
+
     input:
-        tuple val(tumorname), path(tumor), path(tumorbai), path(bed)
+        tuple val(tumorname),
+        path(tumor), path(tumorbai), val(normalname), path(normal), path(normalbai), path(bed)
+        path(allpileup.table), path(normalallpileups.table), path(tumor.contamination.table), path(normal.contamination.table)
     
     output:
         tuple val(tumorname),
         path("${tumor.simpleName}_${bed.simpleName}.vardict.vcf"),
     
-    script:
+    shell:
 
     """
-    tumor_purity=$( echo "1-$(printf '%.6f' $(tail -n -1 {input.tumor_summary} | cut -f2 ))" | bc -l)
-    normal_purity=$( echo "1-$(printf '%.6f' $(tail -n -1 {input.normal_summary} | cut -f2 ))" | bc -l)
-    varscan_opts="--strand-filter 1 --min-var-freq 0.01 --min-avg-qual 30 --somatic-p-value 0.05 --output-vcf 1 --normal-purity $normal_purity --tumor-purity $tumor_purity"
-    dual_pileup="samtools mpileup -d 10000 -q 15 -Q 15 -f {params.genome} {input.normal} {input.tumor}"
-    varscan_cmd="varscan somatic <($dual_pileup) {output.vcf} $varscan_opts --mpileup 1"    
-    eval "$varscan_cmd"
-
-
-    # VarScan can output ambiguous IUPAC bases/codes
-    # the awk one-liner resets them to N, from:
-    # https://github.com/fpbarthel/GLASS/issues/23
-    awk '{{gsub(/\y[W|K|Y|R|S|M]\y/,"N",$4); OFS = "\t"; print}}' {output.vcf}.snp \\
-        | sed '/^$/d' > {output.vcf}.snp_temp
-    awk '{{gsub(/\y[W|K|Y|R|S|M]\y/,"N",$4); OFS = "\t"; print}}' {output.vcf}.indel \\
-        | sed '/^$/d' > {output.vcf}.indel_temp
-
-
+    tumor_purity=$( echo "1-$(printf '%.6f' $(tail -n -1 !normal.contamination.table | cut -f2 ))" | bc -l)
+    normal_purity=$( echo "1-$(printf '%.6f' $(tail -n -1 !normal.contamination.table | cut -f2 ))" | bc -l)
+    varscan_opts="--strand-filter 1 --min-var-freq 0.01 --min-avg-qual 30 --somatic-p-value 0.05 --output-vcf 1 --normal-purity \$normal_purity --tumor-purity \$tumor_purity"
+    varscan somatic < samtools mpileup -d 10000 -q 15 -Q 15 -f !GENOME -l !{bed.simpleName} !normal !tumor !{tumor.simpleName}_{bed.simpleName}.vardict.vcf $varscan_opts --mpileup 1 
     """
 
     stub:
     
     """
-    touch ${tumor.simpleName}_${bed.simpleName}.vardict.vcf
+    touch ${tumor.simpleName}_${bed.simpleName}.varscan.vcf
     
-
     """
-
 
 }
 
+process combineVariants_varscan {
 
-process neusomatic {
+    publishDir(path: "${outdir}/vcfs/varscan", mode: 'copy')
+
     input:
-        tuple val(tumorname), path(tumor), path(tumorbai), path(bed)
+        tuple val(sample), path(varscanout)
     
     output:
-        tuple val(tumorname),
-        path("${tumor.simpleName}_${bed.simpleName}.vardict.vcf"),
+        tuple val(sample), path("${sample}.final.varscan.vcf.gz")
     
     script:
-
+    
+    vcfin = varscan.join(" ")
+    //Concat all somatic snvs/indesl across all beds
     """
-    tumor_purity=$( echo "1-$(printf '%.6f' $(tail -n -1 {input.tumor_summary} | cut -f2 ))" | bc -l)
-    normal_purity=$( echo "1-$(printf '%.6f' $(tail -n -1 {input.normal_summary} | cut -f2 ))" | bc -l)
-    varscan_opts="--strand-filter 1 --min-var-freq 0.01 --min-avg-qual 30 --somatic-p-value 0.05 --output-vcf 1 --normal-purity $normal_purity --tumor-purity $tumor_purity"
-    dual_pileup="samtools mpileup -d 10000 -q 15 -Q 15 -f {params.genome} {input.normal} {input.tumor}"
-    varscan_cmd="varscan somatic <($dual_pileup) {output.vcf} $varscan_opts --mpileup 1"    
-    eval "$varscan_cmd"
-
-
-    # VarScan can output ambiguous IUPAC bases/codes
-    # the awk one-liner resets them to N, from:
-    # https://github.com/fpbarthel/GLASS/issues/23
-    awk '{{gsub(/\y[W|K|Y|R|S|M]\y/,"N",$4); OFS = "\t"; print}}' {output.vcf}.snp \\
-        | sed '/^$/d' > {output.vcf}.snp_temp
-    awk '{{gsub(/\y[W|K|Y|R|S|M]\y/,"N",$4); OFS = "\t"; print}}' {output.vcf}.indel \\
-        | sed '/^$/d' > {output.vcf}.indel_temp
-
+    bcftools concat $vcfin -Oz -o ${sample}.final.strelka.vcf.gz
+    bcftools view ${sample}.final.varscan.vcf.gz -f PASS -Oz -o ${sample}.unsorted.filtered.varscan.vcf.gz
+    bcftools sort ${sample}.unsorted.filtered.varscan.vcf.gz -@ 16 -Oz -o ${sample}.filtered.varscan.vcf.gz
 
     """
 
     stub:
-    
-    """
-    touch ${tumor.simpleName}_${bed.simpleName}.vardict.vcf
-    
 
     """
+    touch ${sample}.final.vardict.vcf.gz
+    touch ${sample}.filtered.vardict.vcf.gz
+    
+    """
+
 
 }
 

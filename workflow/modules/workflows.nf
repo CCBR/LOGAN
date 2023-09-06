@@ -224,9 +224,14 @@ workflow VARIANTCALL_PIPE {
 
     //Vardict
 
-    
+
+    //VarScan--join with Pileups out
+    varscan_in=bambyinterval.join(contamination_paired.out)
+    varscan_tn(varscan_in) | combineVariants_varscan
+
     //CNMOPs from the BAM BQSRs
-    //##VCF2MAF TO
+
+    //##VCF2MAF
     tn_vepin=mutect2filter.out
     .join(sample_sheet)
 
@@ -241,9 +246,11 @@ workflow SV_PIPE {
         bamwithsample
         
     main: 
-
-        //Paired svaba
+        //Svaba
         svaba_somatic(bamwithsample)    
+
+        //Manta
+
 }
 
 
