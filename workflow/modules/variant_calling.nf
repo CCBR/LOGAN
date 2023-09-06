@@ -375,7 +375,7 @@ process mutect2filter {
 
 
 
-process strelka {
+process strelka_tn {
     
     input:
         tuple val(tumorname), path(tumor), path(tumorbai), val(normalname), path(normal), path(normalbai), path(bed)
@@ -396,8 +396,7 @@ process strelka {
         --normal=${normal} \
         --runDir=wd \
         --callRegions ${bed}
-    cd "wd"
-    ./runWorkflow.py -m local -j 
+    ./wd/runWorkflow.py -m local -j 
     mv wd/results/variants/somatic.snvs.vcf.gz  ${tumor.simpleName}_${bed.simpleName}.somatic.snvs.vcf.gz
     mv wd/results/variants/somatic.indels.vcf.gz  ${tumor.simpleName}_${bed.simpleName}.somatic.indels.vcf.gz
 
@@ -415,6 +414,8 @@ process strelka {
 }
 
 process combineVariants_strelka {
+    //Concat all somatic snvs/indesl across all beds
+
     publishDir(path: "${outdir}/vcfs/strelka", mode: 'copy')
 
     input:
@@ -429,9 +430,7 @@ process combineVariants_strelka {
     indelsin = strelkaindels.join(" ")
 
 
-    //Concat all somatic snvs/indesl across all beds
     """
-
     bcftools concat $vcfin $indelsin -Oz -o ${sample}.final.strelka.vcf.gz
     bcftools view ${sample}.final.strelka.vcf.gz -f PASS -Oz -o ${sample}.unsorted.filtered.strelka.vcf.gz
     bcftools sort ${sample}.unsorted.filtered.strelka.vcf.gz -@ 16
