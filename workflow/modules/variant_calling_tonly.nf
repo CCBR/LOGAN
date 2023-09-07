@@ -305,11 +305,11 @@ process annotvep_tonly {
 
     input:
         tuple val(tumorsample), 
-        path(tumorvcf) 
+        val(vc), path(tumorvcf) 
 
 
     output:
-        path("${tumorsample}.tonly.maf")
+        path("${vc}/${tumorsample}.tonly.maf")
 
     shell:
 
@@ -319,7 +319,7 @@ process annotvep_tonly {
 
     vcf2maf.pl \
     --vep-forks 16 --input-vcf !{tumorvcf}.vcf \
-    --output-maf !{tumorsample}.tonly.maf \
+    --output-maf !{vc}/!{tumorsample}.tonly.maf \
     --tumor-id !{tumorsample} \
     --vep-path ${VEP_HOME}/bin \
     --vep-data ${VEP_CACHEDIR} \
@@ -329,6 +329,16 @@ process annotvep_tonly {
 
     stub:
     """
-    touch ${tumorsample}.tonly.maf
+    mkdir ${vc}
+
+    touch ${vc}/${tumorsample}.tonly.maf
     """
 }
+
+
+/*
+process combinemafs {
+
+}
+*/
+

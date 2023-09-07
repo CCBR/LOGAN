@@ -13,9 +13,7 @@ include {fastp; bwamem2;
     bqsr; gatherbqsr; applybqsr; samtoolsindex} from './trim_align.nf'
 include {mutect2; mutect2filter; pileup_paired_t; pileup_paired_n; 
     contamination_paired; learnreadorientationmodel;mergemut2stats;
-    strelka_tn; varscan_tn; 
-    annotvep_tn
-    combineVariants} from './variant_calling.nf'
+    } from './variant_calling.nf'
 include {mutect2_t_tonly; mutect2filter_tonly; 
     contamination_tumoronly;
     learnreadorientationmodel_tonly; 

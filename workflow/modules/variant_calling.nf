@@ -303,59 +303,22 @@ process strelka_tn {
 
 }
 
-process combineVariants_strelka {
-    //Concat all somatic snvs/indesl across all beds
 
-    publishDir(path: "${outdir}/vcfs/strelka", mode: 'copy')
-
-    input:
-        tuple val(sample), path(strelkasnvs), path(strelkaindels)
-    
-    output:
-        tuple val(sample), path("${sample}.strelka.vcf.gz"),path("${sample}.filtered.strelka.vcf.gz")
-    
-    
-    script:
-    
-    vcfin = strelkavcfs.join(" ")
-    indelsin = strelkaindels.join(" ")
-
-
-    """
-    bcftools concat $vcfin $indelsin -Oz -o ${sample}.temp.strelka.vcf.gz
-    bcftools sort ${sample}.temp.strelka.vcf.gz -@ 16 -Oz -o ${sample}.strelka.vcf.gz 
-
-    bcftools view ${sample}.strelka.vcf.gz -f PASS -Oz -o ${sample}.filtered.strelka.vcf.gz
-
-    """
-
-    stub:
-
-    """
-    touch ${sample}.strelka.vcf.gz
-    touch ${sample}.filtered.strelka.vcf.gz
-    
-    """
-
-
-}
-
-
-process vardict {
+process vardict_tn {
     
     input:
         tuple val(tumorname), path(tumor), path(tumorbai), val(normalname), path(normal), path(normalbai), path(bed)
     
     output:
         tuple val(tumorname),
-        path("${tumor.simpleName}_${bed.simpleName}.vardict.vcf"),
+        path("${tumor.simpleName}_${bed.simpleName}.vardict.vcf")
     
     script:
 
     """
     VarDict -G ${GENOME} \
         -f 0.05 \
-=        --nosv \
+        --nosv \
         -b ${tumor}|${normal} \
         -t -Q 20 -c 1 -S 2 -E 3 
         ${bed} \
@@ -375,45 +338,6 @@ process vardict {
     """
     touch ${tumor.simpleName}_${bed.simpleName}.vardict.vcf
 
-    """
-
-
-}
-
-
-
-
-process combineVariants_vardict {
-    publishDir(path: "${outdir}/vcfs/vardict", mode: 'copy')
-
-    input:
-        tuple val(sample), path(vardictout)
-    
-    output:
-        tuple val(sample), 
-        path("${sample}.vardict.vcf.gz"),
-        path("${sample}.filtered.vardict.vcf.gz")
-    
-    script:
-    
-    vcfin = vardictout.join(" ")
-
-    //Concat all somatic snvs/indels 
-    """
-
-    bcftools concat $vcfin -Oz -o ${sample}.temp.vardict.vcf.gz
-    bcftools sort ${sample}.temp.vardict.vcf.gz -@ 16 -Oz -o ${sample}.vardict.vcf.gz
-
-    bcftools view ${sample}.vardict.vcf.gz -f PASS -Oz -o ${sample}.filtered.vardict.vcf.gz
-
-    """
-
-    stub:
-
-    """
-    touch ${sample}.vardict.vcf.gz
-    touch ${sample}.filtered.vardict.vcf.gz
-    
     """
 
 
@@ -490,6 +414,42 @@ process combineVariants {
 }
 
 
+process combineVariants_strelka {
+    //Concat all somatic snvs/indels across all files, strelka separates snv/indels
+
+    publishDir(path: "${outdir}/vcfs/strelka", mode: 'copy')
+
+    input:
+        tuple val(sample), path(strelkasnvs), path(strelkaindels)
+    
+    output:
+        tuple val(sample), path("${sample}.strelka.vcf.gz"),path("${sample}.filtered.strelka.vcf.gz")
+    
+    
+    script:
+    
+    vcfin = strelkavcfs.join(" ")
+    indelsin = strelkaindels.join(" ")
+
+
+    """
+    bcftools concat $vcfin $indelsin -Oz -o ${sample}.temp.strelka.vcf.gz
+    bcftools sort ${sample}.temp.strelka.vcf.gz -@ 16 -Oz -o ${sample}.strelka.vcf.gz 
+
+    bcftools view ${sample}.strelka.vcf.gz -f PASS -Oz -o ${sample}.filtered.strelka.vcf.gz
+
+    """
+
+    stub:
+
+    """
+    touch ${sample}.strelka.vcf.gz
+    touch ${sample}.filtered.strelka.vcf.gz
+    
+    """
+
+
+}
 
 process annotvep_tn {
     module=['vcf2maf/1.6.21','VEP/102']

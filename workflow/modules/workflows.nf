@@ -14,15 +14,14 @@ include {fastp; bwamem2; //indelrealign;
 include {mutect2; mutect2filter; pileup_paired_t; pileup_paired_n; 
     contamination_paired; learnreadorientationmodel;mergemut2stats;
     strelka_tn; combineVariants_strelka; 
-    varscan_tn; 
-    annotvep_tn as annotvep_tn_mut2;
-    annotvep_tn as annotvep_tn_varscan;
-    combineVariants} from './variant_calling.nf'
+    varscan_tn; vardict_tn;
+    combineVariants as combineVariants_vardict; combineVariants as combineVariants_varscan;
+    annotvep_tn as annotvep_tn_mut2; annotvep_tn as annotvep_tn_varscan; annotvep_tn as annotvep_tn_vardict} from './variant_calling.nf'
 include {mutect2_t_tonly; mutect2filter_tonly; 
     contamination_tumoronly;
     learnreadorientationmodel_tonly; 
     mergemut2stats_tonly;
-    annotvep_tonly} from './variant_calling_tonly.nf'
+    annotvep_tonly as annotvep_tonly_mut2} from './variant_calling_tonly.nf'
 include {svaba_somatic} from './structural_variant.nf'
 include {splitinterval} from "./splitbed.nf"
 
@@ -228,12 +227,14 @@ workflow VARIANTCALL_PIPE {
     combineVariants_strelka(strelkaout)
 
     //Vardict
-
+    vardict_comb=vardict_tn(bambyinterval).map{tumor,vcf-> tuple(tumor,vcf,"vardict")} | combineVariants_vardict
+    vardict_comb.join(sample_sheet)
+     .map{tumor,marked,normvcf,normal ->tuple(tumor,normal,"vardict",normvcf)} | annotvep_tn_vardict
 
     //VarScan--join with Pileups out
     varscan_in=bambyinterval.join(contamination_paired.out)
-    varcomb=varscan_tn(varscan_in).map{tumor,vcf-> tuple(tumor,vcf,"varscan")} | combineVariants
-    varcomb.join(sample_sheet)
+    varscan_comb=varscan_tn(varscan_in).map{tumor,vcf-> tuple(tumor,vcf,"varscan")} | combineVariants_varscan
+    varscan_comb.join(sample_sheet)
     .map{tumor,marked,normvcf,normal ->tuple(tumor,normal,"varscan",normvcf)} | annotvep_tn_varscan
 
     //Implement Copy Number
@@ -245,7 +246,7 @@ workflow VARIANTCALL_PIPE {
 
     mutect2filter_tonly.out
     .join(sample_sheet)
-    .map{tumor,markedvcf,finalvcf,stats,normal -> tuple(tumor,finalvcf)} | annotvep_tonly
+    .map{tumor,markedvcf,finalvcf,stats,normal -> tuple(tumor,"mutect2",finalvcf)} | annotvep_tonly_mut2
 
 
 
