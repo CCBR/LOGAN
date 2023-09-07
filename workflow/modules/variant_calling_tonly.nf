@@ -230,25 +230,28 @@ process varscan_tonly {
     input:
         tuple val(tumorname), path(tumor), path(tumorbai), 
         path(bed),
-        path(tumorpileup), path(normalpileup), path(tumor_con_table), path(normal_con_table)
+        path(tumorpileup),  path(tumor_con_table)
     
     output:
         tuple val(tumorname),
-        path("${tumor.simpleName}_${bed.simpleName}.varscan.vcf")
+        path("${tumor.simpleName}_${bed.simpleName}.tonly.varscan.vcf")
     
     shell:
 
-    '''
-    tumor_purity=$( echo "1-$(printf '%.6f' $(tail -n -1 !{tumor_con_table} | cut -f2 ))" | bc -l)
-    normal_purity=$( echo "1-$(printf '%.6f' $(tail -n -1 !{normal_con_table} | cut -f2 ))" | bc -l)
+    """
     varscan_opts="--strand-filter 0 --min-var-freq 0.01 --output-vcf 1 --variants 1"
-    varscan somatic < samtools mpileup -d 10000 -q 15 -Q 15 -f !GENOME -l !{bed.simpleName} !{normal} !{rumor} !{tumor.simpleName}_{bed.simpleName}.vardict.vcf $varscan_opts --mpileup 1 
-    '''
+    pileup_cmd="samtools mpileup -d 100000 -q 15 -Q 15 -f !GENOME !{tumor}"
+    varscan_cmd="varscan mpileup2cns <($pileup_cmd) $varscan_opts"
+
+
+    eval "$varscan_cmd > {output.vcf}.gz"
+    eval "bcftools view -U {output.vcf}.gz > {output.vcf}"
+    """
 
     stub:
     
     """
-    touch ${tumor.simpleName}_${bed.simpleName}.varscan.vcf
+    touch ${tumor.simpleName}_${bed.simpleName}.tonly.varscan.vcf
     
     """
 
@@ -261,12 +264,12 @@ process vardict_tonly {
     
     output:
         tuple val(tumorname),
-        path("${tumor.simpleName}_${bed.simpleName}.vardict.vcf"),
+        path("${tumor.simpleName}_${bed.simpleName}.tonly.vardict.vcf")
     
     script:
 
     """
-    VarDict -G ${GENOME} \
+    VarDict -G $GENOME \
         -f 0.05 \
         -x 500 \
         --nosv \
@@ -281,20 +284,19 @@ process vardict_tonly {
             -v 6 \
             -S \
             -E \
-            -f 0.05 >  ${tumor.simpleName}_${bed.simpleName}.vardict.vcf
+            -f 0.05 >  ${tumor.simpleName}_${bed.simpleName}.tonly.vardict.vcf
 
     """
 
     stub:
     
     """
-    touch ${tumor.simpleName}_${bed.simpleName}.vardict.vcf
+    touch ${tumor.simpleName}_${bed.simpleName}.tonly.vardict.vcf
 
     """
 
 
 }
-
 
 
 

@@ -316,7 +316,7 @@ process vardict_tn {
     script:
 
     """
-    VarDict -G ${GENOME} \
+    VarDict -G $GENOME \
         -f 0.05 \
         --nosv \
         -b ${tumor}|${normal} \

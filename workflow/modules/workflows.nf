@@ -15,13 +15,15 @@ include {mutect2; mutect2filter; pileup_paired_t; pileup_paired_n;
     contamination_paired; learnreadorientationmodel;mergemut2stats;
     strelka_tn; combineVariants_strelka; 
     varscan_tn; vardict_tn;
-    combineVariants as combineVariants_vardict; combineVariants as combineVariants_varscan;
+    combineVariants as combineVariants_vardict; combineVariants as combineVariants_varscan; 
+    combineVariants as combineVariants_vardict_tonly; combineVariants as combineVariants_varscan_tonly
     annotvep_tn as annotvep_tn_mut2; annotvep_tn as annotvep_tn_varscan; annotvep_tn as annotvep_tn_vardict} from './variant_calling.nf'
 include {mutect2_t_tonly; mutect2filter_tonly; 
+    varscan_tonly; vardict_tonly; 
     contamination_tumoronly;
     learnreadorientationmodel_tonly; 
     mergemut2stats_tonly;
-    annotvep_tonly as annotvep_tonly_mut2} from './variant_calling_tonly.nf'
+    annotvep_tonly as annotvep_tonly_varscan; annotvep_tonly as annotvep_tonly_vardict; annotvep_tonly as annotvep_tonly_mut2} from './variant_calling_tonly.nf'
 include {svaba_somatic} from './structural_variant.nf'
 include {splitinterval} from "./splitbed.nf"
 
@@ -231,13 +233,27 @@ workflow VARIANTCALL_PIPE {
     vardict_comb.join(sample_sheet)
      .map{tumor,marked,normvcf,normal ->tuple(tumor,normal,"vardict",normvcf)} | annotvep_tn_vardict
 
-    //VarScan--join with Pileups out
+     //VarDict_tonly
+    vardict_tonly_comb=bambyinterval.map{tumorname,tumorbam,tumorbai,normname,normbam,normbai,bed ->
+        tuple(tumorname,tumorbam,tumorbai,bed)} 
+    vardict_tonly(vardict_tonly_comb).map{tumor,vcf-> tuple(tumor,vcf,"vardict")} |combineVariants_vardict_tonly
+    combineVariants_vardict_tonly.out.join(sample_sheet)
+    .map{tumor,marked,normvcf,normal ->tuple(tumor,"vardict",normvcf)} | annotvep_tonly_vardict
+
+
+    //VarScan
     varscan_in=bambyinterval.join(contamination_paired.out)
     varscan_comb=varscan_tn(varscan_in).map{tumor,vcf-> tuple(tumor,vcf,"varscan")} | combineVariants_varscan
     varscan_comb.join(sample_sheet)
     .map{tumor,marked,normvcf,normal ->tuple(tumor,normal,"varscan",normvcf)} | annotvep_tn_varscan
 
-    //Implement Copy Number
+    //VarScan_tonly
+    varscan_tonly_comb=varscan_in.map{tumor,bam,bai,normal,nbam,nbai,bed,tpile,npile,tumorc,normalc ->
+    tuple(tumor,bam,bai,bed,tpile,tumorc)} | varscan_tonly 
+    varscan_tonly_comb1=varscan_tonly_comb.map{tumor,vcf-> tuple(tumor,vcf,"varscan")} | combineVariants_varscan_tonly
+    
+    varscan_tonly_comb1.join(sample_sheet)
+    .map{tumor,marked,normvcf,normal ->tuple(tumor,"varscan",normvcf)} | annotvep_tonly_varscan
 
     //##Vcf2maf for all variant callers
     mutect2filter.out
@@ -251,6 +267,8 @@ workflow VARIANTCALL_PIPE {
 
 
 
+
+    //Implement Copy Number
     //Implement PCGR Annotator/CivIC Next
 }
 
