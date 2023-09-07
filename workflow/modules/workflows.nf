@@ -11,13 +11,18 @@ include {deepvariant_step1;deepvariant_step2;deepvariant_step3;
     deepvariant_combined;glnexus} from './germline.nf'
 include {fastp; bwamem2; //indelrealign; 
     bqsr; gatherbqsr; applybqsr; samtoolsindex} from './trim_align.nf'
-include {mutect2; mutect2_t_tonly; mutect2filter; mutect2filter_tonly; 
-    pileup_paired_t; pileup_paired_n; 
-    contamination_paired; contamination_tumoronly;
-    learnreadorientationmodel; learnreadorientationmodel_tonly; 
-    mergemut2stats; mergemut2stats_tonly;
-    strelka; combineVariants_strelka;
-    annotvep_tn; annotvep_tonly} from './variant_calling.nf'
+include {mutect2; mutect2filter; pileup_paired_t; pileup_paired_n; 
+    contamination_paired; learnreadorientationmodel;mergemut2stats;
+    strelka_tn; combineVariants_strelka; 
+    varscan_tn; 
+    annotvep_tn as annotvep_tn_mut2;
+    annotvep_tn as annotvep_tn_varscan;
+    combineVariants} from './variant_calling.nf'
+include {mutect2_t_tonly; mutect2filter_tonly; 
+    contamination_tumoronly;
+    learnreadorientationmodel_tonly; 
+    mergemut2stats_tonly;
+    annotvep_tonly} from './variant_calling_tonly.nf'
 include {svaba_somatic} from './structural_variant.nf'
 include {splitinterval} from "./splitbed.nf"
 
@@ -213,8 +218,8 @@ workflow VARIANTCALL_PIPE {
 
 
     //Strelka
-    strelka(bambyinterval)
-    strelkaout=strelka.out.groupTuple()
+    strelka_tn(bambyinterval)
+    strelkaout=strelka_tn.out.groupTuple()
     .map { samplename,vcfs,indels -> tuple( samplename,
     vcfs.toSorted{ it -> (it.name =~ /${samplename}_(.*?).somatic.snvs.vcf.gz/)[0][1].toInteger() },
     indels.toSorted{ it -> (it.name =~ /${samplename}_(.*?).somatic.indels.vcf.gz/)[0][1].toInteger() }  
@@ -227,17 +232,25 @@ workflow VARIANTCALL_PIPE {
 
     //VarScan--join with Pileups out
     varscan_in=bambyinterval.join(contamination_paired.out)
-    varscan_tn(varscan_in) | combineVariants_varscan
+    varcomb=varscan_tn(varscan_in).map{tumor,vcf-> tuple(tumor,vcf,"varscan")} | combineVariants
+    varcomb.join(sample_sheet)
+    .map{tumor,marked,normvcf,normal ->tuple(tumor,normal,"varscan",normvcf)} | annotvep_tn_varscan
 
-    //CNMOPs from the BAM BQSRs
+    //Implement Copy Number
 
-    //##VCF2MAF
-    tn_vepin=mutect2filter.out
+    //##Vcf2maf for all variant callers
+    mutect2filter.out
     .join(sample_sheet)
+    .map{tumor,markedvcf,finalvcf,stats,normal -> tuple(tumor,normal,"mutect2",finalvcf)} | annotvep_tn_mut2
 
-    annotvep_tn(tn_vepin)
-    annotvep_tonly(mutect2filter_tonly.out)
-    // Immplment PCGR Annotator/CivIC?
+    mutect2filter_tonly.out
+    .join(sample_sheet)
+    .map{tumor,markedvcf,finalvcf,stats,normal -> tuple(tumor,finalvcf)} | annotvep_tonly
+
+
+
+
+    //Implement PCGR Annotator/CivIC Next
 }
 
 
