@@ -18,29 +18,41 @@ RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime \
 # python/3.8.0 and python/2.7.16 (strelka and manta)
 RUN apt-get update \
  && apt-get -y upgrade \
- && DEBIAN_FRONTEND=noninteractive apt-get install -y \
-      bc \      
-      build-essential \
-      bzip2 \
-      cmake \
-      cpanminus \
-      curl \
-      g++ \
-      gcc \
-      gfortran \
-      git \
+ && DEBIAN_FRONTEND=noninteractive apt-get install --assume-yes \
+      figlet \
+      libatlas-base-dev \
+      libblas-dev \
+      libboost-dev \
       libbz2-dev \
+      libexpat1-dev \
+      libfreetype6-dev \
+      libgd-dev \
+      libgd-perl \
+      libgs-dev \
+      libgsl0-dev \
+      libgsl-dev \
+      libhtml-template-compiled-perl \
+      libicu-dev \
+      libjudy-dev \
+      liblapack-dev \
       liblzma-dev \
-      locales \
-      make \
-      openjdk-8-jdk \
-      parallel \
-      pigz \
-      python2 \
-      python3 \
-      python3-pip \
-      unzip \
-      wget
+      libmysqlclient-dev \
+      libncurses-dev \
+      libopenmpi-dev \
+      libpng-dev \
+      librtmp-dev \
+      libssl-dev \
+      libssl-dev \
+      libtool \
+      libxml2-dev \
+      libxml-libxml-debugging-perl \
+      libxml-opml-simplegen-perl \
+      libxslt-dev \
+      manpages-dev \
+      zlib1g \
+      zlib1g-dev \
+      zlibc
+
 
 # Make python3 the default interpreter
 # and install Python Packages
@@ -229,7 +241,7 @@ ENV PATH="/opt2/manta-1.6.0.centos6_x86_64/bin:$PATH"
 # Requires java8 (jdk 1.8 or later), perl and R (already satisfied)
 RUN wget https://github.com/AstraZeneca-NGS/VarDictJava/releases/download/v1.8.3/VarDict-1.8.3.tar \
     && tar -xvf /opt2/VarDict-1.8.3.tar \
-    && rm /opt2/VarDict-1.8.3.tar
+    && rm -rf /opt2/VarDict-1.8.3.tar
 ENV PATH="/opt2/VarDict-1.8.3/bin:$PATH"
 
 # Fastp From Opengene github
@@ -254,13 +266,7 @@ ENV PATH="/opt2/hmftools:$PATH"
 RUN wget -O svaba_1.2.0 https://github.com/walaj/svaba/releases/download/v1.2.0/svaba \
     && mkdir svaba \ 
     && mv svaba_1.2.0 svaba/svaba
-#RUN git clone --recursive https://github.com/walaj/svaba \
-#    && /opt2/svaba \
-#    && ./configure \
-#    && make \
-#    && make install
 ENV PATH="/opt2/svaba:$PATH"
-
 
 # Add Dockerfile and argparse.bash script
 # and export environment variables
