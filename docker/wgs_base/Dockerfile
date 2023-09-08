@@ -225,12 +225,12 @@ RUN wget https://github.com/Illumina/manta/releases/download/v1.6.0/manta-1.6.0.
     && ln -fs /usr/bin/python2.7 /usr/bin/python2
 ENV PATH="/opt2/manta-1.6.0.centos6_x86_64/bin:$PATH"
 
-# Install VarDict/1.8.2
+# Install VarDict/1.8.3
 # Requires java8 (jdk 1.8 or later), perl and R (already satisfied)
-RUN wget https://github.com/AstraZeneca-NGS/VarDictJava/releases/download/v1.8.2/VarDict-1.8.2.tar \
-    && tar -xvf /opt2/VarDict-1.8.2.tar \
-    && rm /opt2/VarDict-1.8.2.tar
-ENV PATH="/opt2/VarDict-1.8.2/bin:$PATH"
+RUN wget https://github.com/AstraZeneca-NGS/VarDictJava/releases/download/v1.8.3/VarDict-1.8.3.tar \
+    && tar -xvf /opt2/VarDict-1.8.3.tar \
+    && rm /opt2/VarDict-1.8.3.tar
+ENV PATH="/opt2/VarDict-1.8.3/bin:$PATH"
 
 # Fastp From Opengene github
 RUN wget http://opengene.org/fastp/fastp.0.23.2 \
