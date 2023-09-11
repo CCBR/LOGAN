@@ -1,17 +1,18 @@
-# Base image
-FROM --platform=linux/amd64 ubuntu:20.04
+FROM nciccbr/ccbr_ubuntu_base_20.04:v5
 
-LABEL maintainer <vishal.koparde@nih.gov, nousomedr@nih.gov>
+# build time variables
+ARG BUILD_DATE="000000"
+ENV BUILD_DATE=${BUILD_DATE}
+ARG BUILD_TAG="000000"
+ENV BUILD_TAG=${BUILD_TAG}
+ARG REPONAME="000000"
+ENV REPONAME=${REPONAME}
+
+LABEL maintainer <nousomedr@nih.gov>
 
 # Create Container filesystem specific 
 # working directory and opt directories 
-RUN mkdir -p /opt2 && mkdir -p /data2
 WORKDIR /opt2 
-
-# Set time zone to US east coast 
-ENV TZ=America/New_York
-RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime \
-    && echo $TZ > /etc/timezone
 
 # This section installs system packages required for your project
 # If you need extra system packages add them here.
@@ -19,96 +20,24 @@ RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime \
 RUN apt-get update \
  && apt-get -y upgrade \
  && DEBIAN_FRONTEND=noninteractive apt-get install -y \
-      bc \      
-      build-essential \
-      bzip2 \
-      cmake \
-      cpanminus \
-      curl \
-      g++ \
-      gcc \
-      gfortran \
-      git \
-      libbz2-dev \
-      liblzma-dev \
-      locales \
-      make \
-      openjdk-8-jdk \
-      parallel \
-      pigz \
-      python2 \
-      python3 \
-      python3-pip \
-      unzip \
-      wget
-
-# Make python3 the default interpreter
-# and install Python Packages
-RUN ln -s /usr/bin/python3.8 /usr/bin/python
-RUN pip3 install --upgrade pip \
-	  && pip3 install argparse \
-	  && pip3 install numpy \
-      && pip3 install pysam \
-	  && pip3 install scipy
-
-# Perl fix issue
-RUN cpanm FindBin Term::ReadLine
-
-# Set the locale
-RUN localedef -i en_US -f UTF-8 en_US.UTF-8
-
-# Other misc dependencies
-RUN DEBIAN_FRONTEND=noninteractive apt-get install -y \
-      figlet \
-      libatlas-base-dev \
-      libblas-dev \
-      libboost-dev \
-      libbz2-dev \
-      libexpat1-dev \
-      libfreetype6-dev \
-      libgd-dev \
-      libgd-perl \
-      libgs-dev \
-      libgsl0-dev \
-      libgsl-dev \
-      libhtml-template-compiled-perl \
-      libicu-dev \
-      libjudy-dev \
-      liblapack-dev \
-      liblzma-dev \
-      libmysqlclient-dev \
-      libncurses-dev \
-      libopenmpi-dev \
-      libpng-dev \
-      librtmp-dev \
-      libssl-dev \
-      libssl-dev \
-      libtool \
-      libxml2-dev \
-      libxml-libxml-debugging-perl \
-      libxml-opml-simplegen-perl \
-      libxslt-dev \
-      manpages-dev \
-      zlib1g \
-      zlib1g-dev \
-      zlibc
+      bc    
 
 # Common bioinformatics tools 
 # bwa/0.7.17-4  bowtie/1.2.3  bowtie2/2.3.5.1 
 # bedtools/2.27.1  bedops/2.4.37  samtools/1.10 
-# bcftools/1.10.2  vcftools/0.1.16  trimmomatic/0.39
-# tabix/1.10.2
+# bcftools/1.10.2  vcftools/0.1.16  
+# Previous tools already installed trimmomatic/0.39  tabix/1.10.2
 RUN DEBIAN_FRONTEND=noninteractive apt-get install -y \
-      bcftools \
-      bedops \
-      bedtools \
-      bowtie \
-      bowtie2 \
-      bwa \
-      samtools \
       tabix \
-      trimmomatic \
-      vcftools
+      trimmomatic 
+      
+
+# Install BWA-MEM2 v2.2.1
+RUN wget https://github.com/bwa-mem2/bwa-mem2/releases/download/v2.2.1/bwa-mem2-2.2.1_x64-linux.tar.bz2 \
+    && tar -xvjf /opt2/bwa-mem2-2.2.1_x64-linux.tar.bz2 \
+    && rm /opt2/bwa-mem2-2.2.1_x64-linux.tar.bz2 
+ENV PATH="/opt2/bwa-mem2-2.2.1_x64-linux:$PATH"
+
 
 # Install Sambamba/0.8.1 for CTRL-Freec
 # not available to apt-get on Ubuntu 20.04
@@ -261,7 +190,6 @@ ENV PATH="/opt2/svaba:$PATH"
 # and export environment variables
 ADD Dockerfile /opt2/base_gatk4_wgs.dockerfile
 COPY argparse.bash /opt2
-
 
 WORKDIR /data2
 
