@@ -389,7 +389,7 @@ process gatk_varianteval {
         Evaluation table containing a collection of summary statistics
     */
     publishDir("${outdir}/QC/gatk_varianteval", mode: 'copy')
-    module=['GATK/4.2.0.0']
+    //module=['GATK/4.2.0.0']
 
     input: 
         tuple val(samplename), path("${samplename}.gvcf.gz") ,path("${samplename}.gvcf.gz.tbi")

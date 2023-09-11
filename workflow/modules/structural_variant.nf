@@ -14,7 +14,6 @@ outdir=file(params.output)
 
 
 process svaba_somatic {
-    //https://github.com/walaj/svaba/releases/tag/v1.2.0
     publishDir(path: "${outdir}/SV/svaba", mode: 'copy') 
 
     input:
@@ -39,7 +38,7 @@ process svaba_somatic {
 
     script:
     """
-    /data/nousomedr/programs/svaba run -t ${tumor} -n ${normal} -p $task.cpus -D $DBSNP_INDEL -a ${tumor.simpleName} -G $BWAGENOME
+    svaba run -t ${tumor} -n ${normal} -p $task.cpus -D $DBSNP_INDEL -a ${tumor.simpleName} -G $BWAGENOME
     """
 
     stub:

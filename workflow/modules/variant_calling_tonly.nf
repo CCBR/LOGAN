@@ -224,8 +224,6 @@ process mutect2filter_tonly {
 
 
 process varscan_tonly {
-    module=['samtools/1.9','VarScan/2.4.6']
-
     input:
         tuple val(tumorname), path(tumor), path(tumorbai), 
         path(bed),

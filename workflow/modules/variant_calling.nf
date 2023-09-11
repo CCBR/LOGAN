@@ -349,8 +349,6 @@ process vardict_tn {
 
 
 process varscan_tn {
-    module=['samtools/1.9','VarScan/2.4.6']
-
     input:
         tuple val(tumorname), path(tumor), path(tumorbai), 
         val(normalname), path(normal), path(normalbai), path(bed),
