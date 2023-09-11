@@ -1,9 +1,9 @@
 # Build image
-docker buildx build -f Dockerfile -t ccbr_logan_base:v0.3.0 .
+docker buildx build -f Dockerfile -t ccbr_wgs_base:v0.3.0 .
 
 # Tag image with version and reset latest
-docker tag ccbr_logan_base:v0.3.0 dnousome/ccbr_logan_base:v0.3.0
-docker tag ccbr_logan_base:v0.3.0 dnousome/ccbr_logan_base
+docker tag ccbr_wgs_base:v0.3.0 dnousome/ccbr_wgs_base:v0.3.0
+docker tag ccbr_wgs_base:v0.3.0 dnousome/ccbr_wgs_base
 #docker tag ccbr_wgs_base:v0.1.0 nciccbr/ccbr_wgs_base:v0.1.0
 #docker tag ccbr_wgs_base:v0.1.0 nciccbr/ccbr_wgs_base
 
