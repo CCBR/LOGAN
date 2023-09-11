@@ -280,13 +280,16 @@ process strelka_tn {
     """
     mkdir -p wd
 
+    bgzip ${bed}
+    tabix ${bed}.gz
+
     configureStrelkaSomaticWorkflow.py \
         --ref=${GENOME} \
         --tumor=${tumor} \
         --normal=${normal} \
         --runDir=wd \
-        --callRegions ${bed}
-    ./wd/runWorkflow.py -m local -j 
+        --callRegions ${bed}.gz
+    ./wd/runWorkflow.py -m local -j ${task.cpus}
     mv wd/results/variants/somatic.snvs.vcf.gz  ${tumor.simpleName}_${bed.simpleName}.somatic.snvs.vcf.gz
     mv wd/results/variants/somatic.indels.vcf.gz  ${tumor.simpleName}_${bed.simpleName}.somatic.indels.vcf.gz
 
@@ -317,14 +320,14 @@ process vardict_tn {
 
     """
     VarDict -G $GENOME \
-        -f 0.05 \
+        -f 0.01 \
         --nosv \
-        -b ${tumor}|${normal} \
-        -t -Q 20 -c 1 -S 2 -E 3 
-        ${bed} \
+        -b "${tumor}|${normal}" \
+        -t -Q 20 -c 1 -S 2 -E 3 \
+        ${bed} --th 6 \
         | teststrandbias.R \
         | var2vcf_paired.pl \
-            -N ${tumor}|${normal} \
+            -N "${tumor}|${normal}" \
             -Q 20 \
             -d 10 \
             -v 6 \
@@ -451,9 +454,7 @@ process combineVariants_strelka {
 
 }
 
-process annotvep_tn {
-    module=['vcf2maf/1.6.21','VEP/102']
-    
+process annotvep_tn {    
     publishDir(path: "${outdir}/mafs/", mode: 'copy')
 
     input:
@@ -461,7 +462,7 @@ process annotvep_tn {
         val(vc), path(tumorvcf) 
 
     output:
-        path("${vc}/${tumorsample}.maf")
+        path("paired/${vc}/${tumorsample}.maf")
 
     shell:
 
@@ -482,8 +483,8 @@ process annotvep_tn {
 
     stub:
     """
-    mkdir ${vc}
-    touch ${vc}/${tumorsample}.maf
+    mkdir -p paired/${vc}
+    touch paired/${vc}/${tumorsample}.maf
     """
 }
 

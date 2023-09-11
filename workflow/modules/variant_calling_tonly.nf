@@ -173,7 +173,7 @@ process mutect2_t_tonly {
 
 
 process mutect2filter_tonly {
-    publishDir(path: "${outdir}/vcfs/mutect2", mode: 'copy')
+    publishDir(path: "${outdir}/vcfs/mutect2_tonly", mode: 'copy')
 
     input:
         tuple val(sample), path(mutvcfs), path(stats), path(obs), path(pileups),path(tumorcontamination)
@@ -196,7 +196,6 @@ process mutect2filter_tonly {
         --contamination-table ${tumorcontamination} \
         --stats ${stats} \
         -O ${sample}.tonly.mut2.marked.vcf.gz
-
 
     gatk SelectVariants \
         -R ${GENOME} \
@@ -274,8 +273,8 @@ process vardict_tonly {
         -x 500 \
         --nosv \
         -b ${tumor} \
-        -t -Q 20 -c 1 -S 2 -E 3 
-        ${bed} \
+        -t -Q 20 -c 1 -S 2 -E 3 \
+        -R ${bed} \
         | teststrandbias.R \
         | var2vcf_valid.pl \
             -N ${tumor} \
@@ -311,7 +310,7 @@ process annotvep_tonly {
 
 
     output:
-        path("${vc}/${tumorsample}.tonly.maf")
+        path("tumor_only/${vc}/${tumorsample}.tonly.maf")
 
     shell:
 
@@ -331,9 +330,8 @@ process annotvep_tonly {
 
     stub:
     """
-    mkdir ${vc}
-
-    touch ${vc}/${tumorsample}.tonly.maf
+    mkdir -p tumor_only/${vc}
+    touch tumor_only/${vc}/${tumorsample}.tonly.maf
     """
 }
 

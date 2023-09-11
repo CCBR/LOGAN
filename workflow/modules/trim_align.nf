@@ -12,7 +12,6 @@ outdir=file(params.output)
 
 process fastp{
     tag { name }
-    module=['fastp/0.23.2']
 
     input:
     tuple val(samplename), path(fqs)
@@ -47,9 +46,8 @@ process fastp{
 }
 
 
-process bwamem2{
+process bwamem2 {
     tag { name }
-    module=['bwa-mem2/2.2.1','samblaster/0.1.26','samtools/1.15.1']
     input:
         tuple val(samplename), 
         path("${samplename}.R1.trimmed.fastq.gz"),
@@ -88,7 +86,6 @@ process indelrealign {
     while IndelRealigner shows diminishing returns for increasing scatter
     */
     tag { name }
-    module=['GATK/3.8-1']
     
     input:
     tuple val(samplename), path("${samplename}.bam"), path("${samplename}.bai")
@@ -212,7 +209,7 @@ process applybqsr {
 
 
 
-process samtoolsindex{
+process samtoolsindex {
     publishDir(path: "${outdir}/bams/BQSR", mode: 'copy') 
     
     input:

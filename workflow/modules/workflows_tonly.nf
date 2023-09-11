@@ -37,8 +37,7 @@ workflow INPUT_TONLY_PIPE {
                                   }
     }else{
         sample_sheet=fastqinput.map{samplename,f1 -> tuple (
-             samplename)}.view()
-        
+             samplename)}
     }
     
     emit:

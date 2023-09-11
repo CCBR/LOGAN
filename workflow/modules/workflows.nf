@@ -236,7 +236,7 @@ workflow VARIANTCALL_PIPE {
      //VarDict_tonly
     vardict_tonly_comb=bambyinterval.map{tumorname,tumorbam,tumorbai,normname,normbam,normbai,bed ->
         tuple(tumorname,tumorbam,tumorbai,bed)} 
-    vardict_tonly(vardict_tonly_comb).map{tumor,vcf-> tuple(tumor,vcf,"vardict")} |combineVariants_vardict_tonly
+    vardict_tonly(vardict_tonly_comb).map{tumor,vcf-> tuple(tumor,vcf,"vardict_tonly")} |combineVariants_vardict_tonly
     combineVariants_vardict_tonly.out.join(sample_sheet)
     .map{tumor,marked,normvcf,normal ->tuple(tumor,"vardict",normvcf)} | annotvep_tonly_vardict
 
@@ -250,7 +250,7 @@ workflow VARIANTCALL_PIPE {
     //VarScan_tonly
     varscan_tonly_comb=varscan_in.map{tumor,bam,bai,normal,nbam,nbai,bed,tpile,npile,tumorc,normalc ->
     tuple(tumor,bam,bai,bed,tpile,tumorc)} | varscan_tonly 
-    varscan_tonly_comb1=varscan_tonly_comb.map{tumor,vcf-> tuple(tumor,vcf,"varscan")} | combineVariants_varscan_tonly
+    varscan_tonly_comb1=varscan_tonly_comb.map{tumor,vcf-> tuple(tumor,vcf,"varscan_tonly")} | combineVariants_varscan_tonly
     
     varscan_tonly_comb1.join(sample_sheet)
     .map{tumor,marked,normvcf,normal ->tuple(tumor,"varscan",normvcf)} | annotvep_tonly_varscan
@@ -341,7 +341,7 @@ workflow QC_PIPE {
 workflow INPUT_BAMVC_PIPE {
     
    if(params.sample_sheet){
-        sample_sheet=Channel.fromPath(params.sample_sheet, checkIfExists: true).view()
+        sample_sheet=Channel.fromPath(params.sample_sheet, checkIfExists: true)
                        .ifEmpty { "sample sheet not found" }
                        .splitCsv(header:true, sep: "\t", strip:true)
                        .map { row -> tuple(
@@ -366,7 +366,7 @@ workflow INPUT_BAMVC_PIPE {
     
     splitinterval(intervalbedin)
     
-    bamwithsample=baminputonly.combine(sample_sheet,by:0).map{it.swap(3,0)}.combine(baminputonly,by:0).map{it.swap(3,0)}.view()
+    bamwithsample=baminputonly.combine(sample_sheet,by:0).map{it.swap(3,0)}.combine(baminputonly,by:0).map{it.swap(3,0)}
     
     emit:
         bamwithsample

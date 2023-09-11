@@ -57,7 +57,7 @@ process fastq_screen {
 
     publishDir(path: "${outdir}/QC/fastq_screen/", mode:'copy')
 
-    module=['fastq_screen/0.15.2','bowtie/2-2.5.1']
+    //module=['fastq_screen/0.15.2','bowtie/2-2.5.1']
     input:
     tuple val(samplename),
         path("${samplename}.R1.trimmed.fastq.gz"),
@@ -108,7 +108,7 @@ process kraken {
     */
     publishDir(path: "${outdir}/QC/kraken/", mode: 'copy')
 
-    module=['kraken/2.1.2', 'kronatools/2.8']
+    //module=['kraken/2.1.2', 'kronatools/2.8']
     scratch '/lscratch/$SLURM_JOB_ID'
     //scratch '/data/CCBR/rawdata/nousome/small_truth_set' //CHANGE AFTER to LSCRATCH
 
@@ -172,7 +172,7 @@ process fastqc {
 
     //message: "Running FastQC with {threads} threads on '{input}' input file"
     //threads: 8
-    module=['fastqc/0.11.9']
+    //module=['fastqc/0.11.9']
 
     script: 
     """
@@ -204,7 +204,7 @@ process qualimap_bamqc {
     */
     publishDir("${outdir}/QC/qualimap/", mode: "copy")
     
-    module=['qualimap/2.2.1','java/12.0.1']
+    //module=['qualimap/2.2.1','java/12.0.1']
     //module: config['images']['qualimap']
     
     input:
@@ -248,7 +248,7 @@ process samtools_flagstats {
         Text file containing alignment statistics
     */
     publishDir("${outdir}/QC/flagstats/", mode: "copy")
-    module=['samtools/1.16.1']
+    //module=['samtools/1.16.1']
 
     input:
         tuple val(samplename), path("${samplename}.bqsr.bam"), path("${samplename}.bqsr.bai")
@@ -280,8 +280,7 @@ process vcftools {
         Text file containing a measure of heterozygosity
     */
     publishDir(path:"${outdir}/QC/vcftools", mode: 'copy')
-    module=['vcftools/0.1.16']
-    //container: config['images']['wes_base']
+    //module=['vcftools/0.1.16']
     
     input: 
         tuple path(germlinevcf),path(germlinetbi)
@@ -312,7 +311,7 @@ process collectvariantcallmetrics {
         Text file containing a collection of metrics relating to snps and indels 
     */
     publishDir("${outdir}/QC/variantmetrics", mode: 'copy')
-    module=['picard/2.20.8']
+    //module=['picard/2.20.8']
     //container: config['images']['picard']
 
     input: 
@@ -356,8 +355,6 @@ process bcftools_stats {
     @Output:
         Text file containing a collection of summary statistics
     */
-    module=['bcftools/1.9']
-    //container: config['images']['wes_base']
 
     publishDir("${outdir}/QC/bcftoolsstat", mode: 'copy')
 
@@ -440,9 +437,7 @@ process snpeff {
         //bundle = config['references']['SNPEFF_BUNDLE'],
             //envmodules: 'snpEff/4.3t'
             //container: config['images']['wes_base']
-    module=["snpEff/4.3t"]
     publishDir("${outdir}/QC/snpeff", mode: 'copy')
-
 
     input:  
         tuple val(samplename), path("${samplename}.gvcf.gz"), path("${samplename}.gvcf.gz.tbi")
@@ -589,8 +584,8 @@ process multiqc {
     @Output:
         Interactive MulitQC report and a QC metadata table
     """
+
     publishDir("${outdir}/QC/multiqc", mode: 'copy')
-    module=['multiqc/1.11']
     
     input:  
         path(allqcin)
