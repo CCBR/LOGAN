@@ -1,4 +1,4 @@
-FROM nciccbr/ccbr_ubuntu_base_20.04:v5
+FROM --platform=linux/amd64 nciccbr/ccbr_ubuntu_base_20.04:v5
 
 # build time variables
 ARG BUILD_DATE="000000"
@@ -75,13 +75,14 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get install -y \
 # For more information, check out: https://cran.r-project.org/bin/linux/ubuntu/
 RUN apt-key adv --keyserver keyserver.ubuntu.com --recv-keys E298A3A825C0D65DFD57CBB651716619E084DAB9 \
     && add-apt-repository 'deb https://cloud.r-project.org/bin/linux/ubuntu focal-cran40/' \
-    && add-apt-repository 'ppa:c2d4u.team/c2d4u4.0+' \
+    && add-apt-repository --enable-source --yes 'ppa:c2d4u.team/c2d4u4.0+' \
     && apt-get -y install r-base r-base-core r-recommended r-base-dev \
-    && apt-get -y install libcurl4-openssl-dev libssl-dev libboost-dev libxml2-dev \
-    && apt-get -y install r-cran-tidyverse r-cran-plyr r-cran-knitr r-cran-plotly r-cran-rcolorbrewer r-cran-htmlwidgets r-cran-shiny r-cran-rmarkdown r-cran-crosstalk r-cran-dt r-cran-reshape2 r-cran-circlize r-cran-viridis r-cran-biocmanager
-RUN apt-get -y install r-bioc-limma r-bioc-edger r-bioc-complexheatmap 
+    && apt-get -y install libcurl4-openssl-dev libssl-dev libboost-dev libxml2-dev 
+RUN apt-get -y install r-cran-tidyverse r-cran-plyr r-cran-knitr 
+RUN apt-get -y install r-cran-plotly r-cran-rcolorbrewer r-cran-htmlwidgets r-cran-shiny r-cran-rmarkdown r-cran-crosstalk r-cran-dt r-cran-reshape2 r-cran-circlize r-cran-viridis r-cran-gridextra r-cran-rcurl
+RUN apt-get -y install r-cran-biocmanager r-cran-devtools r-cran-snow r-bioc-limma r-bioc-edger r-bioc-complexheatmap r-bioc-genomicranges r-bioc-summarizedexperiment r-bioc-biocparallel
 RUN Rscript -e 'install.packages(c("argparse"), repos="http://cran.r-project.org")'
-RUN Rscript -e 'install.packages(c("gridExtra", "flexdashboard"), repos="http://cran.r-project.org")'
+RUN Rscript -e 'install.packages(c("flexdashboard"), repos="http://cran.r-project.org")'
 RUN Rscript -e 'BiocManager::install(c("rtracklayer"))'
 
 # Install Sequenza-Utils/3.0.0 and Sequenza
@@ -89,7 +90,7 @@ RUN Rscript -e 'BiocManager::install(c("rtracklayer"))'
 # https://cran.r-project.org/web/packages/sequenza/vignettes/sequenza.html#getting-started
 RUN pip3 install --upgrade pip \
 	  && pip3 install sequenza-utils \
-      && Rscript -e 'BiocManager::install(c("copynumber")); install.packages(c("sequenza"), repos="http://cran.r-project.org")'
+      && Rscript -e 'remotes::install_github("ShixiangWang/copynumber"); remotes::install_github("cran/sequenza")'
 
 # Install Control-FREEC/v11.6 and additional dependencies
 # Requires R, samtools, bedtools, sambamba (already satisfied)
