@@ -19,14 +19,14 @@ jobs:
     - name: Tumor-normal FastQ Stub Run
       run: |
         docker run -v $PWD:/opt2 nextflow/nextflow:22.10.8 \
-        python /opt2/wgs-seek --fastq /opt2/.tests/*R{1,2}.fastq.gz \
+        python /opt2/wgs-seek --fastq "/opt2/.tests/*R{1,2}.fastq.gz" \
         --mode vc \
         --output /opt2/output_tn_fqs \
-        --paired --sample_sheet /opt2/.tests/pairs.tsv --stub
+        --paired --sample_sheet "/opt2/.tests/pairs.tsv" --stub
     - name: Tumor-only FastQ Stub Run
       run: |
         docker run -v $PWD:/opt2 nextflow/nextflow:22.10.8 \
-        python /opt2/wgs-seek --fastq /opt2/.tests/*R{1,2}.fastq.gz \
+        python /opt2/wgs-seek --fastq "/opt2/.tests/*R{1,2}.fastq.gz" \
         --mode vc \
-        --output /opt2/output_tonly_fqs \
+        --output "/opt2/output_tonly_fqs" \
         /opt2/.tests/pairs.tsv --stub
