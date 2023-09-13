@@ -133,7 +133,7 @@ def main():
         outfile.write(code+"\n")
     sbatch_mut="sbatch --cpus-per-task=2 --mem=16g --time 10-00:00:00 --partition norm --output submit_"+time1+".log --error error_"+time1+".log --mail-type=BEGIN,TIME_LIMIT_90,END "+outswarmmut 
     if args.stub:
-        cmd2=cmd1+" -stub"
+        cmd2=cmd1+" -stub -without-podman T -without-conda -without-docker"
         print(cmd2)
         os.system(cmd2)
     elif args.submit:
