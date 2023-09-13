@@ -296,10 +296,7 @@ process vardict_tonly {
 }
 
 
-
 process annotvep_tonly {
-    module=['vcf2maf/1.6.21','VEP/102']
-
     publishDir("${outdir}/mafs", mode: "copy")
 
     input:
@@ -334,9 +331,31 @@ process annotvep_tonly {
 }
 
 
-/*
-process combinemafs {
 
+
+process combinemafs_tonly {
+    publishDir(path: "${outdir}/mafs/tumor_only", mode: 'copy')
+
+    input: 
+        path(allmafs)
+
+    output:
+        path("final_tonly.maf")
+
+    shell:
+    mafin= allmafs.join(" ")
+    
+    """
+    echo "Combining MAFs..."
+    head -2 ${allmafs[0]} > final_tonly.maf
+    awk 'FNR>2 {{print}}' ${mafin}  >> final_tonly.maf
+    """
+
+    stub:
+    """
+    touch final_tonly.maf
+    """
 }
-*/
+
+
 

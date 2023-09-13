@@ -27,8 +27,8 @@ log.info """\
 
 //Purple 
 process amber {
-    publishDir("${outdir}/amber", mode: 'copy')
     module=["java/12.0.1","R/3.6.3"]
+    publishDir("${outdir}/amber", mode: 'copy')
     input:
         tuple val(samplename), path("${samplename}.bqsr.bam"), path("${samplename}.bqsr.bam.bai")
 

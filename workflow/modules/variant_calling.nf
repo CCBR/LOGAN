@@ -248,7 +248,7 @@ process mutect2filter {
         --output ${sample}.mut2.final.vcf.gz
     
     bcftools sort ${sample}.mut2.final.vcf.gz -@ 16 -Oz |\
-    bcftools norm --threads 16 --check-ref s -f $GENOME -O v |\
+    bcftools norm --threads $task.cpus --check-ref s -f $GENOME -O v |\
         awk '{{gsub(/\\y[W|K|Y|R|S|M]\\y/,"N",\$4); OFS = "\\t"; print}}' |\
         sed '/^\$/d' > ${sample}.mut2.norm.vcf.gz
     """
@@ -289,7 +289,7 @@ process strelka_tn {
         --normal=${normal} \
         --runDir=wd \
         --callRegions ${bed}.gz
-    ./wd/runWorkflow.py -m local -j ${task.cpus}
+    ./wd/runWorkflow.py -m local -j $task.cpus
     mv wd/results/variants/somatic.snvs.vcf.gz  ${tumor.simpleName}_${bed.simpleName}.somatic.snvs.vcf.gz
     mv wd/results/variants/somatic.indels.vcf.gz  ${tumor.simpleName}_${bed.simpleName}.somatic.indels.vcf.gz
 
@@ -393,12 +393,12 @@ process combineVariants {
     """
     mkdir ${vc}
     bcftools concat $vcfin -Oz -o ${sample}.${vc}.temp.vcf.gz
-    bcftools sort ${sample}.${vc}.temp.vcf.gz -@ 16 -Oz -o ${sample}.${vc}.marked.vcf.gz
-    bcftools norm ${sample}.${vc}.marked.vcf.gz --threads 16 --check-ref s -f $GENOME -O |\
+    bcftools sort ${sample}.${vc}.temp.vcf.gz -Oz -o ${sample}.${vc}.marked.vcf.gz
+    bcftools norm ${sample}.${vc}.marked.vcf.gz --threads $task.cpus --check-ref s -f $GENOME -O |\
         awk '{{gsub(/\\y[W|K|Y|R|S|M]\\y/,"N",\$4); OFS = "\\t"; print}}' |\
-        sed '/^\$/d' > ${sample}.${vc}.temp.vcf.gz
+        sed '/^\$/d' > ${sample}.${vc}.temp.vcf
 
-    bcftools view ${sample}.${vc}.temp.vcf.gz -f PASS -Oz -o ${vc}/${sample}.${vc}.norm.vcf.gz
+    bcftools view ${sample}.${vc}.temp.vcf -f PASS -Oz -o ${vc}/${sample}.${vc}.norm.vcf.gz
 
     mv ${sample}.${vc}.marked.vcf.gz ${vc}
     """
@@ -435,9 +435,9 @@ process combineVariants_strelka {
 
     """
     bcftools concat $vcfin $indelsin -Oz -o ${sample}.temp.strelka.vcf.gz
-    bcftools sort ${sample}.temp.strelka.vcf.gz -@ 16 -Oz -o ${sample}.strelka.vcf.gz 
+    bcftools sort ${sample}.temp.strelka.vcf.gz -Oz -o ${sample}.strelka.vcf.gz 
 
-    bcftools view ${sample}.strelka.vcf.gz -f PASS -Oz -o ${sample}.filtered.strelka.vcf.gz
+    bcftools view ${sample}.strelka.vcf.gz --threads $task.cpus -f PASS -Oz -o ${sample}.filtered.strelka.vcf.gz
 
     """
 
@@ -486,4 +486,30 @@ process annotvep_tn {
     """
 }
 
+
+
+
+process combinemafs_tn {
+    publishDir(path: "${outdir}/mafs/paired", mode: 'copy')
+
+    input: 
+        path(allmafs)
+
+    output:
+        path("final_tn.maf")
+
+    shell:
+    mafin= allmafs.join(" ")
+
+    """
+    echo "Combining MAFs..."
+    head -2 ${allmafs[0]} > final_tn.maf
+    awk 'FNR>2 {{print}}' ${mafin}  >> final_tn.maf
+    """
+
+    stub:
+    """
+    touch final_tn.maf
+    """
+}
 
