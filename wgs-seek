@@ -113,7 +113,9 @@ def main():
             elif args.bam:
                 mode="--PIPE_TONLY_QC"
                 in1="--bam_input '"+args.bam+"'"
-    if (args.stub and args.profile is None) or (args.profile=="local"): 
+    if (args.stub and args.profile is None): 
+        profile="-profile localstub"
+    elif args.profile=="local":
         profile="-profile local"
     elif (args.profile=="biowulf" or args.profile is None):
         profile="-profile biowulf"

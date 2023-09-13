@@ -249,7 +249,7 @@ workflow VARIANTCALL_PIPE {
         tuple(tumorname,tumorbam,tumorbai,bed)} 
     vardict_tonly(vardict_tonly_comb).map{tumor,vcf-> tuple(tumor,vcf,"vardict_tonly")} |combineVariants_vardict_tonly
     combineVariants_vardict_tonly.out.join(sample_sheet)
-    .map{tumor,marked,normvcf,normal ->tuple(tumor,"vardict",normvcf)} | annotvep_tonly_vardict
+    .map{tumor,marked,normvcf,normal ->tuple(tumor,"vardict_tonly",normvcf)} | annotvep_tonly_vardict
 
 
     //VarScan
@@ -264,7 +264,7 @@ workflow VARIANTCALL_PIPE {
     varscan_tonly_comb1=varscan_tonly_comb.map{tumor,vcf-> tuple(tumor,vcf,"varscan_tonly")} | combineVariants_varscan_tonly
     
     varscan_tonly_comb1.join(sample_sheet)
-    .map{tumor,marked,normvcf,normal ->tuple(tumor,"varscan",normvcf)} | annotvep_tonly_varscan
+    .map{tumor,marked,normvcf,normal ->tuple(tumor,"varscan_tonly",normvcf)} | annotvep_tonly_varscan
 
     
     //Combine All MAFs

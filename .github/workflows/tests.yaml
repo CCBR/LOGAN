@@ -28,5 +28,4 @@ jobs:
         docker run -v $PWD:/opt2 nextflow/nextflow:22.10.8 \
         python /opt2/wgs-seek --fastq "/opt2/.tests/*R{1,2}.fastq.gz" \
         --mode vc \
-        --output "/opt2/output_tonly_fqs" \
-        /opt2/.tests/pairs.tsv --stub
+        --output "/opt2/output_tonly_fqs" --stub
