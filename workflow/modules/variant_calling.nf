@@ -1,11 +1,11 @@
 GENOME=file(params.genome)
 GENOMEDICT=file(params.genomedict)
 WGSREGION=file(params.wgsregion) 
-MILLSINDEL=file(params.millsindel) //= "/data/OpenOmics/references/genome-seek/GATK_resource_bundle/hg38bundle/Mills_and_1000G_gold_standard.indels.hg38.vcf.gz"// file(params.gold_indels1) //
-SHAPEITINDEL=file(params.shapeitindel) //params.shapeitindel =  "/data/OpenOmics/references/genome-seek/ALL.wgs.1000G_phase3.GRCh38.ncbi_remapper.20150424.shapeit2_indels.vcf.gz" //file(params.gold_indels2) //
-KGP=file(params.kgp) ///data/CCBR_Pipeliner/Exome-seek/hg38/GATK_resource_bundle/1000G_phase1.snps.high_confidence.hg38.vcf.gz"
-DBSNP=file(params.dbsnp) //= "/data/OpenOmics/references/genome-seek/GATK_resource_bundle/hg38bundle/dbsnp_138.hg38.vcf.gz"
-GNOMAD=file(params.gnomad) //= '/data/CCBR_Pipeliner/Exome-seek/hg38/GNOMAD/somatic-hg38-af-only-gnomad.hg38.vcf.gz' // /data/CCBR_Pipeliner/Exome-seek/hg38/GNOMAD/somatic-hg38-af-only-gnomad.hg38.vcf.gz
+MILLSINDEL=file(params.millsindel) //Mills_and_1000G_gold_standard.indels.hg38.vcf.gz
+SHAPEITINDEL=file(params.shapeitindel) //ALL.wgs.1000G_phase3.GRCh38.ncbi_remapper.20150424.shapeit2_indels.vcf.gz
+KGP=file(params.kgp) //1000G_phase1.snps.high_confidence.hg38.vcf.gz"
+DBSNP=file(params.dbsnp) //dbsnp_138.hg38.vcf.gz"
+GNOMAD=file(params.gnomad) //somatic-hg38-af-only-gnomad.hg38.vcf.gz
 PON=file(params.pon) 
 
 //Output
@@ -142,6 +142,7 @@ process contamination_paired {
         -I ${tumorname}_allpileups.table \
         --matched-normal ${tumorname}_normal.allpileups.table \
         -O ${tumorname}.contamination.table
+
     gatk CalculateContamination \
         -I ${tumorname}_normal.allpileups.table \
         -O ${tumorname}_normal.contamination.table
@@ -159,71 +160,6 @@ process contamination_paired {
     
 }
 
-process pileup_paired_tonly {
-    input:
-        tuple val(tumorname), path(tumor), path(tumorbai), path(bed)
-    
-    output:
-        tuple val(tumorname),
-        path("${tumor.simpleName}_${bed.simpleName}.tumor.pileup.table")
-
-    script:
-
-    """
-    gatk --java-options -Xmx48g GetPileupSummaries \
-        -I ${tumor} \
-        -V ${KGP} \
-        -L ${bed} \
-        -O ${tumor.simpleName}_${bed.simpleName}.tumor.pileup.table 
-
-    """
-
-    stub:
-    """
-    touch ${tumor.simpleName}_${bed.simpleName}.tumor.pileup.table
-
-    """
-
-}
-
-
-process contamination_tumoronly {
-    publishDir(path: "${outdir}/vcfs/mutect2/", mode: 'copy')
-
-    input:
-        tuple val(tumorname),
-        path(tumor_pileups)
-
-    output:
-        tuple val(tumorname),
-        path("${tumorname}_allpileups.table"),
-        path("${tumorname}.contamination.table")
-
-    script:
-    //Gather all the Pileup summaries first for Tumor and Also for NORMAL and then run!
-    alltumor = tumor_pileups.join(" -I ")
-
-
-    """
-    gatk GatherPileupSummaries \
-    --sequence-dictionary ${GENOMEDICT} \
-    -I ${alltumor} -O ${tumorname}_allpileups.table
-    
-    gatk CalculateContamination \
-        -I ${tumorname}_allpileups.table \
-        -O ${tumorname}.contamination.table
-
-    """
-
-    stub:
-    """
-    touch ${tumorname}_allpileups.table
-    touch ${tumorname}.contamination.table
-    """
-
-}
-
-
 process learnreadorientationmodel {
     publishDir(path: "${outdir}/vcfs/mutect2", mode: 'copy')
 
@@ -232,31 +168,6 @@ process learnreadorientationmodel {
       
     output:
         tuple val(sample), path("${sample}.read-orientation-model.tar.gz")
-
-    script: 
-    f1r2in = f1r2.join(" --input ")
-
-    """
-    gatk LearnReadOrientationModel \
-        --output ${sample}.read-orientation-model.tar.gz \
-        --input ${f1r2in}
-    """
-
-    stub:
-    """
-    touch ${sample}.read-orientation-model.tar.gz
-    """
-}
-
-
-process learnreadorientationmodel_tonly {
-    publishDir(path: "${outdir}/vcfs/mutect2", mode: 'copy')
-
-    input:
-        tuple val(sample), path(f1r2)
-      
-    output:
-    tuple val(sample), path("${sample}.read-orientation-model.tar.gz")
 
     script: 
     f1r2in = f1r2.join(" --input ")
@@ -302,32 +213,6 @@ process mergemut2stats {
 
 
 
-process mergemut2stats_tonly {
-    publishDir(path: "${outdir}/vcfs/mutect2", mode: 'copy')
-
-    input:
-        tuple val(sample), path(stats)
-      
-    output:
-        tuple val(sample), path("${sample}.final.stats")
-
-    script: 
-    statsin = stats.join(" --stats ")
-
-    """
-    gatk MergeMutectStats \
-        --stats ${statsin} \
-        -O ${sample}.final.stats
-    """
-
-    stub:
-    """
-    touch ${sample}.final.stats
-    """
-
-}
-
-
 
 process mutect2filter {
         
@@ -336,7 +221,8 @@ process mutect2filter {
     input:
         tuple val(sample), path(mutvcfs), path(stats), path(obs), path(pileups), path(normal_pileups),path(tumorcontamination),path(normalcontamination)
     output:
-        tuple val(sample), path("${sample}.concat.vcf.gz"),path("${sample}.marked.vcf.gz"),path("${sample}.final.mut2.vcf.gz"),path("${sample}.marked.vcf.gz.filteringStats.tsv")
+        tuple val(sample), path("${sample}.mut2.marked.vcf.gz"), 
+        path("${sample}.mut2.norm.vcf.gz"), path("${sample}.marked.vcf.gz.filteringStats.tsv")
 
     script:
     //Include the stats and  concat ${mutvcfs} -Oz -o ${sample}.concat.vcf.gz
@@ -352,21 +238,25 @@ process mutect2filter {
         --ob-priors ${obs} \
         --contamination-table ${tumorcontamination} \
         --stats ${stats} \
-        -O ${sample}.marked.vcf.gz
+        -O ${sample}.mut2.marked.vcf.gz
 
 
     gatk SelectVariants \
         -R ${GENOME} \
-        --variant ${sample}.marked.vcf.gz \
+        --variant ${sample}.mut2.marked.vcf.gz \
         --exclude-filtered \
-        --output ${sample}.final.mut2.vcf.gz
+        --output ${sample}.mut2.final.vcf.gz
+    
+    bcftools sort ${sample}.mut2.final.vcf.gz -@ 16 -Oz |\
+    bcftools norm --threads $task.cpus --check-ref s -f $GENOME -O v |\
+        awk '{{gsub(/\\y[W|K|Y|R|S|M]\\y/,"N",\$4); OFS = "\\t"; print}}' |\
+        sed '/^\$/d' > ${sample}.mut2.norm.vcf.gz
     """
 
     stub:
     """
-    touch ${sample}.concat.vcf.gz
-    touch ${sample}.marked.vcf.gz
-    touch ${sample}.final.mut2.vcf.gz
+    touch ${sample}.mut2.marked.vcf.gz
+    touch ${sample}.mut2.norm.vcf.gz
     touch ${sample}.marked.vcf.gz.filteringStats.tsv
     """
 
@@ -375,7 +265,7 @@ process mutect2filter {
 
 
 
-process strelka {
+process strelka_tn {
     
     input:
         tuple val(tumorname), path(tumor), path(tumorbai), val(normalname), path(normal), path(normalbai), path(bed)
@@ -390,14 +280,16 @@ process strelka {
     """
     mkdir -p wd
 
+    bgzip ${bed}
+    tabix ${bed}.gz
+
     configureStrelkaSomaticWorkflow.py \
         --ref=${GENOME} \
         --tumor=${tumor} \
         --normal=${normal} \
         --runDir=wd \
-        --callRegions ${bed}
-    cd "wd"
-    ./runWorkflow.py -m local -j 
+        --callRegions ${bed}.gz
+    ./wd/runWorkflow.py -m local -j $task.cpus
     mv wd/results/variants/somatic.snvs.vcf.gz  ${tumor.simpleName}_${bed.simpleName}.somatic.snvs.vcf.gz
     mv wd/results/variants/somatic.indels.vcf.gz  ${tumor.simpleName}_${bed.simpleName}.somatic.indels.vcf.gz
 
@@ -414,14 +306,126 @@ process strelka {
 
 }
 
+
+process vardict_tn {
+    
+    input:
+        tuple val(tumorname), path(tumor), path(tumorbai), val(normalname), path(normal), path(normalbai), path(bed)
+    
+    output:
+        tuple val(tumorname),
+        path("${tumor.simpleName}_${bed.simpleName}.vardict.vcf")
+    
+    script:
+
+    """
+    VarDict -G $GENOME \
+        -f 0.01 \
+        --nosv \
+        -b "${tumor}|${normal}" \
+        -t -Q 20 -c 1 -S 2 -E 3 \
+        ${bed} --th 6 \
+        | teststrandbias.R \
+        | var2vcf_paired.pl \
+            -N "${tumor}|${normal}" \
+            -Q 20 \
+            -d 10 \
+            -v 6 \
+            -S \
+            -f 0.05 >  ${tumor.simpleName}_${bed.simpleName}.vardict.vcf
+
+    """
+
+    stub:
+    
+    """
+    touch ${tumor.simpleName}_${bed.simpleName}.vardict.vcf
+
+    """
+
+
+}
+
+
+
+process varscan_tn {
+    input:
+        tuple val(tumorname), path(tumor), path(tumorbai), 
+        val(normalname), path(normal), path(normalbai), path(bed),
+        path(tumorpileup), path(normalpileup), path(tumor_con_table), path(normal_con_table)
+    
+    output:
+        tuple val(tumorname),
+        path("${tumor.simpleName}_${bed.simpleName}.varscan.vcf")
+    
+    shell:
+
+    '''
+    tumor_purity=$( echo "1-$(printf '%.6f' $(tail -n -1 !{tumor_con_table} | cut -f2 ))" | bc -l)
+    normal_purity=$( echo "1-$(printf '%.6f' $(tail -n -1 !{normal_con_table} | cut -f2 ))" | bc -l)
+    varscan_opts="--strand-filter 1 --min-var-freq 0.01 --min-avg-qual 30 --somatic-p-value 0.05 --output-vcf 1 --normal-purity $normal_purity --tumor-purity $tumor_purity"
+    varscan somatic < samtools mpileup -d 10000 -q 15 -Q 15 -f !GENOME -l !{bed.simpleName} !{normal} !{rumor} !{tumor.simpleName}_{bed.simpleName}.vardict.vcf $varscan_opts --mpileup 1 
+    '''
+
+    stub:
+    
+    """
+    touch ${tumor.simpleName}_${bed.simpleName}.varscan.vcf
+    
+    """
+
+}
+
+process combineVariants {
+
+    publishDir(path: "${outdir}/vcfs/", mode: 'copy')
+
+    input:
+        tuple val(sample), path(inputvcf), val(vc)
+    
+    output:
+        tuple val(sample), 
+        path("${vc}/${sample}.${vc}.marked.vcf.gz"), path("${vc}/${sample}.${vc}.norm.vcf.gz")
+    
+    script:
+    vcfin = inputvcf.join(" ")
+    
+    """
+    mkdir ${vc}
+    bcftools concat $vcfin -Oz -o ${sample}.${vc}.temp.vcf.gz
+    bcftools sort ${sample}.${vc}.temp.vcf.gz -Oz -o ${sample}.${vc}.marked.vcf.gz
+    bcftools norm ${sample}.${vc}.marked.vcf.gz --threads $task.cpus --check-ref s -f $GENOME -O |\
+        awk '{{gsub(/\\y[W|K|Y|R|S|M]\\y/,"N",\$4); OFS = "\\t"; print}}' |\
+        sed '/^\$/d' > ${sample}.${vc}.temp.vcf
+
+    bcftools view ${sample}.${vc}.temp.vcf -f PASS -Oz -o ${vc}/${sample}.${vc}.norm.vcf.gz
+
+    mv ${sample}.${vc}.marked.vcf.gz ${vc}
+    """
+
+    stub:
+
+    """
+    mkdir ${vc}
+    touch ${vc}/${sample}.${vc}.marked.vcf.gz
+    touch ${vc}/${sample}.${vc}.norm.vcf.gz
+    
+    """
+
+}
+
+
 process combineVariants_strelka {
+    //Concat all somatic snvs/indels across all files, strelka separates snv/indels
+
     publishDir(path: "${outdir}/vcfs/strelka", mode: 'copy')
 
     input:
         tuple val(sample), path(strelkasnvs), path(strelkaindels)
     
     output:
-        tuple val(sample), path("${sample}.final.strelka.vcf.gz")
+        tuple val(sample), path("${sample}.strelka.vcf.gz"),path("${sample}.filtered.strelka.vcf.gz")
+    
     
     script:
     
@@ -429,19 +433,18 @@ process combineVariants_strelka {
     indelsin = strelkaindels.join(" ")
 
 
-    //Concat all somatic snvs/indesl across all beds
     """
+    bcftools concat $vcfin $indelsin -Oz -o ${sample}.temp.strelka.vcf.gz
+    bcftools sort ${sample}.temp.strelka.vcf.gz -Oz -o ${sample}.strelka.vcf.gz 
 
-    bcftools concat $vcfin $indelsin -Oz -o ${sample}.final.strelka.vcf.gz
-    bcftools view ${sample}.final.strelka.vcf.gz -f PASS -Oz -o ${sample}.unsorted.filtered.strelka.vcf.gz
-    bcftools sort ${sample}.unsorted.filtered.strelka.vcf.gz -@ 16
+    bcftools view ${sample}.strelka.vcf.gz --threads $task.cpus -f PASS -Oz -o ${sample}.filtered.strelka.vcf.gz
 
     """
 
     stub:
 
     """
-    touch ${sample}.final.strelka.vcf.gz
+    touch ${sample}.strelka.vcf.gz
     touch ${sample}.filtered.strelka.vcf.gz
     
     """
@@ -449,280 +452,64 @@ process combineVariants_strelka {
 
 }
 
-
-process vardict {
-    
-    input:
-        tuple val(tumorname), path(tumor), path(tumorbai), val(normalname), path(normal), path(normalbai), path(bed)
-    
-    output:
-        tuple val(tumorname),
-        path("${tumor.simpleName}_${bed.simpleName}.vardict.vcf"),
-    
-    script:
-
-    """
-    VarDict -G ${GENOME} \
-        -f 0.05 \
-=        --nosv \
-        -b ${tumor}|${normal} \
-        -t -Q 20 -c 1 -S 2 -E 3 
-        ${bed} \
-        | teststrandbias.R \
-        | var2vcf_paired.pl \
-            -N ${tumor}|${normal} \
-            -Q 20 \
-            -d 10 \
-            -v 6 \
-            -S \
-            -f 0.05 >  ${tumor.simpleName}_${bed.simpleName}.vardict.vcf
-
-    """
-
-    stub:
-    
-    """
-    touch ${tumor.simpleName}_${bed.simpleName}.vardict.vcf
-
-    """
-
-
-}
-
-
-
-process vardict_tonly {
-    
-    input:
-        tuple val(tumorname), path(tumor), path(tumorbai), path(bed)
-    
-    output:
-        tuple val(tumorname),
-        path("${tumor.simpleName}_${bed.simpleName}.vardict.vcf"),
-    
-    script:
-
-    """
-    VarDict -G ${GENOME} \
-        -f 0.05 \
-        -x 500 \
-        --nosv \
-        -b ${tumor} \
-        -t -Q 20 -c 1 -S 2 -E 3 
-        ${bed} \
-        | teststrandbias.R \
-        | var2vcf_valid.pl \
-            -N ${tumor} \
-            -Q 20 \
-            -d 10 \
-            -v 6 \
-            -S \
-            -E \
-            -f 0.05 >  ${tumor.simpleName}_${bed.simpleName}.vardict.vcf
-
-    """
-
-    stub:
-    
-    """
-    touch ${tumor.simpleName}_${bed.simpleName}.vardict.vcf
-
-    """
-
-
-}
-
-
-
-process combineVariants_vardict {
-    publishDir(path: "${outdir}/vcfs/vardict", mode: 'copy')
-
-    input:
-        tuple val(sample), path(vardictout)
-    
-    output:
-        tuple val(sample), path("${sample}.final.vardict.vcf.gz")
-    
-    script:
-    
-    vcfin = vardictout.join(" ")
-
-
-    //Concat all somatic snvs/indesl across all beds
-    """
-
-    bcftools concat $vcfin -Oz -o ${sample}.final.strelka.vcf.gz
-    bcftools view ${sample}.final.vardict.vcf.gz -f PASS -Oz -o ${sample}.unsorted.filtered.vardict.vcf.gz
-    bcftools sort ${sample}.unsorted.filtered.strelka.vcf.gz -@ 16 -Oz -o ${sample}.filtered.vardict.vcf.gz
-
-    """
-
-    stub:
-
-    """
-    touch ${sample}.final.vardict.vcf.gz
-    touch ${sample}.filtered.vardict.vcf.gz
-    
-    """
-
-
-}
-
-
-process mutect2_t_tonly {
-    
-    input:
-        tuple val(tumorname), path(tumor), path(tumorbai), path(bed)
-    
-    output:
-        tuple val(tumorname),
-        path("${tumor.simpleName}_${bed.simpleName}.tonly.mut2.vcf.gz"),
-        path("${tumor.simpleName}_${bed.simpleName}.f1r2.tar.gz"),
-        path("${tumor.simpleName}_${bed.simpleName}.tonly.mut2.vcf.gz.stats")
-    
-    script:
-
-    """
-    gatk Mutect2 \
-    --reference ${GENOME} \
-    --intervals ${bed} \
-    --input ${tumor} \
-    --tumor-sample ${tumor.simpleName} \
-    --germline-resource ${GNOMAD} \
-    --panel-of-normals ${PON} \
-    --output ${tumor.simpleName}_${bed.simpleName}.tonly.mut2.vcf.gz \
-    --f1r2-tar-gz ${tumor.simpleName}_${bed.simpleName}.f1r2.tar.gz \
-    --independent-mates    
-    """
-
-    stub:
-    """
-    touch ${tumor.simpleName}_${bed.simpleName}.tonly.mut2.vcf.gz
-    touch ${tumor.simpleName}_${bed.simpleName}.f1r2.tar.gz
-    touch ${tumor.simpleName}_${bed.simpleName}.tonly.mut2.vcf.gz.stats
-    """
-
-
-}
-
-
-
-process mutect2filter_tonly {
-    publishDir(path: "${outdir}/vcfs/mutect2", mode: 'copy')
-
-    input:
-        tuple val(sample), path(mutvcfs), path(stats), path(obs), path(pileups),path(tumorcontamination)
-    output:
-        tuple val(sample), path("${sample}.tonly.concat.vcf.gz"), path("${sample}.tonly.marked.vcf.gz"),path("${sample}.tonly.final.mut2.vcf.gz"),path("${sample}.tonly.marked.vcf.gz.filteringStats.tsv")
-    script:
-    //Include the stats and  concat ${mutvcfs} -Oz -o ${sample}.concat.vcf.gz
-    mut2in = mutvcfs.join(" -I ")
-
-
-    """
-    gatk GatherVcfs -I ${mut2in} -O ${sample}.tonly.concat.vcf.gz 
-    gatk IndexFeatureFile -I ${sample}.tonly.concat.vcf.gz 
-    gatk FilterMutectCalls \
-        -R ${GENOME} \
-        -V ${sample}.tonly.concat.vcf.gz \
-        --ob-priors ${obs} \
-        --contamination-table ${tumorcontamination} \
-        --stats ${stats} \
-        -O ${sample}.tonly.marked.vcf.gz
-
-
-    gatk SelectVariants \
-        -R ${GENOME} \
-        --variant ${sample}.tonly.marked.vcf.gz \
-        --exclude-filtered \
-        --output ${sample}.tonly.final.mut2.vcf.gz
-    """
-
-    stub:
-    """
-    touch ${sample}.tonly.concat.vcf.gz
-    touch ${sample}.tonly.marked.vcf.gz
-    touch ${sample}.tonly.final.mut2.vcf.gz
-    touch ${sample}.tonly.marked.vcf.gz.filteringStats.tsv
-    """
-}
-
-
-
-
-process annotvep_tn {
-    module=['vcf2maf/1.6.21','VEP/102']
-    
+process annotvep_tn {    
     publishDir(path: "${outdir}/mafs/", mode: 'copy')
 
     input:
-        tuple val(tumorsample), 
-        path("${sample}.concat.vcf.gz"),
-        path("${tumorsample}.marked.vcf.gz"), 
-        path("${tumorsample}.final.mut2.vcf.gz"), 
-        path("${tumorsample}.marked.vcf.gz.filteringStats.tsv"), 
-        val(normalsample)
+        tuple val(tumorsample), val(normalsample), 
+        val(vc), path(tumorvcf) 
 
     output:
-        path("${tumorsample}.maf")
+        path("paired/${vc}/${tumorsample}.maf")
 
-    script:
+    shell:
 
     """
     
-    zcat ${tumorsample}.final.mut2.vcf.gz > ${tumorsample}.final.mut2.vcf
+    zcat !{tumorvcf}.vcf.gz > !{tumorvcf}.vcf
 
     vcf2maf.pl \
-    --vep-forks 16 --input-vcf ${tumorsample}.final.mut2.vcf \
-    --output-maf ${tumorsample}.maf \
-    --tumor-id ${tumorsample} \
-    --normal-id ${normalsample} \
-    --vep-path \${VEP_HOME}/bin \
-    --vep-data \${VEP_CACHEDIR} \
-    --ncbi-build GRCh38 --species homo_sapiens --ref-fasta ${GENOME}
+    --vep-forks 16 --input-vcf ${tumorvcf}.vcf \
+    --output-maf !{vc}/!{tumorsample}.maf \
+    --tumor-id !{tumorsample} \
+    --normal-id !{normalsample} \
+    --vep-path ${VEP_HOME}/bin \
+    --vep-data ${VEP_CACHEDIR} \
+    --ncbi-build GRCh38 --species homo_sapiens --ref-fasta !{GENOME}
 
     """
 
     stub:
     """
-    touch ${tumorsample}.maf
+    mkdir -p paired/${vc}
+    touch paired/${vc}/${tumorsample}.maf
     """
 }
 
 
-process annotvep_tonly {
-    module=['vcf2maf/1.6.21','VEP/102']
 
-    publishDir("${outdir}/mafs", mode: "copy")
 
-    input:
-        tuple val(tumorsample), 
-        path("${sample}.tonly.concat.vcf.gz"),
-        path("${tumorsample}.tonly.marked.vcf.gz"),
-        path("${tumorsample}.tonly.final.mut2.vcf.gz"),
-        path("${tumorsample}.tonly.marked.vcf.gz.filteringStats.tsv")
+process combinemafs_tn {
+    publishDir(path: "${outdir}/mafs/paired", mode: 'copy')
+
+    input: 
+        path(allmafs)
 
     output:
-        path("${tumorsample}.tonly.maf")
+        path("final_tn.maf")
 
-    script:
+    shell:
+    mafin= allmafs.join(" ")
 
     """
-    
-    zcat ${tumorsample}.tonly.final.mut2.vcf.gz  > ${tumorsample}.tonly.final.mut2.vcf
-
-    vcf2maf.pl \
-    --vep-forks 16 --input-vcf ${tumorsample}.tonly.final.mut2.vcf \
-    --output-maf ${tumorsample}.tonly.maf \
-    --tumor-id ${tumorsample} \
-    --vep-path \${VEP_HOME}/bin \
-    --vep-data \${VEP_CACHEDIR} \
-    --ncbi-build GRCh38 --species homo_sapiens --ref-fasta ${GENOME}
-
+    echo "Combining MAFs..."
+    head -2 ${allmafs[0]} > final_tn.maf
+    awk 'FNR>2 {{print}}' ${mafin}  >> final_tn.maf
     """
 
     stub:
     """
-    touch ${tumorsample}.tonly.maf
+    touch final_tn.maf
     """
 }
+

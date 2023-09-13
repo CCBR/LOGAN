@@ -1,17 +1,18 @@
-# Base image
-FROM --platform=linux/amd64 ubuntu:20.04
+FROM --platform=linux/amd64 nciccbr/ccbr_ubuntu_base_20.04:v5
 
-LABEL maintainer <vishal.koparde@nih.gov,nousomedr@nih.gov,>
+# build time variables
+ARG BUILD_DATE="000000"
+ENV BUILD_DATE=${BUILD_DATE}
+ARG BUILD_TAG="000000"
+ENV BUILD_TAG=${BUILD_TAG}
+ARG REPONAME="000000"
+ENV REPONAME=${REPONAME}
+
+LABEL maintainer <nousomedr@nih.gov>
 
 # Create Container filesystem specific 
 # working directory and opt directories 
-RUN mkdir -p /opt2 && mkdir -p /data2
 WORKDIR /opt2 
-
-# Set time zone to US east coast 
-ENV TZ=America/New_York
-RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime \
-    && echo $TZ > /etc/timezone
 
 # This section installs system packages required for your project
 # If you need extra system packages add them here.
@@ -19,96 +20,22 @@ RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime \
 RUN apt-get update \
  && apt-get -y upgrade \
  && DEBIAN_FRONTEND=noninteractive apt-get install -y \
-      bc \      
-      build-essential \
-      bzip2 \
-      cmake \
-      cpanminus \
-      curl \
-      g++ \
-      gcc \
-      gfortran \
-      git \
-      libbz2-dev \
-      liblzma-dev \
-      locales \
-      make \
-      openjdk-8-jdk \
-      parallel \
-      pigz \
-      python2 \
-      python3 \
-      python3-pip \
-      unzip \
-      wget
-
-# Make python3 the default interpreter
-# and install Python Packages
-RUN ln -s /usr/bin/python3.8 /usr/bin/python
-RUN pip3 install --upgrade pip \
-	  && pip3 install argparse \
-	  && pip3 install numpy \
-      && pip3 install pysam \
-	  && pip3 install scipy
-
-# Perl fix issue
-RUN cpanm FindBin Term::ReadLine
-
-# Set the locale
-RUN localedef -i en_US -f UTF-8 en_US.UTF-8
-
-# Other misc dependencies
-RUN DEBIAN_FRONTEND=noninteractive apt-get install -y \
-      figlet \
-      libatlas-base-dev \
-      libblas-dev \
-      libboost-dev \
-      libbz2-dev \
-      libexpat1-dev \
-      libfreetype6-dev \
-      libgd-dev \
-      libgd-perl \
-      libgs-dev \
-      libgsl0-dev \
-      libgsl-dev \
-      libhtml-template-compiled-perl \
-      libicu-dev \
-      libjudy-dev \
-      liblapack-dev \
-      liblzma-dev \
-      libmysqlclient-dev \
-      libncurses-dev \
-      libopenmpi-dev \
-      libpng-dev \
-      librtmp-dev \
-      libssl-dev \
-      libssl-dev \
-      libtool \
-      libxml2-dev \
-      libxml-libxml-debugging-perl \
-      libxml-opml-simplegen-perl \
-      libxslt-dev \
-      manpages-dev \
-      zlib1g \
-      zlib1g-dev \
-      zlibc
+      bc    
 
 # Common bioinformatics tools 
 # bwa/0.7.17-4  bowtie/1.2.3  bowtie2/2.3.5.1 
 # bedtools/2.27.1  bedops/2.4.37  samtools/1.10 
-# bcftools/1.10.2  vcftools/0.1.16  trimmomatic/0.39
-# tabix/1.10.2
+# bcftools/1.10.2  vcftools/0.1.16  
+# Previous tools already installed trimmomatic/0.39  tabix/1.10.2
 RUN DEBIAN_FRONTEND=noninteractive apt-get install -y \
-      bcftools \
-      bedops \
-      bedtools \
-      bowtie \
-      bowtie2 \
-      bwa \
-      samtools \
       tabix \
-      trimmomatic \
-      vcftools
+      trimmomatic 
+      
+# Install BWA-MEM2 v2.2.1
+RUN wget https://github.com/bwa-mem2/bwa-mem2/releases/download/v2.2.1/bwa-mem2-2.2.1_x64-linux.tar.bz2 \
+    && tar -xvjf /opt2/bwa-mem2-2.2.1_x64-linux.tar.bz2 \
+    && rm /opt2/bwa-mem2-2.2.1_x64-linux.tar.bz2 
+ENV PATH="/opt2/bwa-mem2-2.2.1_x64-linux:$PATH"
 
 # Install Sambamba/0.8.1 for CTRL-Freec
 # not available to apt-get on Ubuntu 20.04
@@ -143,16 +70,27 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get install -y \
       apt-transport-https \
       software-properties-common
 
-# Install R (4.0) -- (edgeR needs 3.6) -- and R packages
+# Install R (4.0) -- and R packages
 # ggplot2  dplyr  plotly  htmlwidgets  tidyr and a few extras
 # For more information, check out: https://cran.r-project.org/bin/linux/ubuntu/
 RUN apt-key adv --keyserver keyserver.ubuntu.com --recv-keys E298A3A825C0D65DFD57CBB651716619E084DAB9 \
     && add-apt-repository 'deb https://cloud.r-project.org/bin/linux/ubuntu focal-cran40/' \
+    && add-apt-repository --enable-source --yes 'ppa:c2d4u.team/c2d4u4.0+' \
     && apt-get -y install r-base r-base-core r-recommended r-base-dev \
-    && apt-get -y install libcurl4-openssl-dev libssl-dev libboost-dev libxml2-dev
-RUN Rscript -e 'install.packages(c("argparse", "knitr", "tidyverse", "dplyr", "plyr", "plotly", "ggplot2", "RColorBrewer", "htmlwidgets"), repos="http://cran.r-project.org")'
-RUN Rscript -e 'install.packages(c("shiny", "gridExtra", "flexdashboard", "rmarkdown", "crosstalk", "DT", "reshape2", "circlize", "viridis"), repos="http://cran.r-project.org")'
-RUN Rscript -e 'install.packages("BiocManager"); BiocManager::install(c("limma", "edgeR", "ComplexHeatmap", "rtracklayer"))'
+    && apt-get -y install libcurl4-openssl-dev libssl-dev libboost-dev libxml2-dev 
+RUN apt-get -y install r-cran-tidyverse r-cran-plyr r-cran-knitr 
+RUN apt-get -y install r-cran-plotly r-cran-rcolorbrewer r-cran-htmlwidgets r-cran-shiny r-cran-rmarkdown r-cran-crosstalk r-cran-dt r-cran-reshape2 r-cran-circlize r-cran-viridis r-cran-gridextra r-cran-rcurl
+RUN apt-get -y install r-cran-biocmanager r-cran-devtools r-cran-snow r-bioc-limma r-bioc-edger r-bioc-complexheatmap r-bioc-genomicranges r-bioc-summarizedexperiment r-bioc-biocparallel
+RUN Rscript -e 'install.packages(c("argparse"), repos="http://cran.r-project.org")'
+RUN Rscript -e 'install.packages(c("flexdashboard"), repos="http://cran.r-project.org")'
+RUN Rscript -e 'BiocManager::install(c("rtracklayer"))'
+
+# Install Sequenza-Utils/3.0.0 and Sequenza
+# Requires R, Python, SAMtools, tabix (already satisfied)
+# https://cran.r-project.org/web/packages/sequenza/vignettes/sequenza.html#getting-started
+RUN pip3 install --upgrade pip \
+	  && pip3 install sequenza-utils \
+      && Rscript -e 'remotes::install_github("ShixiangWang/copynumber"); remotes::install_github("cran/sequenza")'
 
 # Install Control-FREEC/v11.6 and additional dependencies
 # Requires R, samtools, bedtools, sambamba (already satisfied)
@@ -165,12 +103,6 @@ RUN wget https://github.com/BoevaLab/FREEC/archive/refs/tags/v11.6.zip \
 ENV PATH="/opt2/FREEC-11.6/src:$PATH"
 WORKDIR /opt2 
 
-# Install Sequenza-Utils/3.0.0 and Sequenza
-# Requires R, Python, SAMtools, tabix (already satisfied)
-# https://cran.r-project.org/web/packages/sequenza/vignettes/sequenza.html#getting-started
-RUN pip3 install --upgrade pip \
-	  && pip3 install sequenza-utils \
-      && Rscript -e 'BiocManager::install(c("copynumber")); install.packages(c("sequenza"), repos="http://cran.r-project.org")'
 
 # Install Somalier/v0.2.16
 # download static binary
@@ -225,25 +157,42 @@ RUN wget https://github.com/Illumina/manta/releases/download/v1.6.0/manta-1.6.0.
     && ln -fs /usr/bin/python2.7 /usr/bin/python2
 ENV PATH="/opt2/manta-1.6.0.centos6_x86_64/bin:$PATH"
 
-# Install VarDict/1.8.2
+# Install VarDict/1.8.3
 # Requires java8 (jdk 1.8 or later), perl and R (already satisfied)
-RUN wget https://github.com/AstraZeneca-NGS/VarDictJava/releases/download/v1.8.2/VarDict-1.8.2.tar \
-    && tar -xvf /opt2/VarDict-1.8.2.tar \
-    && rm /opt2/VarDict-1.8.2.tar
-ENV PATH="/opt2/VarDict-1.8.2/bin:$PATH"
+RUN wget https://github.com/AstraZeneca-NGS/VarDictJava/releases/download/v1.8.3/VarDict-1.8.3.tar \
+    && tar -xvf /opt2/VarDict-1.8.3.tar \
+    && rm /opt2/VarDict-1.8.3.tar
+ENV PATH="/opt2/VarDict-1.8.3/bin:$PATH"
 
-# Grab Fastp From Opengene github
+# Fastp From Opengene github
 RUN wget http://opengene.org/fastp/fastp.0.23.2 \
     && mkdir fastp \
     && mv fastp.0.23.2 fastp/fastp \
     && chmod a+x fastp/fastp
 ENV PATH="/opt2/fastp:$PATH"
 
+# HMFtools for PURPLE/COBALT/AMBER
+RUN wget https://github.com/hartwigmedical/hmftools/releases/download/amber-v3.9/amber-3.9.jar \
+    && wget https://github.com/hartwigmedical/hmftools/releases/download/cobalt-v1.15.1/cobalt_v1.15.1.jar \
+    && wget https://github.com/hartwigmedical/hmftools/releases/download/purple-v3.9/purple_v3.9.jar \
+    && mkdir hmftools \
+    && mv amber-3.9.jar hmftools/amber.jar \
+    && mv cobalt_v1.15.1.jar hmftools/cobalt.jar \
+    && mv purple_v3.9.jar hmftools/purple.jar \
+    && chmod a+x hmftools/amber.jar
+ENV PATH="/opt2/hmftools:$PATH"
+
+# SvABA
+RUN wget -O svaba_1.2.0 https://github.com/walaj/svaba/releases/download/v1.2.0/svaba \
+    && mkdir svaba \ 
+    && mv svaba_1.2.0 svaba/svaba
+ENV PATH="/opt2/svaba:$PATH"
+
+
 # Add Dockerfile and argparse.bash script
 # and export environment variables
 ADD Dockerfile /opt2/base_gatk4_wgs.dockerfile
 COPY argparse.bash /opt2
-
 
 WORKDIR /data2
 

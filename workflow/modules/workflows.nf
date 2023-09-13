@@ -11,13 +11,22 @@ include {deepvariant_step1;deepvariant_step2;deepvariant_step3;
     deepvariant_combined;glnexus} from './germline.nf'
 include {fastp; bwamem2; //indelrealign; 
     bqsr; gatherbqsr; applybqsr; samtoolsindex} from './trim_align.nf'
-include {mutect2; mutect2_t_tonly; mutect2filter; mutect2filter_tonly; 
-    pileup_paired_t; pileup_paired_n; 
-    contamination_paired; contamination_tumoronly;
-    learnreadorientationmodel; learnreadorientationmodel_tonly; 
-    mergemut2stats; mergemut2stats_tonly;
-    strelka; combineVariants_strelka;
-    annotvep_tn; annotvep_tonly} from './variant_calling.nf'
+include {mutect2; mutect2filter; pileup_paired_t; pileup_paired_n; 
+    contamination_paired; learnreadorientationmodel;mergemut2stats;
+    strelka_tn; combineVariants_strelka; 
+    varscan_tn; vardict_tn;
+    combineVariants as combineVariants_vardict; combineVariants as combineVariants_varscan; 
+    combineVariants as combineVariants_vardict_tonly; combineVariants as combineVariants_varscan_tonly
+    annotvep_tn as annotvep_tn_mut2; annotvep_tn as annotvep_tn_strelka; annotvep_tn as annotvep_tn_varscan; annotvep_tn as annotvep_tn_vardict;
+    combinemafs_tn} from './variant_calling.nf'
+include {mutect2_t_tonly; mutect2filter_tonly; 
+    varscan_tonly; vardict_tonly; 
+    contamination_tumoronly;
+    learnreadorientationmodel_tonly; 
+    mergemut2stats_tonly;
+    annotvep_tonly as annotvep_tonly_varscan; annotvep_tonly as annotvep_tonly_vardict; annotvep_tonly as annotvep_tonly_mut2;
+    combinemafs_tonly} from './variant_calling_tonly.nf'
+include {svaba_somatic} from './structural_variant.nf'
 include {splitinterval} from "./splitbed.nf"
 
 
@@ -210,30 +219,75 @@ workflow VARIANTCALL_PIPE {
 
     mutect2filter_tonly(mut2tonly_filter)
 
+    //VCF2maf
+    mutect2filter.out
+    .join(sample_sheet)
+    .map{tumor,markedvcf,finalvcf,stats,normal -> tuple(tumor,normal,"mutect2",finalvcf)} | annotvep_tn_mut2
+
+    mutect2filter_tonly.out
+    .join(sample_sheet)
+    .map{tumor,markedvcf,finalvcf,stats,normal -> tuple(tumor,"mutect2",finalvcf)} | annotvep_tonly_mut2
 
     //Strelka
-    strelka(bambyinterval)
-    strelkaout=strelka.out.groupTuple()
+    strelka_tn(bambyinterval)
+    strelkaout=strelka_tn.out.groupTuple()
     .map { samplename,vcfs,indels -> tuple( samplename,
     vcfs.toSorted{ it -> (it.name =~ /${samplename}_(.*?).somatic.snvs.vcf.gz/)[0][1].toInteger() },
     indels.toSorted{ it -> (it.name =~ /${samplename}_(.*?).somatic.indels.vcf.gz/)[0][1].toInteger() }  
     )}
-
     combineVariants_strelka(strelkaout)
+    combineVariants_strelka.out.join(sample_sheet)
+    .map{tumor,markedvcf,finalvcf,normal -> tuple(tumor,normal,"strelka",finalvcf)} | annotvep_tn_strelka
 
     //Vardict
+    vardict_comb=vardict_tn(bambyinterval).map{tumor,vcf-> tuple(tumor,vcf,"vardict")} | combineVariants_vardict
+    vardict_comb.join(sample_sheet)
+     .map{tumor,marked,normvcf,normal ->tuple(tumor,normal,"vardict",normvcf)} | annotvep_tn_vardict
+
+     //VarDict_tonly
+    vardict_tonly_comb=bambyinterval.map{tumorname,tumorbam,tumorbai,normname,normbam,normbai,bed ->
+        tuple(tumorname,tumorbam,tumorbai,bed)} 
+    vardict_tonly(vardict_tonly_comb).map{tumor,vcf-> tuple(tumor,vcf,"vardict_tonly")} |combineVariants_vardict_tonly
+    combineVariants_vardict_tonly.out.join(sample_sheet)
+    .map{tumor,marked,normvcf,normal ->tuple(tumor,"vardict_tonly",normvcf)} | annotvep_tonly_vardict
+
+
+    //VarScan
+    varscan_in=bambyinterval.join(contamination_paired.out)
+    varscan_comb=varscan_tn(varscan_in).map{tumor,vcf-> tuple(tumor,vcf,"varscan")} | combineVariants_varscan
+    varscan_comb.join(sample_sheet)
+    .map{tumor,marked,normvcf,normal ->tuple(tumor,normal,"varscan",normvcf)} | annotvep_tn_varscan
+
+    //VarScan_tonly
+    varscan_tonly_comb=varscan_in.map{tumor,bam,bai,normal,nbam,nbai,bed,tpile,npile,tumorc,normalc ->
+    tuple(tumor,bam,bai,bed,tpile,tumorc)} | varscan_tonly 
+    varscan_tonly_comb1=varscan_tonly_comb.map{tumor,vcf-> tuple(tumor,vcf,"varscan_tonly")} | combineVariants_varscan_tonly
+    
+    varscan_tonly_comb1.join(sample_sheet)
+    .map{tumor,marked,normvcf,normal ->tuple(tumor,"varscan_tonly",normvcf)} | annotvep_tonly_varscan
 
     
-    //CNMOPs from the BAM BQSRs
-    //##VCF2MAF TO
-    tn_vepin=mutect2filter.out
-    .join(sample_sheet)
+    //Combine All MAFs
+    annotvep_tn_mut2.out.concat(annotvep_tn_strelka.out).concat(annotvep_tn_vardict.out).concat(annotvep_tn_varscan.out) | combinemafs_tn
 
-    annotvep_tn(tn_vepin)
-    annotvep_tonly(mutect2filter_tonly.out)
-    // Immplment PCGR Annotator/CivIC?
+    annotvep_tonly_mut2.out.concat(annotvep_tonly_vardict.out).concat(annotvep_tonly_varscan.out) | combinemafs_tonly
+
+    //Implement Copy Number
+    //Implement PCGR Annotator/CivIC Next
 }
 
+
+workflow SV_PIPE {
+    take:
+        bamwithsample
+        
+    main: 
+        //Svaba
+        svaba_somatic(bamwithsample)    
+
+        //Manta
+
+}
 
 
 workflow QC_PIPE {
@@ -265,7 +319,6 @@ workflow QC_PIPE {
     somalier_extract(applybqsr) 
     som_in=somalier_extract.out.collect()
     somalier_analysis(som_in)
-    //
 
     //Prep for MultiQC input
     fclane_out=fc_lane.out.map{samplename,info->info}.collect()
@@ -292,7 +345,7 @@ workflow QC_PIPE {
 workflow INPUT_BAMVC_PIPE {
     
    if(params.sample_sheet){
-        sample_sheet=Channel.fromPath(params.sample_sheet, checkIfExists: true).view()
+        sample_sheet=Channel.fromPath(params.sample_sheet, checkIfExists: true)
                        .ifEmpty { "sample sheet not found" }
                        .splitCsv(header:true, sep: "\t", strip:true)
                        .map { row -> tuple(
@@ -317,7 +370,7 @@ workflow INPUT_BAMVC_PIPE {
     
     splitinterval(intervalbedin)
     
-    bamwithsample=baminputonly.combine(sample_sheet,by:0).map{it.swap(3,0)}.combine(baminputonly,by:0).map{it.swap(3,0)}.view()
+    bamwithsample=baminputonly.combine(sample_sheet,by:0).map{it.swap(3,0)}.combine(baminputonly,by:0).map{it.swap(3,0)}
     
     emit:
         bamwithsample

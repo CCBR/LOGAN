@@ -8,6 +8,7 @@ date = new Date().format( 'yyyyMMdd' )
 PIPE_ALIGN=params.PIPE_ALIGN
 PIPE_GERMLINE=params.PIPE_GERMLINE
 PIPE_VC=params.PIPE_VC
+PIPE_SV=params.PIPE_SV
 PIPE_QC=params.PIPE_QC
 PIPE_BAMVC=params.PIPE_BAMVC
 PIPE_TONLY_ALIGN=params.PIPE_TONLY_ALIGN
@@ -18,7 +19,8 @@ PIPE_TONLY_QC=params.PIPE_TONLY_QC
 
 
 include {INPUT_PIPE;TRIM_ALIGN_PIPE;
-    GERMLINE_PIPE;VARIANTCALL_PIPE;INPUT_BAMVC_PIPE;QC_PIPE} from "./workflow/modules/workflows.nf"
+    GERMLINE_PIPE;VARIANTCALL_PIPE;INPUT_BAMVC_PIPE;SV_PIPE;
+    QC_PIPE} from "./workflow/modules/workflows.nf"
 
 include {INPUT_TONLY_PIPE;TRIM_ALIGN_TONLY_PIPE;
     VARIANT_TONLY_PIPE;INPUT_TONLY_BAMVC_PIPE;QC_TONLY_PIPE} from "./workflow/modules/workflows_tonly.nf"
@@ -61,6 +63,12 @@ workflow {
         TRIM_ALIGN_PIPE(INPUT_PIPE.out.fastqinput,INPUT_PIPE.out.sample_sheet)
         GERMLINE_PIPE(TRIM_ALIGN_PIPE.out.bambyinterval)
         QC_PIPE(TRIM_ALIGN_PIPE.out.fastqin,TRIM_ALIGN_PIPE.out.fastpout,TRIM_ALIGN_PIPE.out.bwamem2out,GERMLINE_PIPE.out.glnexusout,GERMLINE_PIPE.out.bcfout)
+
+    }  
+    if (PIPE_SV){
+        INPUT_PIPE()
+        TRIM_ALIGN_PIPE(INPUT_PIPE.out.fastqinput,INPUT_PIPE.out.sample_sheet)
+        SV_PIPE(TRIM_ALIGN_PIPE.out.bamwithsample)
 
     }  
     if (PIPE_BAMVC){

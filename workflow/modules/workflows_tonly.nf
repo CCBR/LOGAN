@@ -11,12 +11,14 @@ include {deepvariant_step1;deepvariant_step2;deepvariant_step3;
     deepvariant_combined;glnexus} from './germline.nf'
 include {fastp; bwamem2; 
     bqsr; gatherbqsr; applybqsr; samtoolsindex} from './trim_align.nf'
-include {mutect2; mutect2_t_tonly; mutect2filter; mutect2filter_tonly; 
-    pileup_paired_t; pileup_paired_n; pileup_paired_tonly;
-    contamination_paired; contamination_tumoronly;
-    learnreadorientationmodel; learnreadorientationmodel_tonly; 
-    mergemut2stats; mergemut2stats_tonly;
-    annotvep_tn; annotvep_tonly} from './variant_calling.nf'
+include {mutect2; mutect2filter; pileup_paired_t; pileup_paired_n; 
+    contamination_paired; learnreadorientationmodel;mergemut2stats;
+    } from './variant_calling.nf'
+include {mutect2_t_tonly; mutect2filter_tonly; 
+    contamination_tumoronly;
+    learnreadorientationmodel_tonly; 
+    mergemut2stats_tonly;
+    annotvep_tonly} from './variant_calling_tonly.nf'
 include {splitinterval} from "./splitbed.nf"
 
 
@@ -35,8 +37,7 @@ workflow INPUT_TONLY_PIPE {
                                   }
     }else{
         sample_sheet=fastqinput.map{samplename,f1 -> tuple (
-             samplename)}.view()
-        
+             samplename)}
     }
     
     emit:
