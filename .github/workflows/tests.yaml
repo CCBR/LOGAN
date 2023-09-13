@@ -8,14 +8,14 @@ on:
     branches_ignore: []
 
 jobs:
-  Dry_Run_and_Lint:
+  Stub_Run:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
     - uses: docker://nextflow/nextflow:22.10.8
     - uses: actions/setup-python@v4
       with:
-        python-version: '3.10' 
+        python-version: '3.9' 
     - name: Tumor-normal FastQ Dry Run
       run: |
         docker run -v $PWD:/opt2 nextflow/nextflow:22.10.8 \
