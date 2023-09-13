@@ -2,7 +2,7 @@
 # -*- coding: UTF-8 -*-
 
 """
-ABOUT: This is the main entry for the GATK4 WES pipeline.
+ABOUT: This is the main entry for the LOGAN (whole genome sequencing pipeline).
 REQUIRES:
   - python>=3.5
   - nextflow  
@@ -48,9 +48,10 @@ def parse_args():
     parser.add_argument('--sv',help="Add Structural VC calling",action="store_true")
     parser.add_argument('--output',help="Output Directory")
     parser.add_argument('--sample_sheet',help="Sample sheet")
-    parser.add_argument('--profile',default="biowulf",help="Biowulf or Local Run")
+    parser.add_argument('--profile',help="Biowulf or Local Run")
     parser.add_argument('--resume',action="store_true",default="True",help="Resume previous run?")
     parser.add_argument('--submit',action="store_true",help="Submit to SLURM?",default="False")
+    parser.add_argument('--stub',action="store_true",help="Stub dry run",default="False")
     args = parser.parse_args()
     return(args)
 
@@ -112,10 +113,10 @@ def main():
             elif args.bam:
                 mode="--PIPE_TONLY_QC"
                 in1="--bam_input '"+args.bam+"'"
-    if args.profile=="biowulf":
-        profile="-profile biowulf"
-    else: 
+    if (args.stub and args.profile is None) or (args.profile=="local"): 
         profile="-profile local"
+    elif (args.profile=="biowulf" or args.profile is None):
+        profile="-profile biowulf"
     if args.resume:
         resume="-resume"
     else:
@@ -131,7 +132,11 @@ def main():
     with open(outswarmmut, "a") as outfile:
         outfile.write(code+"\n")
     sbatch_mut="sbatch --cpus-per-task=2 --mem=16g --time 10-00:00:00 --partition norm --output submit_"+time1+".log --error error_"+time1+".log --mail-type=BEGIN,TIME_LIMIT_90,END "+outswarmmut 
-    if args.submit==True:
+    if args.stub:
+        cmd2=cmd1+" -stub"
+        print(cmd2)
+        os.system(cmd2)
+    elif args.submit:
         print(sbatch_mut)
         os.system(sbatch_mut)
     else:
