@@ -394,7 +394,7 @@ process combineVariants {
     mkdir ${vc}
     bcftools concat $vcfin -Oz -o ${sample}.${vc}.temp.vcf.gz
     bcftools sort ${sample}.${vc}.temp.vcf.gz -Oz -o ${sample}.${vc}.marked.vcf.gz
-    bcftools norm ${sample}.${vc}.marked.vcf.gz --threads $task.cpus --check-ref s -f $GENOME -O |\
+    bcftools norm ${sample}.${vc}.marked.vcf.gz --threads $task.cpus --check-ref s -f $GENOME -O v |\
         awk '{{gsub(/\\y[W|K|Y|R|S|M]\\y/,"N",\$4); OFS = "\\t"; print}}' |\
         sed '/^\$/d' > ${sample}.${vc}.temp.vcf
 

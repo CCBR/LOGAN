@@ -45,13 +45,14 @@ def parse_args():
     parser.add_argument('--bam',help="Files input")
     parser.add_argument('--mode',help='Mode?')
     parser.add_argument('--paired',help='Paired',action="store_true")
+    parser.add_argument('--splitregions',default=24,help="How splits per regions")
     parser.add_argument('--sv',help="Add Structural VC calling",action="store_true")
     parser.add_argument('--output',help="Output Directory")
     parser.add_argument('--sample_sheet',help="Sample sheet")
     parser.add_argument('--profile',help="Biowulf or Local Run")
     parser.add_argument('--resume',action="store_true",default="True",help="Resume previous run?")
-    parser.add_argument('--submit',action="store_true",help="Submit to SLURM?",default="False")
-    parser.add_argument('--stub',action="store_true",help="Stub dry run",default="False")
+    parser.add_argument('--submit',action="store_true",help="Submit to SLURM?")
+    parser.add_argument('--stub',action="store_true",help="Stub run")
     args = parser.parse_args()
     return(args)
 
@@ -125,7 +126,7 @@ def main():
         resume=""
     c4=["nextflow run",dirname + '/wgs-seek.nf',"-c "+ dirname +"/nextflow.config",
         in1,profile,resume,sample_path,mode,
-        "--output '" +args.output+"'"]
+        "--output '" +args.output+"'"+" --split_regions " +args.splitregions]
     cmd1=' '.join(c4)
     code=c1+"\n"+c2+"\n"+c3+"\n"+cmd1
     time1=time.strftime("%Y_%m_%d_%H%M%S")
@@ -135,7 +136,7 @@ def main():
         outfile.write(code+"\n")
     sbatch_mut="sbatch --cpus-per-task=2 --mem=16g --time 10-00:00:00 --partition norm --output submit_"+time1+".log --error error_"+time1+".log --mail-type=BEGIN,TIME_LIMIT_90,END "+outswarmmut 
     if args.stub:
-        cmd2=cmd1+" -stub -without-podman T -without-conda -without-docker"
+        cmd2=cmd1+" --split_regions 4 -stub -without-podman T -without-conda -without-docker"
         print(cmd2)
         os.system(cmd2)
     elif args.submit:

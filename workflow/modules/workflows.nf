@@ -240,28 +240,28 @@ workflow VARIANTCALL_PIPE {
     .map{tumor,markedvcf,finalvcf,normal -> tuple(tumor,normal,"strelka",finalvcf)} | annotvep_tn_strelka
 
     //Vardict
-    vardict_comb=vardict_tn(bambyinterval).map{tumor,vcf-> tuple(tumor,vcf,"vardict")} | combineVariants_vardict
+    vardict_comb=vardict_tn(bambyinterval).groupTuple().map{tumor,vcf-> tuple(tumor,vcf,"vardict")} | combineVariants_vardict
     vardict_comb.join(sample_sheet)
      .map{tumor,marked,normvcf,normal ->tuple(tumor,normal,"vardict",normvcf)} | annotvep_tn_vardict
 
      //VarDict_tonly
     vardict_tonly_comb=bambyinterval.map{tumorname,tumorbam,tumorbai,normname,normbam,normbai,bed ->
         tuple(tumorname,tumorbam,tumorbai,bed)} 
-    vardict_tonly(vardict_tonly_comb).map{tumor,vcf-> tuple(tumor,vcf,"vardict_tonly")} |combineVariants_vardict_tonly
+    vardict_tonly(vardict_tonly_comb).groupTuple().map{tumor,vcf-> tuple(tumor,vcf,"vardict_tonly")} |combineVariants_vardict_tonly
     combineVariants_vardict_tonly.out.join(sample_sheet)
     .map{tumor,marked,normvcf,normal ->tuple(tumor,"vardict_tonly",normvcf)} | annotvep_tonly_vardict
 
 
     //VarScan
     varscan_in=bambyinterval.join(contamination_paired.out)
-    varscan_comb=varscan_tn(varscan_in).map{tumor,vcf-> tuple(tumor,vcf,"varscan")} | combineVariants_varscan
+    varscan_comb=varscan_tn(varscan_in).groupTuple().map{tumor,vcf-> tuple(tumor,vcf,"varscan")} | combineVariants_varscan
     varscan_comb.join(sample_sheet)
     .map{tumor,marked,normvcf,normal ->tuple(tumor,normal,"varscan",normvcf)} | annotvep_tn_varscan
 
     //VarScan_tonly
     varscan_tonly_comb=varscan_in.map{tumor,bam,bai,normal,nbam,nbai,bed,tpile,npile,tumorc,normalc ->
     tuple(tumor,bam,bai,bed,tpile,tumorc)} | varscan_tonly 
-    varscan_tonly_comb1=varscan_tonly_comb.map{tumor,vcf-> tuple(tumor,vcf,"varscan_tonly")} | combineVariants_varscan_tonly
+    varscan_tonly_comb1=varscan_tonly_comb.groupTuple().map{tumor,vcf-> tuple(tumor,vcf,"varscan_tonly")} | combineVariants_varscan_tonly
     
     varscan_tonly_comb1.join(sample_sheet)
     .map{tumor,marked,normvcf,normal ->tuple(tumor,"varscan_tonly",normvcf)} | annotvep_tonly_varscan

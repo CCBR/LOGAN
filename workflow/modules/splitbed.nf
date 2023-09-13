@@ -1,3 +1,7 @@
+SPLIT_BED=file(params.splitbed)
+SPLIT_REGIONS=params.split_regions
+
+
 // Split Bed Step to create the path 
 process splitinterval {
     //Keep Process Local
@@ -12,11 +16,9 @@ process splitinterval {
     path('bedout/*.bed')
 
     script:
-    
-    SPLIT_BED=file(params.splitbed)
 
     """
     mkdir -p bedout
-    python ${SPLIT_BED} -infile ${BED_IN} -num 32 -out 'bedout/bed'
+    python $SPLIT_BED -infile ${BED_IN} -num ${SPLIT_REGIONS} -out 'bedout/bed'
     """
 }
