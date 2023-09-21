@@ -126,7 +126,7 @@ def main():
         resume=""
     c4=["nextflow run",dirname + '/wgs-seek.nf',"-c "+ dirname +"/nextflow.config",
         in1,profile,resume,sample_path,mode,
-        "--output '" +args.output+"'"+" --split_regions " +args.splitregions]
+        "--output '" +args.output+"'"+" --split_regions " +str(args.splitregions)]
     cmd1=' '.join(c4)
     code=c1+"\n"+c2+"\n"+c3+"\n"+cmd1
     time1=time.strftime("%Y_%m_%d_%H%M%S")
