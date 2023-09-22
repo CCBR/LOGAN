@@ -29,7 +29,16 @@ include {splitinterval} from "./splitbed.nf"
 
 
 workflow INPUT_TONLY_PIPE {
-    fastqinput=Channel.fromFilePairs(params.fastq_input)
+    if(params.fastq_input){
+        fastqinput=Channel.fromFilePairs(params.fastq_input)
+
+    }else if(params.file_input) {
+        fastqinput=Channel.fromPath(params.file_input)
+                        .splitCsv(header: false, sep: "\t", strip:true)
+                        .map{ sample,fq1,fq2 -> 
+                        tuple(sample, tuple(file(fq1),file(fq2)))
+                                  }
+    }
 
  
   if(params.sample_sheet){
@@ -40,11 +49,14 @@ workflow INPUT_TONLY_PIPE {
                         row.Tumor
                        )
                                   }
+
     }else{
         sample_sheet=fastqinput.map{samplename,f1 -> tuple (
              samplename)}
     }
     
+      
+
     emit:
         fastqinput
         sample_sheet

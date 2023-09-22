@@ -330,10 +330,6 @@ process annotvep_tonly {
     touch tumor_only/${vc}/${tumorsample}.tonly.maf
     """
 }
-<<<<<<< HEAD
-
-
-
 
 process combinemafs_tonly {
     publishDir(path: "${outdir}/mafs/tumor_only", mode: 'copy')
@@ -361,5 +357,3 @@ process combinemafs_tonly {
 
 
 
-=======
->>>>>>> a77c62e (fix: update the vcf2maf)
