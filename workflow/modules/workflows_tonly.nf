@@ -13,18 +13,32 @@ include {fastp; bwamem2;
     bqsr; gatherbqsr; applybqsr; samtoolsindex} from './trim_align.nf'
 include {mutect2; mutect2filter; pileup_paired_t; pileup_paired_n; 
     contamination_paired; learnreadorientationmodel;mergemut2stats;
-    } from './variant_calling.nf'
+    combineVariants as combineVariants_vardict; combineVariants as combineVariants_varscan; 
+    combineVariants as combineVariants_vardict_tonly; combineVariants as combineVariants_varscan_tonly
+    annotvep_tn as annotvep_tn_mut2; annotvep_tn as annotvep_tn_strelka; annotvep_tn as annotvep_tn_varscan; annotvep_tn as annotvep_tn_vardict;
+    combinemafs_tn} from './variant_calling.nf'
 include {mutect2_t_tonly; mutect2filter_tonly; 
+    varscan_tonly; vardict_tonly; 
     contamination_tumoronly;
     learnreadorientationmodel_tonly; 
     mergemut2stats_tonly;
-    annotvep_tonly} from './variant_calling_tonly.nf'
+    annotvep_tonly as annotvep_tonly_varscan; annotvep_tonly as annotvep_tonly_vardict; annotvep_tonly as annotvep_tonly_mut2;
+    combinemafs_tonly} from './variant_calling_tonly.nf'
 include {splitinterval} from "./splitbed.nf"
 
 
 
 workflow INPUT_TONLY_PIPE {
-    fastqinput=Channel.fromFilePairs(params.fastq_input)
+    if(params.fastq_input){
+        fastqinput=Channel.fromFilePairs(params.fastq_input)
+
+    }else if(params.file_input) {
+        fastqinput=Channel.fromPath(params.file_input)
+                        .splitCsv(header: false, sep: "\t", strip:true)
+                        .map{ sample,fq1,fq2 -> 
+                        tuple(sample, tuple(file(fq1),file(fq2)))
+                                  }
+    }
 
  
   if(params.sample_sheet){
@@ -35,11 +49,14 @@ workflow INPUT_TONLY_PIPE {
                         row.Tumor
                        )
                                   }
+
     }else{
         sample_sheet=fastqinput.map{samplename,f1 -> tuple (
              samplename)}
     }
     
+      
+
     emit:
         fastqinput
         sample_sheet
@@ -142,11 +159,29 @@ workflow VARIANT_TONLY_PIPE {
 
     mutect2filter_tonly(mut2tonly_filter)
     
-    //#To implement
-    //CNMOPs from the BAM BQSRs
+    
     //##VCF2MAF TO
 
-    annotvep_tonly(mutect2filter_tonly.out)
+    mutect2filter_tonly.out
+    .join(sample_sheet)
+    .map{tumor,markedvcf,finalvcf,stats -> tuple(tumor,"mutect2",finalvcf)} | annotvep_tonly_mut2
+
+    //VarDict_tonly
+    vardict_tonly_comb=bambyinterval.map{tumorname,tumorbam,tumorbai,normname,normbam,normbai,bed ->
+        tuple(tumorname,tumorbam,tumorbai,bed)} 
+    vardict_tonly(vardict_tonly_comb).groupTuple().map{tumor,vcf-> tuple(tumor,vcf,"vardict_tonly")} |combineVariants_vardict_tonly
+    combineVariants_vardict_tonly.out.join(sample_sheet)
+    .map{tumor,marked,normvcf ->tuple(tumor,"vardict_tonly",normvcf)} | annotvep_tonly_vardict
+
+    //VarScan_tonly
+    varscan_tonly_comb=varscan_in.map{tumor,bam,bai,normal,nbam,nbai,bed,tpile,npile,tumorc,normalc ->
+    tuple(tumor,bam,bai,bed,tpile,tumorc)} | varscan_tonly 
+    varscan_tonly_comb1=varscan_tonly_comb.groupTuple().map{tumor,vcf-> tuple(tumor,vcf,"varscan_tonly")} | combineVariants_varscan_tonly
+    
+    varscan_tonly_comb1.join(sample_sheet)
+    .map{tumor,marked,normvcf,normal ->tuple(tumor,"varscan_tonly",normvcf)} | annotvep_tonly_varscan
+
+    annotvep_tonly_mut2.out.concat(annotvep_tonly_vardict.out).concat(annotvep_tonly_varscan.out) | combinemafs_tonly
 
 }
 

@@ -7,6 +7,7 @@ KGP=file(params.kgp) //1000G_phase1.snps.high_confidence.hg38.vcf.gz"
 DBSNP=file(params.dbsnp) //dbsnp_138.hg38.vcf.gz"
 GNOMAD=file(params.gnomad) //somatic-hg38-af-only-gnomad.hg38.vcf.gz
 PON=file(params.pon) 
+VEP_CACHEDIR=file(params.vep_cache)
 
 //Output
 outdir=file(params.output)
@@ -317,8 +318,8 @@ process annotvep_tonly {
     --vep-forks 16 --input-vcf !{tumorvcf}.vcf \
     --output-maf !{vc}/!{tumorsample}.tonly.maf \
     --tumor-id !{tumorsample} \
-    --vep-path ${VEP_HOME}/bin \
-    --vep-data ${VEP_CACHEDIR} \
+    --vep-path /opt/vep/src/ensembl-vep \
+    --vep-data $VEP_CACHEDIR \
     --ncbi-build GRCh38 --species homo_sapiens --ref-fasta !{GENOME}
 
     """
@@ -329,9 +330,6 @@ process annotvep_tonly {
     touch tumor_only/${vc}/${tumorsample}.tonly.maf
     """
 }
-
-
-
 
 process combinemafs_tonly {
     publishDir(path: "${outdir}/mafs/tumor_only", mode: 'copy')

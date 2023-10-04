@@ -7,6 +7,7 @@ KGP=file(params.kgp) //1000G_phase1.snps.high_confidence.hg38.vcf.gz"
 DBSNP=file(params.dbsnp) //dbsnp_138.hg38.vcf.gz"
 GNOMAD=file(params.gnomad) //somatic-hg38-af-only-gnomad.hg38.vcf.gz
 PON=file(params.pon) 
+VEP_CACHEDIR=file(params.vep_cache)
 
 //Output
 outdir=file(params.output)
@@ -394,7 +395,7 @@ process combineVariants {
     mkdir ${vc}
     bcftools concat $vcfin -Oz -o ${sample}.${vc}.temp.vcf.gz
     bcftools sort ${sample}.${vc}.temp.vcf.gz -Oz -o ${sample}.${vc}.marked.vcf.gz
-    bcftools norm ${sample}.${vc}.marked.vcf.gz --threads $task.cpus --check-ref s -f $GENOME -O |\
+    bcftools norm ${sample}.${vc}.marked.vcf.gz --threads $task.cpus --check-ref s -f $GENOME -O v |\
         awk '{{gsub(/\\y[W|K|Y|R|S|M]\\y/,"N",\$4); OFS = "\\t"; print}}' |\
         sed '/^\$/d' > ${sample}.${vc}.temp.vcf
 
@@ -473,8 +474,8 @@ process annotvep_tn {
     --output-maf !{vc}/!{tumorsample}.maf \
     --tumor-id !{tumorsample} \
     --normal-id !{normalsample} \
-    --vep-path ${VEP_HOME}/bin \
-    --vep-data ${VEP_CACHEDIR} \
+    --vep-path /opt/vep/src/ensembl-vep \
+    --vep-data $VEP_CACHEDIR \
     --ncbi-build GRCh38 --species homo_sapiens --ref-fasta !{GENOME}
 
     """
