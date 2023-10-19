@@ -1,2 +1,0 @@
-[console_scripts]
-logan = logan.src.__main__:main

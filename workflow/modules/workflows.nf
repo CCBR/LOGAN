@@ -26,7 +26,7 @@ include {mutect2_t_tonly; mutect2filter_tonly;
     mergemut2stats_tonly;
     annotvep_tonly as annotvep_tonly_varscan; annotvep_tonly as annotvep_tonly_vardict; annotvep_tonly as annotvep_tonly_mut2;
     combinemafs_tonly} from './variant_calling_tonly.nf'
-include {svaba_somatic; manta_somatic} from './structural_variant.nf'
+include {svaba_somatic} from './structural_variant.nf'
 include {splitinterval} from "./splitbed.nf"
 
 
@@ -286,7 +286,6 @@ workflow SV_PIPE {
         svaba_somatic(bamwithsample)    
 
         //Manta
-        manta_(bamwithsample)    
 
 }
 
