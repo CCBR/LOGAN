@@ -1,0 +1,11 @@
+nextflow>=0.4.0
+pyyaml>=6.0
+Click>=8.1.3
+
+[dev]
+black>=22.0.0
+pre-commit
+cffconvert
+
+[test]
+pytest
