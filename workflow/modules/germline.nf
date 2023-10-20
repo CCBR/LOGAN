@@ -1,7 +1,7 @@
 //References
 GENOME=file(params.genome)
 MODEL="/opt/models/wgs/model.ckpt"
-intervalbedin = file(params.intervals)
+//intervalbedin = file(params.intervals)
 
 
 

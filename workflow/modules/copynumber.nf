@@ -133,6 +133,129 @@ process purple {
 
 }
 
+process amber {
+    module=["java/12.0.1","R/3.6.3"]
+    publishDir("${outdir}/amber", mode: 'copy')
+    input:
+        tuple val(samplename), path("${samplename}.bqsr.bam"), path("${samplename}.bqsr.bam.bai")
+
+    output:
+        tuple val(samplename), path("${samplename}_amber")
+        //path("${samplename}.amber.baf.tsv.gz"),
+        //path("${samplename}.amber.baf.pcf"),
+        //path("${samplename}.amber.qc")
+        //path("${samplename}.amber.contamination.vcf.gz") Contamination maybe only with tumor
+
+    script:
+
+    """
+
+    java -Xmx32G -cp $amber com.hartwig.hmftools.amber.AmberApplication \
+    -tumor ${samplename} -tumor_bam ${samplename}.bqsr.bam \
+    -output_dir ${samplename}_amber \
+    -threads 16 \
+    -ref_genome_version V38 \
+    -loci $GERMLINEHET
+
+    """
+
+    stub:
+
+    """
+    mkdir ${samplename}_amber
+    touch ${samplename}_amber/${samplename}.amber.baf.tsv.gz ${samplename}_amber/${samplename}.amber.baf.pcf ${samplename}_amber/${samplename}.amber.qc 
+    """
+}
+
+process cobalt {
+    module=["java/12.0.1","R/3.6.3"]
+    publishDir("${outdir}/cobalt", mode: 'copy')
+
+    input:
+        tuple val(samplename), path("${samplename}.bqsr.bam"), path("${samplename}.bqsr.bam.bai")
+
+    output:
+        tuple val(samplename), path("${samplename}_cobalt")
+        //path("${samplename}/${samplename}.cobalt.ratio.tsv.gz"), 
+        //path("${samplename}/${samplename}.cobalt.ratio.pcf"),
+        //path("${samplename}/${samplename}.cobalt.gc.median.tsv")
+
+    script:
+
+    """
+
+    java -jar -Xmx8G $cobalt \
+    -tumor ${samplename} -tumor_bam ${samplename}.bqsr.bam \
+    -output_dir ${samplename}_cobalt \
+    -threads 16 \
+    -tumor_only_diploid_bed $DIPLODREG \
+    -gc_profile /data/SCLC-BRAINMETS/cn/copy_number/GC_profile.1000bp.38.cnp 
+
+    """
+
+    stub:
+
+    """
+    mkdir ${samplename}_cobalt
+    touch ${samplename}_cobalt/${samplename}.cobalt.ratio.tsv.gz ${samplename}_cobalt/${samplename}.cobalt.ratio.pcf ${samplename}_cobalt/${samplename}.cobalt.gc.median.tsv
+    """
+}
+
+process ascat_tn {
+    module=["java/12.0.1","R/3.6.3"]
+
+    publishDir("${outdir}/purple", mode: 'copy')
+
+    input:
+        tuple val(samplename), path(cobaltin), path(amberin), path("${samplename}.tonly.final.mut2.vcf.gz")
+
+    output:
+        tuple val(samplename), path("${samplename}")
+
+    script:
+
+    """
+
+    java -jar $purple \
+    -tumor ${samplename} \
+    -amber ${amberin} \
+    -cobalt ${cobaltin} \
+    -gc_profile $GCPROFILE \
+    -ref_genome_version 38 \
+    -ref_genome $GENOME \
+    -ensembl_data_dir $ENSEMBLCACHE \
+    -somatic_vcf ${samplename}.tonly.final.mut2.vcf.gz \
+    -driver_gene_panel $DRIVERS \
+    -somatic_hotspots $HOTSPOTS \
+    -output_dir ${samplename}
+
+    """
+
+    stub:
+
+    """
+    touch ${prefix}.after_correction.gc_rt.test.tumour.germline.png
+    touch ${prefix}.after_correction.gc_rt.test.tumour.tumour.png
+    touch ${prefix}.before_correction.test.tumour.germline.png
+    touch ${prefix}.before_correction.test.tumour.tumour.png
+    touch ${prefix}.cnvs.txt
+    touch ${prefix}.metrics.txt
+    touch ${prefix}.normal_alleleFrequencies_chr21.txt
+    touch ${prefix}.normal_alleleFrequencies_chr22.txt
+    touch ${prefix}.purityploidy.txt
+    touch ${prefix}.segments.txt
+    touch ${prefix}.tumour.ASPCF.png
+    touch ${prefix}.tumour.sunrise.png
+    touch ${prefix}.tumour_alleleFrequencies_chr21.txt
+    touch ${prefix}.tumour_alleleFrequencies_chr22.txt
+    touch ${prefix}.tumour_normalBAF.txt
+    touch ${prefix}.tumour_normalLogR.txt
+    touch ${prefix}.tumour_tumourBAF.txt
+    touch ${prefix}.tumour_tumourLogR.txt
+        """
+
+}
+
 
 //Workflow
 workflow {

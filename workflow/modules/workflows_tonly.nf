@@ -1,5 +1,8 @@
-//All Worksflows in One Place         
-intervalbedin = Channel.fromPath(params.intervals,checkIfExists: true,type: 'file')
+//All Worksflows in One Place  
+intervalbedin = Channel.fromPath(params.genomes[params.genome].intervals,checkIfExists: true,type: 'file')
+
+
+//intervalbedin = Channel.fromPath(params.intervals,checkIfExists: true,type: 'file')
 
 
 include {fc_lane; fastq_screen;kraken;qualimap_bamqc;
@@ -9,8 +12,10 @@ include {fc_lane; fastq_screen;kraken;qualimap_bamqc;
     somalier_extract;somalier_analysis;multiqc} from  './qc.nf'
 include {deepvariant_step1;deepvariant_step2;deepvariant_step3;
     deepvariant_combined;glnexus} from './germline.nf'
+
 include {fastp; bwamem2; 
     bqsr; gatherbqsr; applybqsr; samtoolsindex} from './trim_align.nf'
+    
 include {mutect2; mutect2filter; pileup_paired_t; pileup_paired_n; 
     contamination_paired; learnreadorientationmodel;mergemut2stats;
     combineVariants as combineVariants_vardict; combineVariants as combineVariants_varscan; 
@@ -24,6 +29,7 @@ include {mutect2_t_tonly; mutect2filter_tonly;
     mergemut2stats_tonly;
     annotvep_tonly as annotvep_tonly_varscan; annotvep_tonly as annotvep_tonly_vardict; annotvep_tonly as annotvep_tonly_mut2;
     combinemafs_tonly} from './variant_calling_tonly.nf'
+
 include {splitinterval} from "./splitbed.nf"
 
 

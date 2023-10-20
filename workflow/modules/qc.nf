@@ -1,22 +1,15 @@
 ///References to assign
-GENOME=file(params.genome)
-GENOMEDICT=file(params.genomedict)
-WGSREGION=file(params.wgsregion) 
-MILLSINDEL=file(params.millsindel) //Mills_and_1000G_gold_standard.indels.hg38.vcf.gz
-SHAPEITINDEL=file(params.shapeitindel) //ALL.wgs.1000G_phase3.GRCh38.ncbi_remapper.20150424.shapeit2_indels.vcf.gz
-KGP=file(params.kgp) //1000G_phase1.snps.high_confidence.hg38.vcf.gz"
-DBSNP=file(params.dbsnp) //dbsnp_138.hg38.vcf.gz"
-GNOMAD=file(params.gnomad) //somatic-hg38-af-only-gnomad.hg38.vcf.gz
-PON=file(params.pon) 
+GENOME=file(params.genomes[params.genome].genome)
+DBSNP=file(params.genomes[params.genome].dbsnp) //dbsnp_138.hg38.vcf.gz"
 FASTQ_SCREEN_CONF=file(params.fastq_screen_conf)
-BACDB=file(params.KRAKENBACDB)
-SNPEFF_GENOME = params.snpeff_genome
-SNPEFF_CONFIG = file(params.snpeff_config)
-SNPEFF_BUNDLE = file(params.snpeff_bundle)
+BACDB=file(params.genomes[params.genome].KRAKENBACDB)
+SNPEFF_GENOME = params.genomes[params.genome].snpeff_genome
+SNPEFF_CONFIG = file(params.genomes[params.genome].snpeff_config)
+SNPEFF_BUNDLE = file(params.genomes[params.genome].snpeff_bundle)
 
 //SOMALIER
-SITES_VCF= file(params.sites_vcf)
-ANCESTRY_DB=file(params.somalier_ancestrydb)
+SITES_VCF= file(params.genomes[params.genome].sites_vcf)
+ANCESTRY_DB=file(params.genomes[params.genome].somalier_ancestrydb)
 SCRIPT_PATH_GENDER = file(params.script_genderPrediction)
 SCRIPT_PATH_SAMPLES = file(params.script_combineSamples)
 SCRIPT_PATH_PCA = file(params.script_ancestry)

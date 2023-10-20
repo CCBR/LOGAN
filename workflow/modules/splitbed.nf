@@ -22,3 +22,12 @@ process splitinterval {
     python $SPLIT_BED -infile ${BED_IN} -num ${SPLIT_REGIONS} -out 'bedout/bed'
     """
 }
+
+/*
+Code to convert beds to interval list
+awk -F '\t' '{printf("%s\t0\t%s\n",$1,$2);}' genome.fa.fai
+bedtools subtract -a GRCh38.primary_assembly.genome.bed -b ../hg38.blacklist.bed > GRCh38.primary_assembly.genome.interval.bed
+
+gatk BedToIntervalList -I GRCh38.primary_assembly.genome.interval.bed -O \ 
+GRCh38.primary_assembly.genome.interval_list -SD GRCh38.primary_assembly.genome.dict
+*/

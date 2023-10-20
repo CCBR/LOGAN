@@ -43,11 +43,12 @@ def parse_args():
     parser.add_argument('--fastq',help='FQ Inputs')
     parser.add_argument('--filelist',help="Files input")
     parser.add_argument('--bam',help="Files input")
-    parser.add_argument('--mode',help='Mode?')
+    parser.add_argument('--mode',help='Modes (align, variant call, SV)')
     parser.add_argument('--paired',help='Paired',action="store_true")
     parser.add_argument('--splitregions',default=24,help="How splits per regions")
     parser.add_argument('--sv',help="Add Structural VC calling",action="store_true")
     parser.add_argument('--output',help="Output Directory")
+    parser.add_argument('--genome',help="hg38 or mm10")
     parser.add_argument('--sample_sheet',help="Sample sheet")
     parser.add_argument('--profile',help="Biowulf or Local Run")
     parser.add_argument('--resume',action="store_true",default="True",help="Resume previous run?")
@@ -85,7 +86,7 @@ def main():
         elif args.bam:
             in1="--bam "+args.bam
         else:
-            print("Missing sample sheet for paired mode or you would like Tumro only mode!")
+            print("Missing sample sheet for paired mode or you would like Tumor only mode?")
     else:
     #Tumor Only- fastq only
         if args.mode=="align":
@@ -124,8 +125,9 @@ def main():
         resume="-resume"
     else:
         resume=""
-    c4=["nextflow run",dirname + '/wgs-seek.nf',"-c "+ dirname +"/nextflow.config",
+    c4=["nextflow run",dirname + '/main.nf',"-c "+ dirname +"/nextflow.config",
         in1,profile,resume,sample_path,mode,
+        "--genome",args.genome,
         "--output '" +args.output+"'"+" --split_regions " +str(args.splitregions)]
     cmd1=' '.join(c4)
     code=c1+"\n"+c2+"\n"+c3+"\n"+cmd1

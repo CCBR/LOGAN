@@ -1,16 +1,9 @@
-GENOME=file(params.genome)
-GENOMEDICT=file(params.genomedict)
-WGSREGION=file(params.wgsregion) 
-MILLSINDEL=file(params.millsindel) //Mills_and_1000G_gold_standard.indels.hg38.vcf.gz
-SHAPEITINDEL=file(params.shapeitindel) //ALL.wgs.1000G_phase3.GRCh38.ncbi_remapper.20150424.shapeit2_indels.vcf.gz
-KGP=file(params.kgp) //1000G_phase1.snps.high_confidence.hg38.vcf.gz"
-DBSNP=file(params.dbsnp) //dbsnp_138.hg38.vcf.gz"
-GNOMAD=file(params.gnomad) //somatic-hg38-af-only-gnomad.hg38.vcf.gz
-PON=file(params.pon) 
+GENOMEREF=file(params.genomes[params.genome].genome)
+KNOWNRECAL = file(params.genomes[params.genome].KNOWNRECAL)
 outdir=file(params.output)
 
 
-process fastp{
+process fastp {
     tag { name }
 
     input:
@@ -59,13 +52,13 @@ process bwamem2 {
         tuple val(samplename), path("${samplename}.bam"), path("${samplename}.bai")
 
     script:
-    //BWAmem2/samblaster/samtools sort for marking duplicates;
+    //bwamem2, samblaster, samtools sort for marking duplicates;
     """
 
      bwa-mem2 mem -M \
         -R '@RG\\tID:${samplename}\\tSM:${samplename}\\tPL:illumina\\tLB:${samplename}\\tPU:${samplename}\\tCN:hgsc\\tDS:wgs' \
         -t 16 \
-        ${GENOME} \
+        ${GENOMEREF} \
         ${samplename}.R1.trimmed.fastq.gz ${samplename}.R2.trimmed.fastq.gz | \
     samblaster -M | \
     samtools sort -@12 -m 4G - -o ${samplename}.bam
@@ -80,11 +73,138 @@ process bwamem2 {
     """
 }
 
+
+
+process bqsr {
+    /*
+    Base quality recalibration for all samples 
+    */    
+    input:
+        tuple val(samplename), path("${samplename}.bam"), path("${samplename}.bai"), path(bed)
+
+    output:
+        tuple val(samplename),path("${samplename}_${bed.simpleName}.recal_data.grp"), emit: bqsrby
+
+    script:
+    """
+    gatk --java-options '-Xmx32g' BaseRecalibrator \
+    --input ${samplename}.bam \
+    --reference ${GENOMEREF} \
+    ${KNOWNRECAL} \
+    --output ${samplename}_${bed.simpleName}.recal_data.grp \
+    --intervals ${bed}
+    """
+
+    stub:
+    """
+    touch ${samplename}_${bed.simpleName}.recal_data.grp 
+    """
+
+}
+
+process gatherbqsr {
+
+    input: 
+        tuple val(samplename), path(recalgroups)
+    output:
+        tuple val(samplename), path("${samplename}.recal_data.grp")
+    script:
+    
+    strin = recalgroups.join(" --input ")
+
+    """
+    gatk --java-options '-Xmx32g' GatherBQSRReports \
+    --input ${strin} \
+    --output ${samplename}.recal_data.grp
+
+    """
+
+    stub:
+
+    """
+    touch ${samplename}.recal_data.grp
+    """
+}
+
+
+process applybqsr {
+    /*
+    Base quality recalibration for all samples to 
+    */   
+    publishDir(path: "${outdir}/bams/BQSR", mode: 'copy') 
+
+    input:
+        tuple val(samplename), path("${samplename}.bam"), path("${samplename}.bai"), path("${samplename}.recal_data.grp")
+
+    output:
+        tuple val(samplename), path("${samplename}.bqsr.bam"),  path("${samplename}.bqsr.bai")
+
+    script:
+
+    """
+    gatk --java-options '-Xmx32g' ApplyBQSR \
+        --reference ${GENOMEREF} \
+        --input ${samplename}.bam \
+        --bqsr-recal-file ${samplename}.recal_data.grp \
+        --output ${samplename}.bqsr.bam \
+        --use-jdk-inflater \
+        --use-jdk-deflater
+    """
+
+    stub:
+    
+    """
+    touch ${samplename}.bqsr.bam ${samplename}.bqsr.bai
+    """
+
+}
+
+
+
+process samtoolsindex {
+    publishDir(path: "${outdir}/bams/BQSR", mode: 'copy') 
+    
+    input:
+    tuple val(bamname), path(bam)
+    
+    output:
+    tuple val(bamname), path(bam), path("${bam}.bai")
+
+    script:
+    """
+    samtools index -@ 4 ${bam} ${bam}.bai
+    """
+
+    stub:
+    """
+    touch ${bam}.bai
+    """
+
+}
+
+//Save to CRAM for output
+process bamtocram_tonly{
+    
+    input: 
+        tuple val(tumorname), path(tumor), path(tumorbai)
+
+    output:
+        path("${sample}.cram")
+
+    script:
+    """
+        samtools view -@ 4 -C -T $GENOMEREF -o ${sample}.cram {$tumor}.bam
+    """
+}
+
+
+
+/*
 process indelrealign {
     /*
     Briefly, RealignerTargetCreator runs faster with increasing -nt threads, 
     while IndelRealigner shows diminishing returns for increasing scatter
-    */
+    
     tag { name }
     
     input:
@@ -120,127 +240,4 @@ process indelrealign {
     """
 
 }
-
-
-
-process bqsr {
-    /*
-    Base quality recalibration for all samples 
-    */    
-    input:
-        tuple val(samplename), path("${samplename}.bam"), path("${samplename}.bai"), path(bed)
-
-    output:
-        tuple val(samplename),path("${samplename}_${bed.simpleName}.recal_data.grp"),emit: bqsrby
-        //path("${bam.simpleName}_${bed.simpleName}.recal_data.grp"), emit: bqsrby
-
-    script:
-    """
-    gatk --java-options '-Xmx32g' BaseRecalibrator \
-    --input ${samplename}.bam \
-    --reference ${GENOME} \
-    --known-sites ${MILLSINDEL} --known-sites ${SHAPEITINDEL} \
-    --output ${samplename}_${bed.simpleName}.recal_data.grp \
-    --intervals ${bed}
-    """
-
-    stub:
-    """
-    touch ${samplename}_${bed.simpleName}.recal_data.grp 
-    """
-
-}
-
-process gatherbqsr {
-
-    input: 
-        tuple val(samplename), path(recalgroups)
-    output:
-        tuple val(samplename), path("${samplename}.recal_data.grp")
-    script:
-    
-    strin = recalgroups.join(" --input ")
-
-    """
-    gatk --java-options '-Xmx32g' GatherBQSRReports \
-    --input ${strin} \
-    --output ${samplename}.recal_data.grp
-
-    """
-
-    stub:
-    """
-    touch ${samplename}.recal_data.grp
-    """
-}
-
-
-process applybqsr {
-    /*
-    Base quality recalibration for all samples to 
-    */   
-    publishDir(path: "${outdir}/bams/BQSR", mode: 'copy') 
-
-    input:
-        tuple val(samplename), path("${samplename}.bam"), path("${samplename}.bai"), path("${samplename}.recal_data.grp")
-
-    output:
-        tuple val(samplename), path("${samplename}.bqsr.bam"),  path("${samplename}.bqsr.bai")
-
-    script:
-    """
-
-    gatk --java-options '-Xmx32g' ApplyBQSR \
-        --reference ${GENOME} \
-        --input ${samplename}.bam \
-        --bqsr-recal-file ${samplename}.recal_data.grp \
-        --output ${samplename}.bqsr.bam \
-        --use-jdk-inflater \
-        --use-jdk-deflater
-
-    """
-
-    stub:
-    """
-    touch ${samplename}.bqsr.bam ${samplename}.bqsr.bai
-    """
-
-}
-
-
-
-process samtoolsindex {
-    publishDir(path: "${outdir}/bams/BQSR", mode: 'copy') 
-    
-    input:
-    tuple val(bamname), path(bam)
-    
-    output:
-    tuple val(bamname), path(bam), path("${bam}.bai")
-
-    script:
-    """
-    samtools index -@ 4 ${bam} ${bam}.bai
-    """
-
-    stub:
-    """
-    touch ${bam}.bai
-    """
-
-}
-
-//Save to CRAM for output and publish
-process bamtocram_tonly{
-    
-    input: 
-        tuple val(tumorname), path(tumor), path(tumorbai)
-
-    output:
-        path("${sample}.cram")
-
-    script:
-    """
-        samtools view -@ 4 -C -T $GENOME -o ${sample}.cram {$tumor}.bam
-    """
-}
+*/

@@ -1,14 +1,13 @@
-GENOME=file(params.genome)
-GENOMEDICT=file(params.genomedict)
-WGSREGION=file(params.wgsregion) 
-MILLSINDEL=file(params.millsindel) //Mills_and_1000G_gold_standard.indels.hg38.vcf.gz
-SHAPEITINDEL=file(params.shapeitindel) //ALL.wgs.1000G_phase3.GRCh38.ncbi_remapper.20150424.shapeit2_indels.vcf.gz
-KGP=file(params.kgp) //1000G_phase1.snps.high_confidence.hg38.vcf.gz"
-DBSNP=file(params.dbsnp) //dbsnp_138.hg38.vcf.gz"
-DBSNP_INDEL=file(params.dbsnp_indel) //dbsnp_138.hg38.vcf.gz"
-BWAGENOME=file(params.bwagenome)
-GNOMAD=file(params.gnomad) //somatic-hg38-af-only-gnomad.hg38.vcf.gz
-PON=file(params.pon) 
+
+
+GENOME=file(params.genomes[params.genome].genome)
+GENOMEDICT=file(params.genomes[params.genome].genomedict)
+KGP=file(params.genomes[params.genome].kgp) //1000G_phase1.snps.high_confidence.hg38.vcf.gz"
+DBSNP=file(params.genomes[params.genome].dbsnp) //dbsnp_138.hg38.vcf.gz"
+//DBSNP_INDEL=file(params.dbsnp_indel) //dbsnp_138.hg38.vcf.gz"
+//GNOMAD=file(params.gnomad) //somatic-hg38-af-only-gnomad.hg38.vcf.gz
+PON=file(params.genomes[params.genome].pon) 
+VEP_CACHEDIR=file(params.genomes[params.genome].vep_cache)
 
 outdir=file(params.output)
 
@@ -71,10 +70,10 @@ process manta_somatic {
     mkdir -p wd
 
     configManta.py \
-    --normalBam=${normal} \
-    --tumorBam=${tumor} \
-    --referenceFasta=$GENOME \
-    --runDir=wd
+        --normalBam=${normal} \
+        --tumorBam=${tumor} \
+        --referenceFasta=$GENOME \
+        --runDir=wd
 
     wd/runWorkflow.py -m local -j 10 -g 10
     
@@ -96,7 +95,7 @@ process manta_somatic {
 }
 
 
-process annotsv_tn{
+process annotsv_tn {
      //AnnotSV for Manta/Svaba works with either vcf.gz or .vcf files
      //Requires bedtools,bcftools
 
