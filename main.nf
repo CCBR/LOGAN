@@ -4,13 +4,13 @@ nextflow.enable.dsl=2
 date = new Date().format( 'yyyyMMdd' )
 
 
-//SUB WORKFLOWS to SPLIT
-
+//SUB WORKFLOWS
 PIPE_ALIGN=params.PIPE_ALIGN
 PIPE_GERMLINE=params.PIPE_GERMLINE
 
 PIPE_VC=params.PIPE_VC
 PIPE_SV=params.PIPE_SV
+PIPE_CNV=params.PIPE_CNV
 PIPE_QC=params.PIPE_QC
 
 PIPE_BAMVC=params.PIPE_BAMVC
@@ -21,7 +21,7 @@ PIPE_TONLY_QC=params.PIPE_TONLY_QC
 
 
 include {INPUT_PIPE; TRIM_ALIGN_PIPE; GERMLINE_PIPE;
-    VARIANTCALL_PIPE; INPUT_BAMVC_PIPE; SV_PIPE;
+    VARIANTCALL_PIPE; INPUT_BAMVC_PIPE; SV_PIPE; CNV_PIPE;
     QC_PIPE} from "./workflow/modules/workflows.nf"
 
 
@@ -77,7 +77,11 @@ workflow {
         INPUT_PIPE()
         TRIM_ALIGN_PIPE(INPUT_PIPE.out.fastqinput,INPUT_PIPE.out.sample_sheet)
         SV_PIPE(TRIM_ALIGN_PIPE.out.bamwithsample)
-
+    }  
+    if (PIPE_CNV){
+        INPUT_PIPE()
+        TRIM_ALIGN_PIPE(INPUT_PIPE.out.fastqinput,INPUT_PIPE.out.sample_sheet)
+        CNV_PIPE(TRIM_ALIGN_PIPE.out.bamwithsample)
     }  
     if (PIPE_BAMVC){
         INPUT_BAMVC_PIPE()

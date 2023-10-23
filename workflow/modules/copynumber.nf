@@ -1,10 +1,54 @@
-#!/usr/bin/env nextflow
-nextflow.enable.dsl=2
+GENOMEREF=file(params.genomes[params.genome].genome)
+SEQUENZAGC=file(params.genomes[params.genome].SEQUENZAGC)
+SEQUENZA_SCRIPT=params.script_sequenza
+//DBSNP_INDEL=file(params.genomes[params.genome].KNOWNINDELS) 
+//ascatR=
 
-GENOME=file(params.genome)
 outdir=file(params.output)
-ascatR=
 
+process sequenza {
+
+    publishDir("${outdir}/cnv/sequenza")
+
+    input:
+        tuple val(tumorname), path(tumor), path(tumorbai),val(normalname), path(normal), path(normalbai)
+
+    output:
+        tuple val(tumorname), path("${tumorname}+${normalname}_alternative_solutions.txt")
+
+
+    script: 
+    """
+    sequenza-utils bam2seqz \
+        -gc ${SEQUENZAGC} \
+        -F ${GENOMEREF} \
+        -n ${normal} \
+        -t ${tumor} | gzip > "${tumorname}.seqz.gz"
+
+    sequenza-utils seqz_binning \
+        -w 100 \
+        -s "${tumorname}.seqz.gz" | tee "${tumorname}.bin100.seqz" | gzip > "${tumorname}.bin100.seqz.gz"
+
+    Rscript $SEQUENZA_SCRIPT \
+        "${tumorname}.bin100.seqz.gz" \
+        . \
+        "${tumorname}+${normalname}" \
+        12
+
+    """
+
+//  "${tumorsample}+${normalsample}_alternative_solutions.txt" 
+
+    stub: 
+    
+    """
+    touch "${tumorname}+${normalname}_alternative_solutions.txt" 
+    """
+
+}
+
+
+/*
 process ascat_tn {
     module=["java/12.0.1","R/3.6.3"]
 
@@ -280,6 +324,5 @@ workflow {
     pre1.join(somaticinput).view()| purple
 }
     
-
 
 */
