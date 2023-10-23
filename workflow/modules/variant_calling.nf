@@ -1,8 +1,8 @@
-GENOME=file(params.genomes[params.genome].genome)
+GENOMEREF=file(params.genomes[params.genome].genome)
 GENOMEDICT=file(params.genomes[params.genome].genomedict)
-KGP=file(params.genomes[params.genome].kgp) //1000G_phase1.snps.high_confidence.hg38.vcf.gz"
+KGPGERMLINE=params.genomes[params.genome].kgp //1000G_phase1.snps.high_confidence.hg38.vcf.gz"
 DBSNP=file(params.genomes[params.genome].dbsnp) //dbsnp_138.hg38.vcf.gz"
-//GNOMAD=file(params.gnomad) //somatic-hg38-af-only-gnomad.hg38.vcf.gz
+GNOMADGERMLINE=params.genomes[params.genome].gnomad //somatic-hg38-af-only-gnomad.hg38.vcf.gz
 PON=file(params.genomes[params.genome].pon) 
 VEP_CACHEDIR=file(params.genomes[params.genome].vep_cache)
 
@@ -25,13 +25,13 @@ process mutect2 {
 
     """
     gatk Mutect2 \
-    --reference ${GENOME} \
+    --reference ${GENOMEREF} \
     --intervals ${bed} \
     --input ${tumor} \
     --input ${normal} \
     --normal-sample ${normal.simpleName} \
     --tumor-sample ${tumor.simpleName} \
-    --germline-resource ${GNOMAD} \
+    ${GNOMADGERMLINE} \
     --panel-of-normals ${PON} \
     --output ${tumor.simpleName}_${bed.simpleName}.mut2.vcf.gz \
     --f1r2-tar-gz ${tumor.simpleName}_${bed.simpleName}.f1r2.tar.gz \
@@ -61,7 +61,7 @@ process pileup_paired_t {
     """
     gatk --java-options -Xmx48g GetPileupSummaries \
         -I ${tumor} \
-        -V ${KGP} \
+        ${KGPGERMLINE} \
         -L ${bed} \
         -O ${tumor.simpleName}_${bed.simpleName}.tumor.pileup.table 
 
@@ -71,7 +71,6 @@ process pileup_paired_t {
     
     """
     touch ${tumor.simpleName}_${bed.simpleName}.tumor.pileup.table
-
     """
 
 }
@@ -90,7 +89,7 @@ process pileup_paired_n {
     """
     gatk --java-options -Xmx48g GetPileupSummaries \
         -I ${normal} \
-        -V ${KGP} \
+        ${KGPGERMLINE} \
         -L ${bed} \
         -O ${tumor.simpleName}_${bed.simpleName}.normal.pileup.table 
 
@@ -231,7 +230,7 @@ process mutect2filter {
     gatk GatherVcfs -I ${mut2in} -O ${sample}.concat.vcf.gz 
     gatk IndexFeatureFile -I ${sample}.concat.vcf.gz 
     gatk FilterMutectCalls \
-        -R ${GENOME} \
+        -R ${GENOMEREF} \
         -V ${sample}.concat.vcf.gz \
         --ob-priors ${obs} \
         --contamination-table ${tumorcontamination} \
@@ -240,7 +239,7 @@ process mutect2filter {
 
 
     gatk SelectVariants \
-        -R ${GENOME} \
+        -R ${GENOMEREF} \
         --variant ${sample}.mut2.marked.vcf.gz \
         --exclude-filtered \
         --output ${sample}.mut2.final.vcf.gz
@@ -282,7 +281,7 @@ process strelka_tn {
     tabix ${bed}.gz
 
     configureStrelkaSomaticWorkflow.py \
-        --ref=${GENOME} \
+        --ref=${GENOMEREF} \
         --tumor=${tumor} \
         --normal=${normal} \
         --runDir=wd \
@@ -317,7 +316,7 @@ process vardict_tn {
     script:
 
     """
-    VarDict -G $GENOME \
+    VarDict -G $GENOMEREF \
         -f 0.01 \
         --nosv \
         -b "${tumor}|${normal}" \
@@ -473,7 +472,7 @@ process annotvep_tn {
     --normal-id !{normalsample} \
     --vep-path /opt/vep/src/ensembl-vep \
     --vep-data $VEP_CACHEDIR \
-    --ncbi-build GRCh38 --species homo_sapiens --ref-fasta !{GENOME}
+    --ncbi-build GRCh38 --species homo_sapiens --ref-fasta !{GENOMEREF}
 
     """
 

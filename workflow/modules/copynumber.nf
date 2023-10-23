@@ -2,6 +2,56 @@
 nextflow.enable.dsl=2
 
 GENOME=file(params.genome)
+outdir=file(params.output)
+ascatR=
+
+process ascat_tn {
+    module=["java/12.0.1","R/3.6.3"]
+
+    publishDir("${outdir}/purple", mode: 'copy')
+
+    input:
+        tuple val(samplename), path(cobaltin), path(amberin), path("${samplename}.tonly.final.mut2.vcf.gz")
+
+    output:
+        tuple val(samplename), path("${samplename}")
+
+    script:
+
+    """
+    Rscript ${ascatR}
+    """
+
+    stub:
+
+    """
+    touch ${prefix}.after_correction.gc_rt.test.tumour.germline.png
+    touch ${prefix}.after_correction.gc_rt.test.tumour.tumour.png
+    touch ${prefix}.before_correction.test.tumour.germline.png
+    touch ${prefix}.before_correction.test.tumour.tumour.png
+    touch ${prefix}.cnvs.txt
+    touch ${prefix}.metrics.txt
+    touch ${prefix}.normal_alleleFrequencies_chr21.txt
+    touch ${prefix}.normal_alleleFrequencies_chr22.txt
+    touch ${prefix}.purityploidy.txt
+    touch ${prefix}.segments.txt
+    touch ${prefix}.tumour.ASPCF.png
+    touch ${prefix}.tumour.sunrise.png
+    touch ${prefix}.tumour_alleleFrequencies_chr21.txt
+    touch ${prefix}.tumour_alleleFrequencies_chr22.txt
+    touch ${prefix}.tumour_normalBAF.txt
+    touch ${prefix}.tumour_normalLogR.txt
+    touch ${prefix}.tumour_tumourBAF.txt
+    touch ${prefix}.tumour_tumourLogR.txt
+        """
+
+}
+
+
+
+
+
+/*
 GERMLINEHET="/data/SCLC-BRAINMETS/cn/copy_number/GermlineHetPon.38.vcf.gz"
 GCPROFILE='/data/SCLC-BRAINMETS/cn/copy_number/GC_profile.1000bp.38.cnp'
 DIPLODREG='/data/SCLC-BRAINMETS/cn/copy_number/DiploidRegions.38.bed.gz'
@@ -11,20 +61,23 @@ HOTSPOTS='/data/SCLC-BRAINMETS/cn/variants/KnownHotspots.somatic.38.vcf.gz'
 cobalt="/data/SCLC-BRAINMETS/cn/cobalt_v1.14.jar"
 amber="/data/SCLC-BRAINMETS/cn/amber-3.9.jar"
 purple="/data/SCLC-BRAINMETS/cn/purple_v3.8.2.jar"
+*
 
 
 date = new Date().format( 'yyyyMMdd' )
-
-outdir=file(params.output)
-
-
 log.info """\
          W G S S E E K   P I P E L I N E    
          =============================
          Samples:  ${params.sample_sheet}
          """
          .stripIndent()
+*/
 
+
+
+
+
+/*
 //Purple 
 process amber {
     module=["java/12.0.1","R/3.6.3"]
@@ -201,62 +254,6 @@ process cobalt {
     """
 }
 
-process ascat_tn {
-    module=["java/12.0.1","R/3.6.3"]
-
-    publishDir("${outdir}/purple", mode: 'copy')
-
-    input:
-        tuple val(samplename), path(cobaltin), path(amberin), path("${samplename}.tonly.final.mut2.vcf.gz")
-
-    output:
-        tuple val(samplename), path("${samplename}")
-
-    script:
-
-    """
-
-    java -jar $purple \
-    -tumor ${samplename} \
-    -amber ${amberin} \
-    -cobalt ${cobaltin} \
-    -gc_profile $GCPROFILE \
-    -ref_genome_version 38 \
-    -ref_genome $GENOME \
-    -ensembl_data_dir $ENSEMBLCACHE \
-    -somatic_vcf ${samplename}.tonly.final.mut2.vcf.gz \
-    -driver_gene_panel $DRIVERS \
-    -somatic_hotspots $HOTSPOTS \
-    -output_dir ${samplename}
-
-    """
-
-    stub:
-
-    """
-    touch ${prefix}.after_correction.gc_rt.test.tumour.germline.png
-    touch ${prefix}.after_correction.gc_rt.test.tumour.tumour.png
-    touch ${prefix}.before_correction.test.tumour.germline.png
-    touch ${prefix}.before_correction.test.tumour.tumour.png
-    touch ${prefix}.cnvs.txt
-    touch ${prefix}.metrics.txt
-    touch ${prefix}.normal_alleleFrequencies_chr21.txt
-    touch ${prefix}.normal_alleleFrequencies_chr22.txt
-    touch ${prefix}.purityploidy.txt
-    touch ${prefix}.segments.txt
-    touch ${prefix}.tumour.ASPCF.png
-    touch ${prefix}.tumour.sunrise.png
-    touch ${prefix}.tumour_alleleFrequencies_chr21.txt
-    touch ${prefix}.tumour_alleleFrequencies_chr22.txt
-    touch ${prefix}.tumour_normalBAF.txt
-    touch ${prefix}.tumour_normalLogR.txt
-    touch ${prefix}.tumour_tumourBAF.txt
-    touch ${prefix}.tumour_tumourLogR.txt
-        """
-
-}
-
-
 //Workflow
 workflow {
     sample_sheet=Channel.fromPath(params.sample_sheet, checkIfExists: true).view()
@@ -285,3 +282,4 @@ workflow {
     
 
 
+*/

@@ -2,9 +2,6 @@
 intervalbedin = Channel.fromPath(params.genomes[params.genome].intervals,checkIfExists: true,type: 'file')
 
 
-//intervalbedin = Channel.fromPath(params.intervals,checkIfExists: true,type: 'file')
-
-
 include {fc_lane; fastq_screen;kraken;qualimap_bamqc;
     samtools_flagstats;vcftools;collectvariantcallmetrics;
     bcftools_stats;gatk_varianteval;
@@ -22,7 +19,8 @@ include {mutect2; mutect2filter; pileup_paired_t; pileup_paired_n;
     combineVariants as combineVariants_vardict_tonly; combineVariants as combineVariants_varscan_tonly
     annotvep_tn as annotvep_tn_mut2; annotvep_tn as annotvep_tn_strelka; annotvep_tn as annotvep_tn_varscan; annotvep_tn as annotvep_tn_vardict;
     combinemafs_tn} from './variant_calling.nf'
-include {mutect2_t_tonly; mutect2filter_tonly; 
+
+include {mutect2_t_tonly; mutect2filter_tonly; pileup_paired_tonly; 
     varscan_tonly; vardict_tonly; 
     contamination_tumoronly;
     learnreadorientationmodel_tonly; 

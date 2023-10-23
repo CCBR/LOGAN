@@ -31,7 +31,7 @@ include {mutect2_t_tonly; mutect2filter_tonly;
     mergemut2stats_tonly;
     annotvep_tonly as annotvep_tonly_varscan; annotvep_tonly as annotvep_tonly_vardict; annotvep_tonly as annotvep_tonly_mut2;
     combinemafs_tonly} from './variant_calling_tonly.nf'
-include {svaba_somatic; manta_somatic} from './structural_variant.nf'
+include {svaba_somatic; manta_somatic; annotsv_tn as annotsv_svaba;annotsv_tn as annotsv_manta;} from './structural_variant.nf'
 
 include {splitinterval} from "./splitbed.nf"
 
@@ -289,10 +289,16 @@ workflow SV_PIPE {
         
     main: 
         //Svaba
-        svaba_somatic(bamwithsample)    
+        svaba_somatic(bamwithsample)
+        .map{ tumor,bps,contigs,discord,alignents,gindel,gsv,so_indel,so_sv,unfil_gindel,unfil_gsv,unfil_so_indel,unfil_sv,log ->
+         tuple(tumor,so_sv)}    | annotsv_svaba
 
         //Manta
-        manta_somatic(bamwithsample)    
+        manta_somatic(bamwithsample)
+        .map{tumor,gsv,so_sv,unfil_sv,unfil_indel -> tuple(tumor,so_sv)} | annotsv_manta
+
+    
+
 
 }
 

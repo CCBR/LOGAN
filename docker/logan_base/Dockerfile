@@ -171,6 +171,9 @@ RUN wget http://opengene.org/fastp/fastp.0.23.2 \
     && chmod a+x fastp/fastp
 ENV PATH="/opt2/fastp:$PATH"
 
+# ASCAT 
+RUN Rscript -e 'devtools::install_github("VanLoo-lab/ascat/ASCAT")'
+
 # HMFtools for PURPLE/COBALT/AMBER
 RUN wget https://github.com/hartwigmedical/hmftools/releases/download/amber-v3.9/amber-3.9.jar \
     && wget https://github.com/hartwigmedical/hmftools/releases/download/cobalt-v1.15.1/cobalt_v1.15.1.jar \

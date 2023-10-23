@@ -1,5 +1,5 @@
 GENOMEREF=file(params.genomes[params.genome].genome)
-KNOWNRECAL = file(params.genomes[params.genome].KNOWNRECAL)
+KNOWNRECAL = params.genomes[params.genome].KNOWNRECAL
 outdir=file(params.output)
 
 
@@ -218,13 +218,13 @@ process indelrealign {
     """
     /usr/bin/java -Xmx32g -jar \${GATK_JAR} -T RealignerTargetCreator \
         -I ${samplename}.bam \
-        -R ${GENOME} \
+        -R ${GENOMEREF} \
         -o ${samplename}.intervals \
         -nt 16 \
         -known ${MILLSINDEL} -known ${SHAPEITINDEL} 
     
     /usr/bin/java -Xmx32g -jar \${GATK_JAR} -T IndelRealigner \
-        -R ${GENOME} \
+        -R ${GENOMEREF} \
         -I ${samplename}.bam \
         -known ${MILLSINDEL} -known ${SHAPEITINDEL} \
         --use_jdk_inflater \

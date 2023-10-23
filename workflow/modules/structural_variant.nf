@@ -1,13 +1,6 @@
 
 
-GENOME=file(params.genomes[params.genome].genome)
-GENOMEDICT=file(params.genomes[params.genome].genomedict)
-KGP=file(params.genomes[params.genome].kgp) //1000G_phase1.snps.high_confidence.hg38.vcf.gz"
-DBSNP=file(params.genomes[params.genome].dbsnp) //dbsnp_138.hg38.vcf.gz"
-//DBSNP_INDEL=file(params.dbsnp_indel) //dbsnp_138.hg38.vcf.gz"
-//GNOMAD=file(params.gnomad) //somatic-hg38-af-only-gnomad.hg38.vcf.gz
-PON=file(params.genomes[params.genome].pon) 
-VEP_CACHEDIR=file(params.genomes[params.genome].vep_cache)
+DBSNP_INDEL=file(params.genomes[params.genome].KNOWNINDELS) 
 
 outdir=file(params.output)
 
@@ -22,7 +15,7 @@ process svaba_somatic {
         tuple val(tumorname),
         path("${tumor.simpleName}.bps.txt.gz"),
         path("${tumor.simpleName}.contigs.bam"),
-        path("${tumor.simpleName}.discordant.txt.gz"),
+        path("${tumor.simpleName}.discordants.txt.gz"),
         path("${tumor.simpleName}.alignments.txt.gz"),
         path("${tumor.simpleName}.svaba.germline.indel.vcf"),
         path("${tumor.simpleName}.svaba.germline.sv.vcf"),
@@ -47,6 +40,16 @@ process svaba_somatic {
     touch "${tumor.simpleName}.contigs.bam"
     touch "${tumor.simpleName}.discordants.txt.gz"
     touch "${tumor.simpleName}.alignments.txt.gz"
+    touch "${tumor.simpleName}.svaba.germline.indel.vcf"
+    touch "${tumor.simpleName}.svaba.germline.sv.vcf"
+    touch "${tumor.simpleName}.svaba.somatic.indel.vcf"
+    touch "${tumor.simpleName}.svaba.somatic.sv.vcf"
+    touch "${tumor.simpleName}.svaba.unfiltered.germline.indel.vcf"
+    touch "${tumor.simpleName}.svaba.unfiltered.germline.sv.vcf"
+    touch "${tumor.simpleName}.svaba.unfiltered.somatic.indel.vcf"
+    touch "${tumor.simpleName}.svaba.unfiltered.somatic.sv.vcf"
+    touch "${tumor.simpleName}.log"
+
     """
 }
 
@@ -106,19 +109,19 @@ process annotsv_tn {
 
     output:
         tuple val(tumorname),
-        path("${tumor.simpleName}.tsv"),
-        path("${tumor.simpleName}.unannotated.tsv"),
+        path("${tumorname}.tsv"),
+        path("${tumorname}.unannotated.tsv")
 
 
     script:
     """
-    AnnotSV -SVinputFile ${tumor}.vcf.gz -SVinputInfo 1 -outputFile ${tumor.simpleName} -outputDir .
+    AnnotSV -SVinputFile ${tumorname}.vcf.gz -SVinputInfo 1 -outputFile ${tumorname} -outputDir .
     """
 
     stub:
     """
-    touch "${tumor.simpleName}.tsv"
-    touch "${tumor.simpleName}.unannotated.tsv"
+    touch "${tumorname}.tsv"
+    touch "${tumorname}.unannotated.tsv"
     """
 }
 
