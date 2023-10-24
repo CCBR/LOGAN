@@ -25,13 +25,13 @@ process mutect2 {
 
     """
     gatk Mutect2 \
-    --reference ${GENOMEREF} \
+    --reference $GENOMEREF \
     --intervals ${bed} \
     --input ${tumor} \
     --input ${normal} \
     --normal-sample ${normal.simpleName} \
     --tumor-sample ${tumor.simpleName} \
-    ${GNOMADGERMLINE} \
+    $GNOMADGERMLINE \
     --panel-of-normals ${PON} \
     --output ${tumor.simpleName}_${bed.simpleName}.mut2.vcf.gz \
     --f1r2-tar-gz ${tumor.simpleName}_${bed.simpleName}.f1r2.tar.gz \
@@ -61,7 +61,7 @@ process pileup_paired_t {
     """
     gatk --java-options -Xmx48g GetPileupSummaries \
         -I ${tumor} \
-        ${KGPGERMLINE} \
+        $KGPGERMLINE \
         -L ${bed} \
         -O ${tumor.simpleName}_${bed.simpleName}.tumor.pileup.table 
 
@@ -89,7 +89,7 @@ process pileup_paired_n {
     """
     gatk --java-options -Xmx48g GetPileupSummaries \
         -I ${normal} \
-        ${KGPGERMLINE} \
+        $KGPGERMLINE \
         -L ${bed} \
         -O ${tumor.simpleName}_${bed.simpleName}.normal.pileup.table 
 
@@ -107,7 +107,6 @@ process contamination_paired {
 
     publishDir(path: "${outdir}/vcfs/mutect2", mode: 'copy')
 
-    //OUTPUT THE CONTAMINATION TABLE
     input:
         tuple val(tumorname),
         path(tumor_pileups),
@@ -128,11 +127,11 @@ process contamination_paired {
 
     """
     gatk GatherPileupSummaries \
-    --sequence-dictionary ${GENOMEDICT} \
+    --sequence-dictionary $GENOMEDICT \
     -I ${alltumor} -O ${tumorname}_allpileups.table
     
     gatk GatherPileupSummaries \
-    --sequence-dictionary ${GENOMEDICT} \
+    --sequence-dictionary $GENOMEDICT \
     -I ${allnormal} -O ${tumorname}_normal.allpileups.table
 
     gatk CalculateContamination \
@@ -230,7 +229,7 @@ process mutect2filter {
     gatk GatherVcfs -I ${mut2in} -O ${sample}.concat.vcf.gz 
     gatk IndexFeatureFile -I ${sample}.concat.vcf.gz 
     gatk FilterMutectCalls \
-        -R ${GENOMEREF} \
+        -R $GENOMEREF \
         -V ${sample}.concat.vcf.gz \
         --ob-priors ${obs} \
         --contamination-table ${tumorcontamination} \
@@ -239,7 +238,7 @@ process mutect2filter {
 
 
     gatk SelectVariants \
-        -R ${GENOMEREF} \
+        -R $GENOMEREF \
         --variant ${sample}.mut2.marked.vcf.gz \
         --exclude-filtered \
         --output ${sample}.mut2.final.vcf.gz
@@ -281,7 +280,7 @@ process strelka_tn {
     tabix ${bed}.gz
 
     configureStrelkaSomaticWorkflow.py \
-        --ref=${GENOMEREF} \
+        --ref=$GENOMEREF \
         --tumor=${tumor} \
         --normal=${normal} \
         --runDir=wd \
@@ -361,7 +360,7 @@ process varscan_tn {
     tumor_purity=$( echo "1-$(printf '%.6f' $(tail -n -1 !{tumor_con_table} | cut -f2 ))" | bc -l)
     normal_purity=$( echo "1-$(printf '%.6f' $(tail -n -1 !{normal_con_table} | cut -f2 ))" | bc -l)
     varscan_opts="--strand-filter 1 --min-var-freq 0.01 --min-avg-qual 30 --somatic-p-value 0.05 --output-vcf 1 --normal-purity $normal_purity --tumor-purity $tumor_purity"
-    varscan somatic < samtools mpileup -d 10000 -q 15 -Q 15 -f !GENOME -l !{bed.simpleName} !{normal} !{rumor} !{tumor.simpleName}_{bed.simpleName}.vardict.vcf $varscan_opts --mpileup 1 
+    varscan somatic < samtools mpileup -d 10000 -q 15 -Q 15 -f !GENOME -l !{bed.simpleName} !{normal} !{tumor} !{tumor.simpleName}_{bed.simpleName}.vardict.vcf $varscan_opts --mpileup 1 
     '''
 
     stub:

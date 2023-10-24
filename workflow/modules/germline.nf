@@ -1,10 +1,5 @@
-//References
-GENOME=file(params.genome)
+GENOMEREF=file(params.genomes[params.genome].genome)
 MODEL="/opt/models/wgs/model.ckpt"
-//intervalbedin = file(params.intervals)
-
-
-
 
 //Output Directory
 outdir=file(params.output)
@@ -14,8 +9,6 @@ outdir=file(params.output)
 process deepvariant_step1 {
     module=['deepvariant/1.4.0']
     
-    //publishDir("${outdir}/deepvariant", mode: 'copy')
-
     input:
         tuple val(samplename), path("${samplename}.bam"), path("${samplename}.bai"), path(bed)
     
@@ -29,7 +22,7 @@ process deepvariant_step1 {
     mkdir -p gvcf
     make_examples \
     --mode calling \
-    --ref $GENOME \
+    --ref $GENOMEREF \
     --regions ${bed} \
     --reads ${samplename}.bam \
     --channels insert_size \
@@ -52,7 +45,6 @@ process deepvariant_step2 {
     
     module=['deepvariant/1.4.0']
     
-    //publishDir("${outdir}/deepvariant", mode: 'copy')
     input:
         tuple val(samplename), path(tfrecords), path(tfgvcf)
     
@@ -80,7 +72,6 @@ process deepvariant_step2 {
 
 //Step 3 DV
 process deepvariant_step3 {
-    scratch '/lscratch/$SLURM_JOB_ID/dv'
     publishDir("${outdir}/deepvariant", mode: 'copy')
 
     module=['deepvariant/1.4.0']
@@ -97,7 +88,7 @@ process deepvariant_step3 {
     script: 
     """
    postprocess_variants \
-    --ref $GENOME \
+    --ref $GENOMEREF \
     --infile ${samplename}_call_variants_output.tfrecord.gz \
     --outfile ${samplename}.vcf.gz \
     --gvcf_outfile ${samplename}.gvcf.gz \
@@ -107,7 +98,7 @@ process deepvariant_step3 {
     stub:
     """
     touch ${samplename}.vcf.gz ${samplename}.vcf.gz.tbi
-    touch ${samplename}.gvcf.gz   ${samplename}.gvcf.gz.tbi
+    touch ${samplename}.gvcf.gz ${samplename}.gvcf.gz.tbi
 
     """
 
@@ -116,7 +107,6 @@ process deepvariant_step3 {
 //Combined DeepVariant
 process deepvariant_combined {
     module=['deepvariant/1.4.0']
-    scratch '/lscratch/$SLURM_JOB_ID/dv'
 
     publishDir("${outdir}/deepvariant", mode: 'copy')
 
@@ -132,7 +122,7 @@ process deepvariant_combined {
     """
     run_deepvariant \
         --model_type=WGS \
-        --ref=$GENOME \
+        --ref=$GENOMEREF \
         --reads=${samplename}.bam \
         --output_gvcf= ${samplename}.gvcf.gz \
         --output_vcf=${samplename}.vcf.gz \
@@ -151,7 +141,7 @@ process deepvariant_combined {
 }
 
 process glnexus {
-    //scratch '/lscratch/$SLURM_JOB_ID/dv'
+
     publishDir("${outdir}/deepvariant", mode: 'copy')
 
     module=['glnexus','bcftools']
@@ -173,7 +163,7 @@ process glnexus {
         -m - \
         -Oz \
         --threads 8 \
-        -f $GENOME \
+        -f $GENOMEREF \
         -o germline.norm.vcf.gz \
         germline.v.bcf
 

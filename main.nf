@@ -6,14 +6,15 @@ date = new Date().format( 'yyyyMMdd' )
 
 //SUB WORKFLOWS
 PIPE_ALIGN=params.PIPE_ALIGN
-PIPE_GERMLINE=params.PIPE_GERMLINE
 
 PIPE_VC=params.PIPE_VC
 PIPE_SV=params.PIPE_SV
 PIPE_CNV=params.PIPE_CNV
 PIPE_QC=params.PIPE_QC
+PIPE_GERMLINE=params.PIPE_GERMLINE
 
 PIPE_BAMVC=params.PIPE_BAMVC
+
 PIPE_TONLY_ALIGN=params.PIPE_TONLY_ALIGN
 PIPE_TONLY_VC=params.PIPE_TONLY_VC
 PIPE_TONLY_BAMVC=params.PIPE_TONLY_BAMVC
@@ -53,7 +54,7 @@ workflow {
     } 
 
 
-    //GermlineVC 
+    //Germline
     if (PIPE_GERMLINE){
         INPUT_PIPE()
         TRIM_ALIGN_PIPE(INPUT_PIPE.out.fastqinput,INPUT_PIPE.out.sample_sheet)
@@ -70,7 +71,7 @@ workflow {
         INPUT_PIPE()
         TRIM_ALIGN_PIPE(INPUT_PIPE.out.fastqinput,INPUT_PIPE.out.sample_sheet)
         GERMLINE_PIPE(TRIM_ALIGN_PIPE.out.bambyinterval)
-        QC_PIPE(TRIM_ALIGN_PIPE.out.fastqin,TRIM_ALIGN_PIPE.out.fastpout,TRIM_ALIGN_PIPE.out.bwamem2out,GERMLINE_PIPE.out.glnexusout,GERMLINE_PIPE.out.bcfout)
+        QC_PIPE(TRIM_ALIGN_PIPE.out.fastqin,TRIM_ALIGN_PIPE.out.fastpout,TRIM_ALIGN_PIPE.out.bqsrout,GERMLINE_PIPE.out.glnexusout,GERMLINE_PIPE.out.bcfout)
 
     }  
     if (PIPE_SV){

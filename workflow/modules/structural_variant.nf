@@ -1,5 +1,5 @@
-
-
+GENOMEREF=file(params.genomes[params.genome].genome)
+BWAGENOME=file(params.genomes[params.genome].bwagenome)
 DBSNP_INDEL=file(params.genomes[params.genome].KNOWNINDELS) 
 
 outdir=file(params.output)
@@ -75,7 +75,7 @@ process manta_somatic {
     configManta.py \
         --normalBam=${normal} \
         --tumorBam=${tumor} \
-        --referenceFasta=$GENOME \
+        --referenceFasta=$GENOMEREF \
         --runDir=wd
 
     wd/runWorkflow.py -m local -j 10 -g 10
@@ -102,6 +102,7 @@ process annotsv_tn {
      //AnnotSV for Manta/Svaba works with either vcf.gz or .vcf files
      //Requires bedtools,bcftools
 
+    module = ['annotsv/3.3.1']
     publishDir(path: "${outdir}/SV/annotated", mode: 'copy') 
 
     input:

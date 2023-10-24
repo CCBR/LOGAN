@@ -24,7 +24,7 @@ process pileup_paired_tonly {
     """
     gatk --java-options -Xmx48g GetPileupSummaries \
         -I ${tumor} \
-        -V ${KGPGERMLINE} \
+        -V $KGPGERMLINE \
         -L ${bed} \
         -O ${tumor.simpleName}_${bed.simpleName}.tumor.pileup.table 
 
@@ -58,7 +58,7 @@ process contamination_tumoronly {
 
     """
     gatk GatherPileupSummaries \
-    --sequence-dictionary ${GENOMEDICT} \
+    --sequence-dictionary $GENOMEDICT \
     -I ${alltumor} -O ${tumorname}_allpileups.table
     
     gatk CalculateContamination \
@@ -147,12 +147,12 @@ process mutect2_t_tonly {
 
     """
     gatk Mutect2 \
-    --reference ${GENOMEREF} \
+    --reference $GENOMEREF \
     --intervals ${bed} \
     --input ${tumor} \
     --tumor-sample ${tumor.simpleName} \
-    --germline-resource ${GNOMADGERMLINE} \
-    --panel-of-normals ${PON} \
+    --germline-resource $GNOMADGERMLINE \
+    --panel-of-normals $PON \
     --output ${tumor.simpleName}_${bed.simpleName}.tonly.mut2.vcf.gz \
     --f1r2-tar-gz ${tumor.simpleName}_${bed.simpleName}.f1r2.tar.gz \
     --independent-mates    
@@ -188,7 +188,7 @@ process mutect2filter_tonly {
     gatk GatherVcfs -I ${mut2in} -O ${sample}.tonly.concat.vcf.gz 
     gatk IndexFeatureFile -I ${sample}.tonly.concat.vcf.gz 
     gatk FilterMutectCalls \
-        -R ${GENOMEREF} \
+        -R $GENOMEREF \
         -V ${sample}.tonly.concat.vcf.gz \
         --ob-priors ${obs} \
         --contamination-table ${tumorcontamination} \
@@ -196,13 +196,13 @@ process mutect2filter_tonly {
         -O ${sample}.tonly.mut2.marked.vcf.gz
 
     gatk SelectVariants \
-        -R ${GENOMEREF} \
+        -R $GENOMEREF \
         --variant ${sample}.tonly.marked.vcf.gz \
         --exclude-filtered \
         --output ${sample}.tonly.mut2.final.vcf.gz
 
     bcftools sort ${sample}.tonly.mut2.final.vcf.gz -@ 16 -Oz |\
-    bcftools norm --threads 16 --check-ref s -f $GENOME -O v |\
+    bcftools norm --threads 16 --check-ref s -f $GENOMEREF -O v |\
         awk '{{gsub(/\\y[W|K|Y|R|S|M]\\y/,"N",\$4); OFS = "\t"; print}}' |\
         sed '/^\$/d' > ${sample}.tonly.mut2.norm.vcf.gz
 
@@ -239,8 +239,8 @@ process varscan_tonly {
     varscan_cmd="varscan mpileup2cns <($pileup_cmd) $varscan_opts"
 
 
-    eval "$varscan_cmd > {output.vcf}.gz"
-    eval "bcftools view -U {output.vcf}.gz > {output.vcf}"
+    eval "$varscan_cmd > !{tumor.simpleName}_!{bed.simpleName}.tonly.varscan.vcf.gz"
+    eval "bcftools view -U !{tumor.simpleName}_!{bed.simpleName}.tonly.varscan.vcf.gz > !{tumor.simpleName}_!{bed.simpleName}.tonly.varscan.vcf"
     """
 
     stub:
@@ -264,7 +264,7 @@ process vardict_tonly {
     script:
 
     """
-    VarDict -G $GENOME \
+    VarDict -G $GENOMEREF \
         -f 0.05 \
         -x 500 \
         --nosv \

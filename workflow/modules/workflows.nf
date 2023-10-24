@@ -275,12 +275,10 @@ workflow VARIANTCALL_PIPE {
     .map{tumor,marked,normvcf,normal ->tuple(tumor,"varscan_tonly",normvcf)} | annotvep_tonly_varscan
 
     
-    //Combine All MAFs
-    annotvep_tn_mut2.out.concat(annotvep_tn_strelka.out).concat(annotvep_tn_vardict.out).concat(annotvep_tn_varscan.out) | combinemafs_tn
+    //Combine All Variants Using VCF and Then Reannotate
+    //annotvep_tn_mut2.out.concat(annotvep_tn_strelka.out).concat(annotvep_tn_vardict.out).concat(annotvep_tn_varscan.out) | combinemafs_tn
+    //annotvep_tonly_mut2.out.concat(annotvep_tonly_vardict.out).concat(annotvep_tonly_varscan.out) | combinemafs_tonly
 
-    annotvep_tonly_mut2.out.concat(annotvep_tonly_vardict.out).concat(annotvep_tonly_varscan.out) | combinemafs_tonly
-
-    //Implement Copy Number
     //Implement PCGR Annotator/CivIC Next
 }
 

@@ -101,8 +101,6 @@ process kraken {
     */
     publishDir(path: "${outdir}/QC/kraken/", mode: 'copy')
 
-    //module=['kraken/2.1.2', 'kronatools/2.8']
-    scratch '/lscratch/$SLURM_JOB_ID'
     //scratch '/data/CCBR/rawdata/nousome/small_truth_set' //CHANGE AFTER to LSCRATCH
 
     
