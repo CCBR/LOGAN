@@ -2,6 +2,8 @@
 args = commandArgs(trailingOnly=TRUE)
 
 library(sequenza)
+Sys.setenv("VROOM_CONNECTION_SIZE" = 131072 * 10)
+
 
 if (length(args)==0) {
     stop("Must provide a seqz file")
@@ -27,7 +29,7 @@ if (length(args) > 2) {
 if (length(args) > 3) {
     n_cores = as.numeric(args[4])
 } else {
-    n_cores = as.numeric(Sys.getenv("SLURM_CPUS_PER_TASK"))
+   n_cores = 1
 }
 
 if (is.na(n_cores)) {

@@ -19,25 +19,26 @@ process sequenza {
 
     script: 
     """
-    sequenza-utils bam2seqz \
+    samtools mpileup ${tumor} -f $GENOMEREF -Q 20 |gzip > ${tumorname}.mpileup.gz
+    samtools mpileup ${normal} -f $GENOMEREF -Q 20 |gzip > ${normalname}.mpileup.gz
+
+    sequenza-utils pileup2seqz \
         -gc ${SEQUENZAGC} \
-        -F ${GENOMEREF} \
-        -n ${normal} \
-        -t ${tumor} | gzip > "${tumorname}.seqz.gz"
+        -F $GENOMEREF \
+        -n ${normalname}.mpileup.gz \
+        -t ${tumorname}.mpileup.gz | gzip > "${tumorname}.seqz.gz"
 
     sequenza-utils seqz_binning \
         -w 100 \
-        -s "${tumorname}.seqz.gz" | tee "${tumorname}.bin100.seqz" | gzip > "${tumorname}.bin100.seqz.gz"
+        -s "${tumorname}_${normalname}.seqz.gz" | tee "${tumorname}_${normalname}.bin100.seqz" "
 
     Rscript $SEQUENZA_SCRIPT \
-        "${tumorname}.bin100.seqz.gz" \
+        "${tumorname}_${normalname}.bin100.seqz" \
         . \
         "${tumorname}+${normalname}" \
         12
 
     """
-
-//  "${tumorsample}+${normalsample}_alternative_solutions.txt" 
 
     stub: 
     
