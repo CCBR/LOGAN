@@ -195,6 +195,9 @@ def main():
         print(cmd_stub)
         os.system(cmd_stub)
     elif args.submit:
+        sbatch_out='run_sbatch'+time1+'.sh'
+        with open(sbatch_out, "a") as outfile:
+            outfile.write(sbatch_mut+"\n")
         print(sbatch_mut)
         os.system(sbatch_mut)
     else:
