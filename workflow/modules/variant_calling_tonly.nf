@@ -201,7 +201,7 @@ process mutect2filter_tonly {
         --exclude-filtered \
         --output ${sample}.tonly.mut2.final.vcf.gz
 
-    bcftools sort ${sample}.tonly.mut2.final.vcf.gz -@ 16 -Oz |\
+    bcftools sort ${sample}.tonly.mut2.final.vcf.gz -@ $task.cpus -Oz |\
     bcftools norm --threads 16 --check-ref s -f $GENOMEREF -O v |\
         awk '{{gsub(/\\y[W|K|Y|R|S|M]\\y/,"N",\$4); OFS = "\t"; print}}' |\
         sed '/^\$/d' > ${sample}.tonly.mut2.norm.vcf.gz
@@ -312,7 +312,7 @@ process annotvep_tonly {
     zcat !{tumorvcf}.vcf.gz > !{tumorvcf}.vcf
 
     vcf2maf.pl \
-    --vep-forks 16 --input-vcf !{tumorvcf}.vcf \
+    --vep-forks $task.cpus --input-vcf !{tumorvcf}.vcf \
     --output-maf !{vc}/!{tumorsample}.tonly.maf \
     --tumor-id !{tumorsample} \
     --vep-path /opt/vep/src/ensembl-vep \

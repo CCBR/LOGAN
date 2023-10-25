@@ -61,7 +61,7 @@ process pileup_paired_t {
     """
     gatk --java-options -Xmx48g GetPileupSummaries \
         -I ${tumor} \
-        $KGPGERMLINE \
+        -V $KGPGERMLINE \
         -L ${bed} \
         -O ${tumor.simpleName}_${bed.simpleName}.tumor.pileup.table 
 
@@ -89,7 +89,7 @@ process pileup_paired_n {
     """
     gatk --java-options -Xmx48g GetPileupSummaries \
         -I ${normal} \
-        $KGPGERMLINE \
+        -V $KGPGERMLINE \
         -L ${bed} \
         -O ${tumor.simpleName}_${bed.simpleName}.normal.pileup.table 
 
@@ -243,7 +243,7 @@ process mutect2filter {
         --exclude-filtered \
         --output ${sample}.mut2.final.vcf.gz
     
-    bcftools sort ${sample}.mut2.final.vcf.gz -@ 16 -Oz |\
+    bcftools sort ${sample}.mut2.final.vcf.gz -@ $task.cpus -Oz |\
     bcftools norm --threads $task.cpus --check-ref s -f $GENOME -O v |\
         awk '{{gsub(/\\y[W|K|Y|R|S|M]\\y/,"N",\$4); OFS = "\\t"; print}}' |\
         sed '/^\$/d' > ${sample}.mut2.norm.vcf.gz
@@ -445,8 +445,22 @@ process combineVariants_strelka {
     
     """
 
+}
+
+/*
+process combineVariants_allcallers {
+
+    publishDir(path: "${outdir}/vcfs/", mode: 'copy')
+
+    input:
+        tuple val(sample), path(inputvcf), val(vc)
+    
+    output:
+        tuple val(sample), 
+        path("${vc}/${sample}.${vc}.marked.vcf.gz"), path("${vc}/${sample}.${vc}.norm.vcf.gz")
 
 }
+*/
 
 process annotvep_tn {    
     publishDir(path: "${outdir}/mafs/", mode: 'copy')
@@ -465,7 +479,7 @@ process annotvep_tn {
     zcat !{tumorvcf}.vcf.gz > !{tumorvcf}.vcf
 
     vcf2maf.pl \
-    --vep-forks 16 --input-vcf ${tumorvcf}.vcf \
+    --vep-forks $task.cpus --input-vcf ${tumorvcf}.vcf \
     --output-maf !{vc}/!{tumorsample}.maf \
     --tumor-id !{tumorsample} \
     --normal-id !{normalsample} \

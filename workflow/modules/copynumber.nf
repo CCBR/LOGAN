@@ -22,9 +22,10 @@ process sequenza {
     samtools mpileup ${tumor} -f $GENOMEREF -Q 20 |gzip > ${tumorname}.mpileup.gz
     samtools mpileup ${normal} -f $GENOMEREF -Q 20 |gzip > ${normalname}.mpileup.gz
 
-    sequenza-utils pileup2seqz \
+    sequenza-utils bam2seqz \
         -gc ${SEQUENZAGC} \
         -F $GENOMEREF \
+        -p \
         -n ${normalname}.mpileup.gz \
         -t ${tumorname}.mpileup.gz | gzip > "${tumorname}.seqz.gz"
 

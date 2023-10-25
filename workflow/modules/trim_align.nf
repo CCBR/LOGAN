@@ -57,13 +57,13 @@ process bwamem2 {
 
      bwa-mem2 mem -M \
         -R '@RG\\tID:${samplename}\\tSM:${samplename}\\tPL:illumina\\tLB:${samplename}\\tPU:${samplename}\\tCN:hgsc\\tDS:wgs' \
-        -t 16 \
+        -t $task.cpus \
         ${GENOMEREF} \
         ${samplename}.R1.trimmed.fastq.gz ${samplename}.R2.trimmed.fastq.gz | \
     samblaster -M | \
-    samtools sort -@12 -m 4G - -o ${samplename}.bam
+    samtools sort -@$task.cpus -m 4G - -o ${samplename}.bam
 
-    samtools index -@ 8 ${samplename}.bam ${samplename}.bai
+    samtools index -@ $task.cpus ${samplename}.bam ${samplename}.bai
 
     """
 
