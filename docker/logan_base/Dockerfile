@@ -182,7 +182,10 @@ RUN wget https://github.com/hartwigmedical/hmftools/releases/download/amber-v3.9
     && mv amber-3.9.jar hmftools/amber.jar \
     && mv cobalt_v1.15.1.jar hmftools/cobalt.jar \
     && mv purple_v3.9.jar hmftools/purple.jar \
-    && chmod a+x hmftools/amber.jar
+    && chmod a+x hmftools/amber.jar \
+    && chmod a+x hmftools/cobalt.jar \
+    && chmod a+x hmftools/purple.jar
+
 ENV PATH="/opt2/hmftools:$PATH"
 
 # SvABA
@@ -191,7 +194,6 @@ RUN wget -O svaba_1.2.0 https://github.com/walaj/svaba/releases/download/v1.2.0/
     && mv svaba_1.2.0 svaba/svaba \
     && chmod a+rx /opt2/svaba/svaba
 ENV PATH="/opt2/svaba:$PATH"
-
 
 # Add Dockerfile and argparse.bash script
 # and export environment variables
