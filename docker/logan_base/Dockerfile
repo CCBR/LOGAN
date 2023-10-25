@@ -1,4 +1,4 @@
-FROM --platform=linux/amd64 nciccbr/ccbr_ubuntu_base_20.04:v5
+FROM nciccbr/ccbr_ubuntu_base_20.04:v5
 
 # build time variables
 ARG BUILD_DATE="000000"
@@ -103,7 +103,6 @@ RUN wget https://github.com/BoevaLab/FREEC/archive/refs/tags/v11.6.zip \
 ENV PATH="/opt2/FREEC-11.6/src:$PATH"
 WORKDIR /opt2 
 
-
 # Install Somalier/v0.2.16
 # download static binary
 RUN mkdir somalier  \
@@ -138,6 +137,10 @@ RUN git clone https://github.com/GregoryFaust/samblaster.git \
     && chmod a+rx /opt2/samblaster/samblaster
 ENV PATH="/opt2/samblaster:$PATH"
 WORKDIR /opt2
+
+#Install Mosdeph
+RUN wget https://github.com/brentp/mosdepth/releases/download/v0.3.5/mosdepth \
+    && chmod a+x mosdepth
 
 # Install strelka/2.9.10, requires python2.7 (already satisfied)
 # and set python2.7 as the default interpreter
