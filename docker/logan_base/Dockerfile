@@ -135,7 +135,7 @@ ENV SNPEFF_JAR="/opt2/snpEff/snpEff.jar"
 RUN git clone https://github.com/GregoryFaust/samblaster.git \
     && cd /opt2/samblaster \
     && make \
-    && chmod a+rX /opt2/samblaster/samblaster
+    && chmod a+rx /opt2/samblaster/samblaster
 ENV PATH="/opt2/samblaster:$PATH"
 WORKDIR /opt2
 
@@ -188,7 +188,8 @@ ENV PATH="/opt2/hmftools:$PATH"
 # SvABA
 RUN wget -O svaba_1.2.0 https://github.com/walaj/svaba/releases/download/v1.2.0/svaba \
     && mkdir svaba \ 
-    && mv svaba_1.2.0 svaba/svaba
+    && mv svaba_1.2.0 svaba/svaba \
+    && chmod a+rx /opt2/svaba/svaba
 ENV PATH="/opt2/svaba:$PATH"
 
 
