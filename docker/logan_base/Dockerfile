@@ -1,4 +1,4 @@
-FROM nciccbr/ccbr_ubuntu_base_20.04:v5
+FROM --platform=linux/amd64 nciccbr/ccbr_ubuntu_base_20.04:v5
 
 # build time variables
 ARG BUILD_DATE="000000"
@@ -103,6 +103,7 @@ RUN wget https://github.com/BoevaLab/FREEC/archive/refs/tags/v11.6.zip \
 ENV PATH="/opt2/FREEC-11.6/src:$PATH"
 WORKDIR /opt2 
 
+
 # Install Somalier/v0.2.16
 # download static binary
 RUN mkdir somalier  \
@@ -134,13 +135,9 @@ ENV SNPEFF_JAR="/opt2/snpEff/snpEff.jar"
 RUN git clone https://github.com/GregoryFaust/samblaster.git \
     && cd /opt2/samblaster \
     && make \
-    && chmod a+rx /opt2/samblaster/samblaster
+    && chmod a+rX /opt2/samblaster/samblaster
 ENV PATH="/opt2/samblaster:$PATH"
 WORKDIR /opt2
-
-#Install Mosdeph
-RUN wget https://github.com/brentp/mosdepth/releases/download/v0.3.5/mosdepth \
-    && chmod a+x mosdepth
 
 # Install strelka/2.9.10, requires python2.7 (already satisfied)
 # and set python2.7 as the default interpreter
@@ -185,18 +182,15 @@ RUN wget https://github.com/hartwigmedical/hmftools/releases/download/amber-v3.9
     && mv amber-3.9.jar hmftools/amber.jar \
     && mv cobalt_v1.15.1.jar hmftools/cobalt.jar \
     && mv purple_v3.9.jar hmftools/purple.jar \
-    && chmod a+x hmftools/amber.jar \
-    && chmod a+x hmftools/cobalt.jar \
-    && chmod a+x hmftools/purple.jar
-
+    && chmod a+x hmftools/amber.jar
 ENV PATH="/opt2/hmftools:$PATH"
 
 # SvABA
 RUN wget -O svaba_1.2.0 https://github.com/walaj/svaba/releases/download/v1.2.0/svaba \
     && mkdir svaba \ 
-    && mv svaba_1.2.0 svaba/svaba \
-    && chmod a+rx /opt2/svaba/svaba
+    && mv svaba_1.2.0 svaba/svaba
 ENV PATH="/opt2/svaba:$PATH"
+
 
 # Add Dockerfile and argparse.bash script
 # and export environment variables
