@@ -1,4 +1,5 @@
 GENOMEREF=file(params.genomes[params.genome].genome)
+GENOME=params.genome
 BWAGENOME=file(params.genomes[params.genome].bwagenome)
 DBSNP_INDEL=file(params.genomes[params.genome].KNOWNINDELS) 
 
@@ -15,7 +16,7 @@ process svaba_somatic {
         tuple val(tumorname),
         path("${tumor.simpleName}.bps.txt.gz"),
         path("${tumor.simpleName}.contigs.bam"),
-        path("${tumor.simpleName}.discordants.txt.gz"),
+        path("${tumor.simpleName}.discordant.txt.gz"),
         path("${tumor.simpleName}.alignments.txt.gz"),
         path("${tumor.simpleName}.svaba.germline.indel.vcf"),
         path("${tumor.simpleName}.svaba.germline.sv.vcf"),
@@ -38,7 +39,7 @@ process svaba_somatic {
     """
     touch "${tumor.simpleName}.bps.txt.gz"
     touch "${tumor.simpleName}.contigs.bam"
-    touch "${tumor.simpleName}.discordants.txt.gz"
+    touch "${tumor.simpleName}.discordant.txt.gz"
     touch "${tumor.simpleName}.alignments.txt.gz"
     touch "${tumor.simpleName}.svaba.germline.indel.vcf"
     touch "${tumor.simpleName}.svaba.germline.sv.vcf"
@@ -116,7 +117,11 @@ process annotsv_tn {
 
     script:
     """
-    AnnotSV -SVinputFile ${tumorname}.vcf.gz -SVinputInfo 1 -outputFile ${tumorname} -outputDir .
+    AnnotSV -SVinputFile ${somaticvcf} \
+    -genomeBuild $GENOME \
+    -SVinputInfo 1 -outputFile ${tumorname} \
+    -outputDir .
+
     """
 
     stub:

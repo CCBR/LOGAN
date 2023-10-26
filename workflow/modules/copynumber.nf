@@ -8,13 +8,27 @@ outdir=file(params.output)
 
 process sequenza {
 
-    publishDir("${outdir}/cnv/sequenza")
+    publishDir("${outdir}/cnv/sequenza", mode: 'copy')
 
     input:
         tuple val(tumorname), path(tumor), path(tumorbai),val(normalname), path(normal), path(normalbai)
 
     output:
-        tuple val(tumorname), path("${tumorname}+${normalname}_alternative_solutions.txt")
+        tuple val(tumorname), 
+        path("${tumorname}+${normalname}_alternative_solutions.txt"),
+        path("${tumorname}+${normalname}_alternative_fit.pdf"),
+        path("${tumorname}+${normalname}_model_fit.pdf"),
+        path("${tumorname}+${normalname}_confints_CP.txt"),
+        path("${tumorname}+${normalname}_CN_bars.pdf"),
+        path("${tumorname}+${normalname}_genome_view.pdf"),
+        path("${tumorname}+${normalname}_chromosome_view.pdf"),
+        path("${tumorname}+${normalname}_mutations.txt"),
+        path("${tumorname}+${normalname}_segments.txt"),
+        path("${tumorname}+${normalname}_CP_contours.pdf"),
+        path("${tumorname}+${normalname}_sequenza_cp_table.RData"),
+        path("${tumorname}+${normalname}_chromosome_depths.pdf"),
+        path("${tumorname}+${normalname}_gc_plots.pdf"),
+        path("${tumorname}+${normalname}_sequenza_extract.RData")
 
 
     script: 
@@ -27,11 +41,11 @@ process sequenza {
         -F $GENOMEREF \
         -p \
         -n ${normalname}.mpileup.gz \
-        -t ${tumorname}.mpileup.gz | gzip > "${tumorname}.seqz.gz"
+        -t ${tumorname}.mpileup.gz | gzip > "${tumorname}_${normalname}.seqz.gz"
 
     sequenza-utils seqz_binning \
         -w 100 \
-        -s "${tumorname}_${normalname}.seqz.gz" | tee "${tumorname}_${normalname}.bin100.seqz" "
+        -s "${tumorname}_${normalname}.seqz.gz" > "${tumorname}_${normalname}.bin100.seqz"
 
     Rscript $SEQUENZA_SCRIPT \
         "${tumorname}_${normalname}.bin100.seqz" \
@@ -45,6 +59,20 @@ process sequenza {
     
     """
     touch "${tumorname}+${normalname}_alternative_solutions.txt" 
+    touch "${tumorname}+${normalname}_alternative_fit.pdf" 
+    touch "${tumorname}+${normalname}_model_fit.pdf"
+    touch "${tumorname}+${normalname}_confints_CP.txt"
+    touch "${tumorname}+${normalname}_CN_bars.pdf"
+    touch "${tumorname}+${normalname}_genome_view.pdf"
+    touch "${tumorname}+${normalname}_chromosome_view.pdf"
+    touch "${tumorname}+${normalname}_mutations.txt"
+    touch "${tumorname}+${normalname}_segments.txt"
+    touch "${tumorname}+${normalname}_CP_contours.pdf"
+    touch "${tumorname}+${normalname}_sequenza_cp_table.RData"
+    touch "${tumorname}+${normalname}_chromosome_depths.pdf"
+    touch "${tumorname}+${normalname}_gc_plots.pdf"
+    touch "${tumorname}+${normalname}_sequenza_extract.RData"
+
     """
 
 }

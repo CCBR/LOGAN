@@ -340,7 +340,7 @@ process annotvep_tonly {
 
     vcf2maf.pl \
     --vep-forks !{task.cpus} --input-vcf !{tumorvcf.baseName} \
-    --output-maf tumor_only/!{vc}/!{tumorsample}.maf \
+    --output-maf tumor_only/!{vc}/!{tumorsample}.tonly.maf \
     --tumor-id !{tumorsample} \
     --vep-path /opt/vep/src/ensembl-vep \
     --vep-data !{VEPCACHEDIR} \

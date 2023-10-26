@@ -289,13 +289,15 @@ workflow SV {
         
     main: 
         //Svaba
-        svaba_somatic(bamwithsample)
+        svaba_out=svaba_somatic(bamwithsample)
         .map{ tumor,bps,contigs,discord,alignents,gindel,gsv,so_indel,so_sv,unfil_gindel,unfil_gsv,unfil_so_indel,unfil_sv,log ->
-         tuple(tumor,so_sv)}    | annotsv_svaba
+            tuple(tumor,so_sv)} 
+        annotsv_svaba(svaba_out).ifEmpty("Empty SV input--No SV annotated")
 
         //Manta
-        manta_somatic(bamwithsample)
-        .map{tumor,gsv,so_sv,unfil_sv,unfil_indel -> tuple(tumor,so_sv)} | annotsv_manta
+        manta_out=manta_somatic(bamwithsample)
+            .map{tumor,gsv,so_sv,unfil_sv,unfil_indel -> tuple(tumor,so_sv)} 
+        annotsv_manta(manta_out).ifEmpty("Empty SV input--No SV annotated")
 
 }
 

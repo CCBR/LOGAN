@@ -313,7 +313,8 @@ process vardict_tn {
     output:
         tuple val(tumorname),
         path("${tumor.simpleName}_${bed.simpleName}.vardict.vcf")
-    
+    //bcbio notes of vardict filtering var2vcf_paired.pl -P 0.9 -m 4.25 -f 0.01 -M” and 
+    //filtered with “((AF*DP < 6) && ((MQ < 55.0 && NM > 1.0) || (MQ < 60.0 && NM > 2.0) || (DP < 10) || (QUAL < 45)))” 
     script:
 
     """
@@ -387,11 +388,14 @@ process combineVariants {
         path("${vc}/${sample}.${vc}.marked.vcf.gz"), path("${vc}/${sample}.${vc}.norm.vcf.gz")
     
     script:
-    vcfin = inputvcf.join(" ")
+    vcfin = inputvcf.join(" -I ")
     
     """
     mkdir ${vc}
-    bcftools concat $vcfin -Oz -o ${sample}.${vc}.temp.vcf.gz
+    gatk --java-options "-Xmx60g" MergeVcfs \
+        -O ${sample}.${vc}.temp.vcf.gz\
+        -D $GENOMEDICT \
+        -I $vcfin
     bcftools sort ${sample}.${vc}.temp.vcf.gz -Oz -o ${sample}.${vc}.marked.vcf.gz
     bcftools norm ${sample}.${vc}.marked.vcf.gz --threads $task.cpus --check-ref s -f $GENOMEREF -O v |\
         awk '{{gsub(/\\y[W|K|Y|R|S|M]\\y/,"N",\$4); OFS = "\\t"; print}}' |\
