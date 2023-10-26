@@ -1,6 +1,15 @@
 GENOMEREF=file(params.genomes[params.genome].genome)
 SEQUENZAGC=file(params.genomes[params.genome].SEQUENZAGC)
 SEQUENZA_SCRIPT=params.script_sequenza
+
+FREECLENGTHS=file(params.genomes[params.genome].FREEC.FREECLENGTHS)
+FREECCHROMS=file(params.genomes[params.genome].FREEC.FREECCHROMS)
+FREECPILEUP=file(params.genomes[params.genome].FREEC.FREECPILEUP)
+FREECSNPS = file(params.genomes[params.genome].FREEC.FREECSNPS)
+FREECSIGNIFICANCE = params.scripts.freec_significance
+FREECPLOT = params.scripts.freec_plot
+FREECTARGETS=file(params.genomes[params.genome].intervals)
+
 //DBSNP_INDEL=file(params.genomes[params.genome].KNOWNINDELS) 
 //ascatR=
 
@@ -77,6 +86,47 @@ process sequenza {
 
 }
 
+process freec {
+    publishDir("${outdir}/cnv/freec", mode: 'copy')
+
+    input:
+        tuple val(tumorname), path(tumor), path(tumorbai)
+
+    shell: """
+
+    
+    perl "{params.config_script}" \
+        . \
+        $FREECLENGTHS \
+        $FREECCHROMS \
+        ${tumor} \
+        $FREECPILE \
+        $GENOMEREF \
+        $FREECSNPS \
+        $FREECTARGETS
+
+    freec -conf freec_exome_config.txt
+
+    cat $FREECSIGNIFICANCE | \
+        R --slave \
+        --args ${tumorname}.bam_CNVs \
+        ${tumorname}.bam_ratio.txt
+
+    cat $FREECPLOT | \
+        R --slave \
+        --args 2 \
+        ${tumorname}.bam_ratio.txt \
+        ${tumorname}.bam_BAF.txt
+
+    """      
+
+    stub:
+    """
+    touch ${tumorname}.bam_CNVs.p.value.txt  
+    touch ${tumorname}.bam_ratio.txt 
+    touch ${tumorname}.bam_BAF.txt 
+    """
+}
 
 /*
 process ascat_tn {

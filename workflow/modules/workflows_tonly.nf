@@ -7,6 +7,7 @@ include {fc_lane; fastq_screen;kraken;qualimap_bamqc;
     bcftools_stats;gatk_varianteval;
     snpeff;fastqc;
     somalier_extract;somalier_analysis;multiqc} from  './qc.nf'
+
 include {deepvariant_step1;deepvariant_step2;deepvariant_step3;
     deepvariant_combined;glnexus} from './germline.nf'
 
@@ -27,6 +28,11 @@ include {mutect2_t_tonly; mutect2filter_tonly; pileup_paired_tonly;
     mergemut2stats_tonly;
     annotvep_tonly as annotvep_tonly_varscan; annotvep_tonly as annotvep_tonly_vardict; annotvep_tonly as annotvep_tonly_mut2;
     combinemafs_tonly} from './variant_calling_tonly.nf'
+
+include {manta_tonly; svaba_tonly; annotsv_tn as annotsv_manta_tonly; annotsv_tn as annotsv_svaba_tonly} from './structural_variant.nf'
+
+include {freec } from './copynumber.nf'
+
 
 include {splitinterval} from "./splitbed.nf"
 
@@ -189,6 +195,36 @@ workflow VC_TONLY {
 }
 
 
+workflow SV_TONLY {
+    take:
+        bamwithsample
+        
+    main: 
+        //Svaba
+        svaba_out=svaba_tonly(bamwithsample)
+        .map{ tumor,bps,contigs,discord,alignments,so_indel,so_sv,unfil_so_indel,unfil_sv,log ->
+            tuple(tumor,so_sv)} 
+        annotsv_svaba_tonly(svaba_out).ifEmpty("Empty SV input--No SV annotated")
+
+        //Manta
+        manta_out=manta_somatic(bamwithsample)
+            .map{tumor,gsv,so_sv,unfil_sv,unfil_indel,tumorSV -> tuple(tumor,so_sv)} 
+        annotsv_manta_tonly(manta_out).ifEmpty("Empty SV input--No SV annotated")
+
+}
+
+workflow CNV_TONLY {
+    take:
+        bamwithsample
+        
+    main: 
+        //mm10 use sequenza only, hg38 use purple
+        if(params.genome=="mm10"){
+            freec(bamwithsample)
+        } 
+       
+}
+
 workflow QC_TONLY {
     take:
         fastqin
@@ -229,6 +265,8 @@ workflow QC_TONLY {
     
     multiqc(conall)
 }
+
+
 
 
 

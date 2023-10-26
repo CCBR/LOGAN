@@ -17,6 +17,9 @@ PIPE_BAMVC=params.PIPE_BAMVC
 
 PIPE_TONLY_ALIGN=params.PIPE_TONLY_ALIGN
 PIPE_TONLY_VC=params.PIPE_TONLY_VC
+PIPE_TONLY_SV=params.PIPE_TONLY_SV
+PIPE_TONLY_CNV=params.PIPE_TONLY_CNV
+
 PIPE_TONLY_BAMVC=params.PIPE_TONLY_BAMVC
 PIPE_TONLY_QC=params.PIPE_TONLY_QC
 
@@ -99,6 +102,16 @@ workflow {
         INPUT_TONLY()
         ALIGN_TONLY(INPUT_TONLY.out.fastqinput,INPUT_TONLY.out.sample_sheet)
         VC_TONLY(ALIGN_TONLY.out.bamwithsample,ALIGN_TONLY.out.splitout,ALIGN_TONLY.out.sample_sheet)
+    }    
+    if (PIPE_TONLY_SV){
+        INPUT_TONLY()
+        ALIGN_TONLY(INPUT_TONLY.out.fastqinput,INPUT_TONLY.out.sample_sheet)
+        SV_TONLY(ALIGN.out.bamwithsample)
+    }   
+    if (PIPE_TONLY_CNV){
+        INPUT_TONLY()
+        ALIGN_TONLY(INPUT_TONLY.out.fastqinput,INPUT_TONLY.out.sample_sheet)
+        CNV_TONLY(ALIGN.out.bamwithsample)
     }    
     if (PIPE_TONLY_QC){
         INPUT_TONLY()

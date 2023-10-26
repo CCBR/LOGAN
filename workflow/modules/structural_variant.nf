@@ -55,6 +55,7 @@ process svaba_somatic {
 }
 
 
+
 process manta_somatic {
     //https://github.com/illumina/manta
     publishDir(path: "${outdir}/SV/manta", mode: 'copy') 
@@ -128,6 +129,98 @@ process annotsv_tn {
     """
     touch "${tumorname}.tsv"
     touch "${tumorname}.unannotated.tsv"
+    """
+}
+
+
+
+
+process manta_tonly {
+    //https://github.com/illumina/manta
+    publishDir(path: "${outdir}/SVtonly/manta", mode: 'copy') 
+
+    input:
+        tuple val(tumorname), path(tumor), path(tumorbai)
+    
+    output:
+        tuple val(tumorname),
+        path("${tumor.simpleName}.diplodSV.vcf.gz"),
+        path("${tumor.simpleName}.somaticSV.vcf.gz"),
+        path("${tumor.simpleName}.candidateSV.vcf.gz"),
+        path("${tumor.simpleName}.candidateSmallIndels.vcf.gz"),
+        path("${tumor.simpleName}.tumorSV.vcf.gz")
+
+
+    script:
+    """
+    mkdir -p wd
+
+    configManta.py \
+        --tumorBam=${tumor} \
+        --referenceFasta=$GENOMEREF \
+        --runDir=wd
+
+    wd/runWorkflow.py -m local -j 10 -g 10
+    
+    mv wd/results/variants/diploidSV.vcf.gz ${tumor.simpleName}.diplodSV.vcf.gz
+    mv wd/results/variants/somaticSV.vcf.gz ${tumor.simpleName}.somaticSV.vcf.gz
+    mv wd/results/variants/candidateSV.vcf.gz ${tumor.simpleName}.candidateSV.vcf.gz
+    mv wd/results/variants/candidateSmallIndels.vcf.gz ${tumor.simpleName}.candidateSmallIndels.vcf.gz
+    mv wd/results/variants/tumorSV.vcf.gz ${tumor.simpleName}.tumorSV.vcf.gz
+
+    """
+
+    stub:
+    
+    """
+    touch ${tumor.simpleName}.diplodSV.vcf.gz
+    touch ${tumor.simpleName}.somaticSV.vcf.gz
+    touch ${tumor.simpleName}.candidateSV.vcf.gz
+    touch ${tumor.simpleName}.candidateSmallIndels.vcf.gz
+    touch ${tumor.simpleName}.tumorSV.vcf.gz
+
+    """
+}
+
+
+
+process svaba_tonly {
+    publishDir(path: "${outdir}/SVtonly/svaba", mode: 'copy') 
+
+    input:
+        tuple val(tumorname), path(tumor), path(tumorbai)
+    
+    output:
+        tuple val(tumorname),
+        path("${tumor.simpleName}.bps.txt.gz"),
+        path("${tumor.simpleName}.contigs.bam"),
+        path("${tumor.simpleName}.discordant.txt.gz"),
+        path("${tumor.simpleName}.alignments.txt.gz"),
+        path("${tumor.simpleName}.svaba.somatic.indel.vcf"),
+        path("${tumor.simpleName}.svaba.somatic.sv.vcf"),
+        path("${tumor.simpleName}.svaba.unfiltered.somatic.indel.vcf"),
+        path("${tumor.simpleName}.svaba.unfiltered.somatic.sv.vcf"),
+        path("${tumor.simpleName}.log")
+
+
+    script:
+    """
+    svaba run -t ${tumor} -p $task.cpus -D $DBSNP_INDEL -a ${tumor.simpleName} -G $BWAGENOME
+    """
+
+    stub:
+    
+    """
+    touch "${tumor.simpleName}.bps.txt.gz"
+    touch "${tumor.simpleName}.contigs.bam"
+    touch "${tumor.simpleName}.discordant.txt.gz"
+    touch "${tumor.simpleName}.alignments.txt.gz"
+    touch "${tumor.simpleName}.svaba.somatic.indel.vcf"
+    touch "${tumor.simpleName}.svaba.somatic.sv.vcf"
+    touch "${tumor.simpleName}.svaba.unfiltered.somatic.indel.vcf"
+    touch "${tumor.simpleName}.svaba.unfiltered.somatic.sv.vcf"
+    touch "${tumor.simpleName}.log"
+
     """
 }
 
