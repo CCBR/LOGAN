@@ -32,7 +32,7 @@ include {splitinterval} from "./splitbed.nf"
 
 
 
-workflow INPUT_TONLY_PIPE {
+workflow INPUT_TONLY {
     if(params.fastq_input){
         fastqinput=Channel.fromFilePairs(params.fastq_input)
 
@@ -67,7 +67,7 @@ workflow INPUT_TONLY_PIPE {
 
 }
 
-workflow TRIM_ALIGN_TONLY_PIPE {
+workflow ALIGN_TONLY {
     take:
         fastqinput
         sample_sheet
@@ -112,7 +112,7 @@ workflow TRIM_ALIGN_TONLY_PIPE {
 
 }
 
-workflow VARIANT_TONLY_PIPE {
+workflow VC_TONLY {
     take:
     //Input is the BAMby interval
         bamwithsample
@@ -189,7 +189,7 @@ workflow VARIANT_TONLY_PIPE {
 }
 
 
-workflow QC_TONLY_PIPE {
+workflow QC_TONLY {
     take:
         fastqin
         fastpout
@@ -234,7 +234,7 @@ workflow QC_TONLY_PIPE {
 
 
 //Variant Calling from BAM only
-workflow INPUT_TONLY_BAMVC_PIPE {
+workflow INPUT_TONLY_BAMVC {
     main:
   
     //Either BAM Input or File sheet input 

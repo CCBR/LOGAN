@@ -39,7 +39,7 @@ include {splitinterval} from "./splitbed.nf"
 
 
 
-workflow INPUT_PIPE {
+workflow INPUT {
     
     if(params.fastq_input){
         fastqinput=Channel.fromFilePairs(params.fastq_input)
@@ -72,7 +72,7 @@ workflow INPUT_PIPE {
 
 }
 
-workflow TRIM_ALIGN_PIPE {
+workflow ALIGN {
     take:
         fastqinput
         sample_sheet
@@ -116,7 +116,7 @@ workflow TRIM_ALIGN_PIPE {
         bqsrout=applybqsr.out
 }
 
-workflow GERMLINE_PIPE {
+workflow GERMLINE {
     //GERMLINE REQUIRES only BAMBYINTERVAL
     take:
         bambyinterval
@@ -137,7 +137,7 @@ workflow GERMLINE_PIPE {
     
 }
     
-workflow VARIANTCALL_PIPE {
+workflow VC {
     take:
     //Input is the BAMby interval
         bamwithsample
@@ -283,7 +283,7 @@ workflow VARIANTCALL_PIPE {
 }
 
 
-workflow SV_PIPE {
+workflow SV {
     take:
         bamwithsample
         
@@ -299,7 +299,7 @@ workflow SV_PIPE {
 
 }
 
-workflow CNV_PIPE {
+workflow CNV {
     take:
         bamwithsample
         
@@ -312,7 +312,7 @@ workflow CNV_PIPE {
 }
 
 
-workflow QC_PIPE {
+workflow QC {
     take:
         fastqin
         fastpout
@@ -364,7 +364,7 @@ workflow QC_PIPE {
 
 
 //Variant Calling from BAM only
-workflow INPUT_BAMVC_PIPE {
+workflow INPUT_BAMVC {
     
    if(params.sample_sheet){
         sample_sheet=Channel.fromPath(params.sample_sheet, checkIfExists: true)
