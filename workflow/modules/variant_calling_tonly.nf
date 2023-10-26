@@ -4,7 +4,9 @@ KGPGERMLINE=params.genomes[params.genome].kgp //1000G_phase1.snps.high_confidenc
 DBSNP=file(params.genomes[params.genome].dbsnp) //dbsnp_138.hg38.vcf.gz"
 GNOMADGERMLINE=params.genomes[params.genome].gnomad //somatic-hg38-af-only-gnomad.hg38.vcf.gz
 PON=file(params.genomes[params.genome].pon) 
-VEP_CACHEDIR=file(params.genomes[params.genome].vep_cache)
+VEPCACHEDIR=file(params.genomes[params.genome].vepcache)
+VEPSPECIES=params.genomes[params.genome].vepspecies
+VEPBUILD=params.genomes[params.genome].vepbuild
 
 //Output
 outdir=file(params.output)
@@ -151,7 +153,7 @@ process mutect2_t_tonly {
     --intervals ${bed} \
     --input ${tumor} \
     --tumor-sample ${tumor.simpleName} \
-    --germline-resource $GNOMADGERMLINE \
+    $GNOMADGERMLINE \
     --panel-of-normals $PON \
     --output ${tumor.simpleName}_${bed.simpleName}.tonly.mut2.vcf.gz \
     --f1r2-tar-gz ${tumor.simpleName}_${bed.simpleName}.f1r2.tar.gz \
@@ -233,15 +235,15 @@ process varscan_tonly {
     
     shell:
 
-    """
+    '''
     varscan_opts="--strand-filter 0 --min-var-freq 0.01 --output-vcf 1 --variants 1"
-    pileup_cmd="samtools mpileup -d 100000 -q 15 -Q 15 -f !GENOME !{tumor}"
+    pileup_cmd="samtools mpileup -d 100000 -q 15 -Q 15 -f !{GENOMEREF} !{tumor}"
     varscan_cmd="varscan mpileup2cns <($pileup_cmd) $varscan_opts"
 
 
     eval "$varscan_cmd > !{tumor.simpleName}_!{bed.simpleName}.tonly.varscan.vcf.gz"
     eval "bcftools view -U !{tumor.simpleName}_!{bed.simpleName}.tonly.varscan.vcf.gz > !{tumor.simpleName}_!{bed.simpleName}.tonly.varscan.vcf"
-    """
+    '''
 
     stub:
     
@@ -264,15 +266,14 @@ process vardict_tonly {
     script:
 
     """
+    bedtools makewindows -b ${bed} -w 50150 -s 50000 > temp_${bed}
     VarDict -G $GENOMEREF \
         -f 0.05 \
         -x 500 \
         --nosv \
-        -b ${tumor} \
-        -t -Q 20 -c 1 -S 2 -E 3 \
-        -R ${bed} \
-        | teststrandbias.R \
-        | var2vcf_valid.pl \
+        -b ${tumor} --fisher \
+        -t -Q 20 -c 1 -S 2 -E 3 --th $task.cpus \
+        -R temp_${bed} | var2vcf_valid.pl \
             -N ${tumor} \
             -Q 20 \
             -d 10 \
@@ -307,19 +308,47 @@ process annotvep_tonly {
 
     shell:
 
-    """
+    '''
+    VCF_SAMPLE_IDS=($(bcftools query -l !{tumorvcf}))
+    TID_IDX=0
+    NID_IDX=""
+    VCF_NID=""
+    NORM_VCF_ID_ARG=""
+    NSAMPLES=${#VCF_SAMPLE_IDS[@]}
+    if [ $NSAMPLES -gt 1 ]; then
+        # Assign tumor, normal IDs 
+        # Look through column names and 
+        # see if they match provided IDs
+        for (( i = 0; i < $NSAMPLES; i++ )); do
+            echo "${VCF_SAMPLE_IDS[$i]}"
+            if [ "${VCF_SAMPLE_IDS[$i]}" == !{tumorsample} ]; then
+                TID_IDX=$i
+            fi
+            
+        done
+
+        if [ ! -z $NID_IDX ]; then
+            VCF_NID=${VCF_SAMPLE_IDS[$NID_IDX]}
+            NORM_VCF_ID_ARG="--vcf-normal-id $VCF_NID"
+        fi
+    fi
+    VCF_TID=${VCF_SAMPLE_IDS[$TID_IDX]}
+   
+    zcat !{tumorvcf} > !{tumorvcf.baseName}
     
-    zcat !{tumorvcf}.vcf.gz > !{tumorvcf}.vcf
+    mkdir -p tumor_only/!{vc}
 
     vcf2maf.pl \
-    --vep-forks $task.cpus --input-vcf !{tumorvcf}.vcf \
-    --output-maf !{vc}/!{tumorsample}.tonly.maf \
+    --vep-forks !{task.cpus} --input-vcf !{tumorvcf.baseName} \
+    --output-maf tumor_only/!{vc}/!{tumorsample}.maf \
     --tumor-id !{tumorsample} \
     --vep-path /opt/vep/src/ensembl-vep \
-    --vep-data $VEP_CACHEDIR \
-    --ncbi-build GRCh38 --species homo_sapiens --ref-fasta !{GENOMEREF}
+    --vep-data !{VEPCACHEDIR} \
+    --ncbi-build !{VEPBUILD} --species !{VEPSPECIES} --ref-fasta !{GENOMEREF} \
+    --vep-overwrite
 
-    """
+
+    '''
 
     stub:
     """

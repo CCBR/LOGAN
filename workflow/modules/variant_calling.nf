@@ -4,7 +4,9 @@ KGPGERMLINE=params.genomes[params.genome].kgp //1000G_phase1.snps.high_confidenc
 DBSNP=file(params.genomes[params.genome].dbsnp) //dbsnp_138.hg38.vcf.gz"
 GNOMADGERMLINE=params.genomes[params.genome].gnomad //somatic-hg38-af-only-gnomad.hg38.vcf.gz
 PON=file(params.genomes[params.genome].pon) 
-VEP_CACHEDIR=file(params.genomes[params.genome].vep_cache)
+VEPCACHEDIR=file(params.genomes[params.genome].vepcache)
+VEPSPECIES=params.genomes[params.genome].vepspecies
+VEPBUILD=params.genomes[params.genome].vepbuild
 
 //Output
 outdir=file(params.output)
@@ -244,7 +246,7 @@ process mutect2filter {
         --output ${sample}.mut2.final.vcf.gz
     
     bcftools sort ${sample}.mut2.final.vcf.gz -@ $task.cpus -Oz |\
-    bcftools norm --threads $task.cpus --check-ref s -f $GENOME -O v |\
+    bcftools norm --threads $task.cpus --check-ref s -f $GENOMEREF -O v |\
         awk '{{gsub(/\\y[W|K|Y|R|S|M]\\y/,"N",\$4); OFS = "\\t"; print}}' |\
         sed '/^\$/d' > ${sample}.mut2.norm.vcf.gz
     """
@@ -315,13 +317,14 @@ process vardict_tn {
     script:
 
     """
+    bedtools makewindows -b ${bed} -w 50150 -s 50000 > temp_${bed}
+
     VarDict -G $GENOMEREF \
         -f 0.01 \
         --nosv \
-        -b "${tumor}|${normal}" \
+        -b "${tumor}|${normal}" --fisher \
         -t -Q 20 -c 1 -S 2 -E 3 \
-        ${bed} --th 6 \
-        | teststrandbias.R \
+        --th $task.cpus temp_${bed} \
         | var2vcf_paired.pl \
             -N "${tumor}|${normal}" \
             -Q 20 \
@@ -390,7 +393,7 @@ process combineVariants {
     mkdir ${vc}
     bcftools concat $vcfin -Oz -o ${sample}.${vc}.temp.vcf.gz
     bcftools sort ${sample}.${vc}.temp.vcf.gz -Oz -o ${sample}.${vc}.marked.vcf.gz
-    bcftools norm ${sample}.${vc}.marked.vcf.gz --threads $task.cpus --check-ref s -f $GENOME -O v |\
+    bcftools norm ${sample}.${vc}.marked.vcf.gz --threads $task.cpus --check-ref s -f $GENOMEREF -O v |\
         awk '{{gsub(/\\y[W|K|Y|R|S|M]\\y/,"N",\$4); OFS = "\\t"; print}}' |\
         sed '/^\$/d' > ${sample}.${vc}.temp.vcf
 
@@ -425,7 +428,7 @@ process combineVariants_strelka {
     
     script:
     
-    vcfin = strelkavcfs.join(" ")
+    vcfin = strelkasnvs.join(" ")
     indelsin = strelkaindels.join(" ")
 
 
@@ -474,20 +477,51 @@ process annotvep_tn {
 
     shell:
 
-    """
+    '''
+    VCF_SAMPLE_IDS=($(bcftools query -l !{tumorvcf}))
+    TID_IDX=0
+    NID_IDX=""
+    VCF_NID=""
+    NORM_VCF_ID_ARG=""
+    NSAMPLES=${#VCF_SAMPLE_IDS[@]}
+    if [ $NSAMPLES -gt 1 ]; then
+        # Assign tumor, normal IDs 
+        # Look through column names and 
+        # see if they match provided IDs
+        for (( i = 0; i < $NSAMPLES; i++ )); do
+            echo "${VCF_SAMPLE_IDS[$i]}"
+            if [ "${VCF_SAMPLE_IDS[$i]}" == !{tumorsample} ]; then
+                TID_IDX=$i
+            fi
+            
+            if [ "${VCF_SAMPLE_IDS[$i]}" == !{normalsample} ]; then
+                NID_IDX=$i
+            fi
+        done
+
+        if [ ! -z $NID_IDX ]; then
+            VCF_NID=${VCF_SAMPLE_IDS[$NID_IDX]}
+            NORM_VCF_ID_ARG="--vcf-normal-id $VCF_NID"
+        fi
+    fi
+    VCF_TID=${VCF_SAMPLE_IDS[$TID_IDX]}
+   
+    zcat !{tumorvcf} > !{tumorvcf.baseName}
     
-    zcat !{tumorvcf}.vcf.gz > !{tumorvcf}.vcf
+    mkdir -p paired/!{vc}
 
     vcf2maf.pl \
-    --vep-forks $task.cpus --input-vcf ${tumorvcf}.vcf \
-    --output-maf !{vc}/!{tumorsample}.maf \
+    --vep-forks !{task.cpus} --input-vcf !{tumorvcf.baseName} \
+    --output-maf paired/!{vc}/!{tumorsample}.maf \
     --tumor-id !{tumorsample} \
     --normal-id !{normalsample} \
     --vep-path /opt/vep/src/ensembl-vep \
-    --vep-data $VEP_CACHEDIR \
-    --ncbi-build GRCh38 --species homo_sapiens --ref-fasta !{GENOMEREF}
+    --vep-data !{VEPCACHEDIR} \
+    --ncbi-build !{VEPBUILD} --species !{VEPSPECIES} --ref-fasta !{GENOMEREF} \
+    --vep-overwrite
 
-    """
+
+    '''
 
     stub:
     """

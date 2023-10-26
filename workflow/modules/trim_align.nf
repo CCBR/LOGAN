@@ -18,7 +18,7 @@ process fastp {
 
     script:
     """
-    fastp -w 4 \
+    fastp -w $task.cpus \
         --detect_adapter_for_pe \
         --in1 ${fqs[0]} \
         --in2 ${fqs[1]} \
@@ -41,6 +41,7 @@ process fastp {
 
 process bwamem2 {
     tag { name }
+    
     input:
         tuple val(samplename), 
         path("${samplename}.R1.trimmed.fastq.gz"),
@@ -198,12 +199,10 @@ process bamtocram_tonly{
 }
 
 
-
 /*
 process indelrealign {
-    /*
-    Briefly, RealignerTargetCreator runs faster with increasing -nt threads, 
-    while IndelRealigner shows diminishing returns for increasing scatter
+    //Briefly, RealignerTargetCreator runs faster with increasing -nt threads, 
+    //while IndelRealigner shows diminishing returns for increasing scatter
     
     tag { name }
     
