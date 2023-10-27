@@ -33,7 +33,6 @@ include {manta_tonly; svaba_tonly; annotsv_tn as annotsv_manta_tonly; annotsv_tn
 
 include {freec } from './copynumber.nf'
 
-
 include {splitinterval} from "./splitbed.nf"
 
 

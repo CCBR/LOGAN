@@ -6,9 +6,10 @@ FREECLENGTHS=file(params.genomes[params.genome].FREEC.FREECLENGTHS)
 FREECCHROMS=file(params.genomes[params.genome].FREEC.FREECCHROMS)
 FREECPILEUP=file(params.genomes[params.genome].FREEC.FREECPILEUP)
 FREECSNPS = file(params.genomes[params.genome].FREEC.FREECSNPS)
-FREECSIGNIFICANCE = params.scripts.freec_significance
-FREECPLOT = params.scripts.freec_plot
 FREECTARGETS=file(params.genomes[params.genome].intervals)
+
+FREECSIGNIFICANCE = params.freec_significance
+FREECPLOT = params.freec_plot
 
 //DBSNP_INDEL=file(params.genomes[params.genome].KNOWNINDELS) 
 //ascatR=
