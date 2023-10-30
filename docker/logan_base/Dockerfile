@@ -188,7 +188,9 @@ ENV PATH="/opt2/hmftools:$PATH"
 # SvABA
 RUN wget -O svaba_1.2.0 https://github.com/walaj/svaba/releases/download/v1.2.0/svaba \
     && mkdir svaba \ 
-    && mv svaba_1.2.0 svaba/svaba
+    && mv svaba_1.2.0 svaba/svaba \
+    && chmod a+x svaba/svaba
+
 ENV PATH="/opt2/svaba:$PATH"
 
 
