@@ -33,7 +33,8 @@ include {mutect2_t_tonly; mutect2filter_tonly;
 
 include {svaba_somatic; manta_somatic; annotsv_tn as annotsv_svaba;annotsv_tn as annotsv_manta} from './structural_variant.nf'
 
-include {sequenza } from './copynumber.nf'
+include {sequenza; pileup_sequenza as pileup_sequenza_tum; 
+        pileup_sequenza as pileup_sequenza_norm} from './copynumber.nf'
 
 include {splitinterval} from "./splitbed.nf"
 
@@ -307,8 +308,27 @@ workflow CNV {
         
     main: 
         //mm10 use sequenza only, hg38 use purple
+            /*
         if(params.genome=="mm10"){
             sequenza(bamwithsample)
+        } 
+        */
+        //SPLIT pileup jobs 
+        if(params.genome=="mm10"){
+            tout=bamwithsample.multiMap{ tname,tumor,tbai,nname,norm,nbai-> 
+                tumor=tuple(${tname}_${nname},tname, tumor, tbai)
+                norm=tuple(${tname}_${nname},nname, norm, nbai)
+                }
+                .set(pileupout)
+            pileup_sequenza_tum(pileupout.tumor)
+            pileup_sequenza_norm(pileupout.norm)
+            sequenza_frompile_tum.out.join(sequenza_frompile_norm) |
+            
+            
+                   .map{it-> tuple(it.simpleName,it,file("${it}.bai"))}
+
+
+
         } 
        
 }

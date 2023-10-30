@@ -8,6 +8,7 @@ FREECPILEUP=file(params.genomes[params.genome].FREEC.FREECPILEUP)
 FREECSNPS = file(params.genomes[params.genome].FREEC.FREECSNPS)
 FREECTARGETS=file(params.genomes[params.genome].intervals)
 
+FREECSCRIPT = params.script_freec
 FREECSIGNIFICANCE = params.freec_significance
 FREECPLOT = params.freec_plot
 
@@ -15,6 +16,106 @@ FREECPLOT = params.freec_plot
 //ascatR=
 
 outdir=file(params.output)
+
+
+process pileup_sequenza {
+     
+     input:
+        tuple val(pairid), val(name), path(tumor), path(tumorbai)
+
+    output:
+        tuple val(pairid), 
+        val(name), 
+        path("${name}.mpileup.gz")
+
+
+    script: 
+    """
+
+    samtools mpileup ${name} -f $GENOMEREF -Q 20 |gzip > ${name}.mpileup.gz
+
+    """
+
+    stub:
+    """
+
+    touch "${name}.mpileup.gz"
+
+    """
+
+}
+
+
+
+process sequenza_frompile {
+
+    publishDir("${outdir}/cnv/sequenza", mode: 'copy')
+
+    input:
+        tuple val(pairid), val(tumorname), path(tumorpile), val(normalname), path(normalpile)
+
+    output:
+        tuple val(tumorname), 
+        path("${tumorname}+${normalname}_alternative_solutions.txt"),
+        path("${tumorname}+${normalname}_alternative_fit.pdf"),
+        path("${tumorname}+${normalname}_model_fit.pdf"),
+        path("${tumorname}+${normalname}_confints_CP.txt"),
+        path("${tumorname}+${normalname}_CN_bars.pdf"),
+        path("${tumorname}+${normalname}_genome_view.pdf"),
+        path("${tumorname}+${normalname}_chromosome_view.pdf"),
+        path("${tumorname}+${normalname}_mutations.txt"),
+        path("${tumorname}+${normalname}_segments.txt"),
+        path("${tumorname}+${normalname}_CP_contours.pdf"),
+        path("${tumorname}+${normalname}_sequenza_cp_table.RData"),
+        path("${tumorname}+${normalname}_chromosome_depths.pdf"),
+        path("${tumorname}+${normalname}_gc_plots.pdf"),
+        path("${tumorname}+${normalname}_sequenza_extract.RData")
+
+
+    script: 
+    """
+    
+    sequenza-utils bam2seqz \
+        -gc ${SEQUENZAGC} \
+        -F $GENOMEREF \
+        -p \
+        -n ${normalname}.mpileup.gz \
+        -t ${tumorname}.mpileup.gz | gzip > "${tumorname}_${normalname}.seqz.gz"
+
+    sequenza-utils seqz_binning \
+        -w 100 \
+        -s "${tumorname}_${normalname}.seqz.gz" > "${tumorname}_${normalname}.bin100.seqz"
+
+    Rscript $SEQUENZA_SCRIPT \
+        "${tumorname}_${normalname}.bin100.seqz" \
+        . \
+        "${tumorname}+${normalname}" \
+        12
+
+    """
+
+    stub: 
+    
+    """
+    touch "${tumorname}+${normalname}_alternative_solutions.txt" 
+    touch "${tumorname}+${normalname}_alternative_fit.pdf" 
+    touch "${tumorname}+${normalname}_model_fit.pdf"
+    touch "${tumorname}+${normalname}_confints_CP.txt"
+    touch "${tumorname}+${normalname}_CN_bars.pdf"
+    touch "${tumorname}+${normalname}_genome_view.pdf"
+    touch "${tumorname}+${normalname}_chromosome_view.pdf"
+    touch "${tumorname}+${normalname}_mutations.txt"
+    touch "${tumorname}+${normalname}_segments.txt"
+    touch "${tumorname}+${normalname}_CP_contours.pdf"
+    touch "${tumorname}+${normalname}_sequenza_cp_table.RData"
+    touch "${tumorname}+${normalname}_chromosome_depths.pdf"
+    touch "${tumorname}+${normalname}_gc_plots.pdf"
+    touch "${tumorname}+${normalname}_sequenza_extract.RData"
+
+    """
+
+}
+
 
 process sequenza {
 
@@ -41,11 +142,14 @@ process sequenza {
         path("${tumorname}+${normalname}_sequenza_extract.RData")
 
 
-    script: 
-    """
+    /*
     samtools mpileup ${tumor} -f $GENOMEREF -Q 20 |gzip > ${tumorname}.mpileup.gz
     samtools mpileup ${normal} -f $GENOMEREF -Q 20 |gzip > ${normalname}.mpileup.gz
+    */
 
+    script: 
+    """
+    
     sequenza-utils bam2seqz \
         -gc ${SEQUENZAGC} \
         -F $GENOMEREF \
@@ -95,8 +199,7 @@ process freec {
 
     shell: """
 
-    
-    perl "{params.config_script}" \
+    perl $FREECSCRIPT \
         . \
         $FREECLENGTHS \
         $FREECCHROMS \
@@ -106,7 +209,7 @@ process freec {
         $FREECSNPS \
         $FREECTARGETS
 
-    freec -conf freec_exome_config.txt
+    freec -conf freec_genome_config.txt
 
     cat $FREECSIGNIFICANCE | \
         R --slave \
