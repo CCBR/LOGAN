@@ -14,6 +14,7 @@ outdir=file(params.output)
 
 
 process pileup_paired_tonly {
+    label 'process_highmem'
     input:
         tuple val(tumorname), path(tumor), path(tumorbai), path(bed)
     
@@ -42,6 +43,7 @@ process pileup_paired_tonly {
 
 
 process contamination_tumoronly {
+    label 'process_highmem'
     publishDir(path: "${outdir}/vcfs/mutect2/", mode: 'copy')
 
     input:
@@ -80,6 +82,7 @@ process contamination_tumoronly {
 
 
 process learnreadorientationmodel_tonly {
+    label 'process_highmem'
     publishDir(path: "${outdir}/vcfs/mutect2", mode: 'copy')
 
     input:
@@ -108,6 +111,7 @@ process learnreadorientationmodel_tonly {
 
 
 process mergemut2stats_tonly {
+    label 'process_low'
     publishDir(path: "${outdir}/vcfs/mutect2", mode: 'copy')
 
     input:
@@ -135,7 +139,7 @@ process mergemut2stats_tonly {
 
 
 process mutect2_t_tonly {
-    
+    label 'process_somaticcaller'
     input:
         tuple val(tumorname), path(tumor), path(tumorbai), path(bed)
     
@@ -173,6 +177,7 @@ process mutect2_t_tonly {
 
 
 process mutect2filter_tonly {
+    label 'process_mid'
     publishDir(path: "${outdir}/vcfs/mutect2_tonly", mode: 'copy')
 
     input:
@@ -224,6 +229,7 @@ process mutect2filter_tonly {
 
 
 process varscan_tonly {
+    label 'process_somaticcaller'
     input:
         tuple val(tumorname), path(tumor), path(tumorbai), 
         path(bed),
@@ -255,7 +261,7 @@ process varscan_tonly {
 }
 
 process vardict_tonly {
-    
+    label 'process_highcpu'
     input:
         tuple val(tumorname), path(tumor), path(tumorbai), path(bed)
     
@@ -358,6 +364,7 @@ process annotvep_tonly {
 }
 
 process combinemafs_tonly {
+    label 'process_low'
     publishDir(path: "${outdir}/mafs/tumor_only", mode: 'copy')
 
     input: 

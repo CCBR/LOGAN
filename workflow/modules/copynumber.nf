@@ -17,11 +17,110 @@ FREECPLOT = params.freec_plot
 
 outdir=file(params.output)
 
+process seqz_sequenza_bychr {
+
+    label 'process_med'
+
+    input:
+        tuple val(pairid), val(tumorname), path(tumor), path(tumorbai),
+        val(normalname), path(normal), path(normalbai), val(chr)
+
+    output:
+        tuple val(pairid), path("${tumorname}_${normalname}_${chr}.seqz.gz")
+
+    script:
+    """
+        sequenza-utils bam2seqz \
+        -gc ${SEQUENZAGC} \
+        -F $GENOMEREF \ 
+        -C ${chr} \
+        -n ${normal} \
+        -t ${tumor} | gzip > "${tumorname}_${normalname}_${chr}.seqz.gz"
+
+    """
+
+    stub:
+    """
+    touch "${tumorname}_${normalname}_${chr}.seqz.gz"
+    """
+}
+
+
+
+
+process sequenza {
+    label 'process_highcpu'
+    publishDir("${outdir}/cnv/sequenza", mode: 'copy')
+
+    input:
+        tuple val(pairid), path(seqz)
+
+    output:
+        tuple val(pairid), 
+        path("${pairid}_alternative_solutions.txt"),
+        path("${pairid}_alternative_fit.pdf"),
+        path("${pairid}_model_fit.pdf"),
+        path("${pairid}_confints_CP.txt"),
+        path("${pairid}_CN_bars.pdf"),
+        path("${pairid}_genome_view.pdf"),
+        path("${pairid}_chromosome_view.pdf"),
+        path("${pairid}_mutations.txt"),
+        path("${pairid}_segments.txt"),
+        path("${pairid}_CP_contours.pdf"),
+        path("${pairid}_sequenza_cp_table.RData"),
+        path("${pairid}_chromosome_depths.pdf"),
+        path("${pairid}_gc_plots.pdf"),
+        path("${pairid}_sequenza_extract.RData")
+
+    //samtools mpileup ${tumor} -f $GENOMEREF -Q 20 |gzip > ${tumorname}.mpileup.gz
+    //samtools mpileup ${normal} -f $GENOMEREF -Q 20 |gzip > ${normalname}.mpileup.gz
+    //sequenza-utils seqz_binning --seqz --window 50 -o ${sample}_bin50.seqz.gz
+
+    shell: 
+    '''
+    
+    zcat !{seqz} | awk ‘{if (NR==1) {print $0} else {if ($1!="chromosome"){print $0}}}’ |\
+    sequenza-utils seqz_binning \
+        -w 100 \
+        -s "!{pairid}.seqz.gz" > "!{pairid}.bin100.seqz"
+
+    Rscript !SEQUENZA_SCRIPT \
+        "!{pairid}.bin100.seqz" \
+        . \
+        "!{pairid}" \
+        !{task.cpus}
+
+    '''
+
+    stub: 
+    
+    """
+    touch "${pairid}_alternative_solutions.txt" 
+    touch "${pairid}_alternative_fit.pdf" 
+    touch "${pairid}_model_fit.pdf"
+    touch "${pairid}_confints_CP.txt"
+    touch "${pairid}_CN_bars.pdf"
+    touch "${pairid}_genome_view.pdf"
+    touch "${pairid}_chromosome_view.pdf"
+    touch "${pairid}_mutations.txt"
+    touch "${pairid}_segments.txt"
+    touch "${pairid}_CP_contours.pdf"
+    touch "${pairid}_sequenza_cp_table.RData"
+    touch "${pairid}_chromosome_depths.pdf"
+    touch "${pairid}_gc_plots.pdf"
+    touch "${pairid}_sequenza_extract.RData"
+
+    """
+
+}
+
+
+
 
 process pileup_sequenza {
-     
-     input:
-        tuple val(pairid), val(name), path(tumor), path(tumorbai)
+    label 'process_low'
+    input:
+        tuple val(pairid), val(name), path(bam), path(bai)
 
     output:
         tuple val(pairid), 
@@ -32,7 +131,7 @@ process pileup_sequenza {
     script: 
     """
 
-    samtools mpileup ${name} -f $GENOMEREF -Q 20 |gzip > ${name}.mpileup.gz
+    samtools mpileup ${bam} -f $GENOMEREF -Q 20 |gzip > ${name}.mpileup.gz
 
     """
 
@@ -48,11 +147,11 @@ process pileup_sequenza {
 
 
 process sequenza_frompile {
-
+    label 'process_highcpu'
     publishDir("${outdir}/cnv/sequenza", mode: 'copy')
 
     input:
-        tuple val(pairid), val(tumorname), path(tumorpile), val(normalname), path(normalpile)
+        tuple val(tumorname), path(tumor), path(tumorbai),val(normalname), path(normal), path(normalbai)
 
     output:
         tuple val(tumorname), 
@@ -117,8 +216,9 @@ process sequenza_frompile {
 }
 
 
-process sequenza {
+process sequenza_arch {
 
+    label 'process_highcpu'
     publishDir("${outdir}/cnv/sequenza", mode: 'copy')
 
     input:
@@ -192,6 +292,7 @@ process sequenza {
 }
 
 process freec {
+    label 'process_highcpu'
     publishDir("${outdir}/cnv/freec", mode: 'copy')
 
     input:

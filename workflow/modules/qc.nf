@@ -19,7 +19,7 @@ SCRIPT_PATH_PCA = file(params.script_ancestry)
 outdir=file(params.output)
 
 process fc_lane {
-
+    label 'process_low'
     publishDir("${outdir}/QC/fc_lane/", mode:'copy')
 
     input:
@@ -50,7 +50,6 @@ process fastq_screen {
 
     publishDir(path: "${outdir}/QC/fastq_screen/", mode:'copy')
 
-    //module=['fastq_screen/0.15.2','bowtie/2-2.5.1']
     input:
     tuple val(samplename),
         path("${samplename}.R1.trimmed.fastq.gz"),
@@ -100,9 +99,6 @@ process kraken {
         Kraken logfile and interative krona report
     */
     publishDir(path: "${outdir}/QC/kraken/", mode: 'copy')
-
-    //scratch '/data/CCBR/rawdata/nousome/small_truth_set' //CHANGE AFTER to LSCRATCH
-
     
     input:
         tuple val(samplename), 
@@ -238,9 +234,10 @@ process samtools_flagstats {
     @Output:
         Text file containing alignment statistics
     */
-    publishDir("${outdir}/QC/flagstats/", mode: "copy")
-    //module=['samtools/1.16.1']
+    label 'process_mid'
 
+    publishDir("${outdir}/QC/flagstats/", mode: "copy")
+    
     input:
         tuple val(samplename), path("${samplename}.bqsr.bam"), path("${samplename}.bqsr.bai")
     
@@ -312,8 +309,9 @@ process vcftools {
     @Output:
         Text file containing a measure of heterozygosity
     */
+    label 'process_mid'
+
     publishDir(path:"${outdir}/QC/vcftools", mode: 'copy')
-    //module=['vcftools/0.1.16']
     
     input: 
         tuple path(germlinevcf),path(germlinetbi)
@@ -344,9 +342,7 @@ process collectvariantcallmetrics {
         Text file containing a collection of metrics relating to snps and indels 
     */
     publishDir("${outdir}/QC/variantmetrics", mode: 'copy')
-    //module=['picard/2.20.8']
-    //container: config['images']['picard']
-
+    
     input: 
         tuple path(germlinevcf),path(germlinetbi)
     
@@ -354,9 +350,6 @@ process collectvariantcallmetrics {
         tuple path("raw_variants.variant_calling_detail_metrics"),
         path("raw_variants.variant_calling_summary_metrics")
 
-    //params: 
-     //   dbsnp=config['references']['DBSNP'],
-      //  prefix = os.path.join(output_qcdir,"raw_variants"),
        
     script:
     """
@@ -389,6 +382,7 @@ process bcftools_stats {
         Text file containing a collection of summary statistics
     */
 
+    label 'process_mid'
     publishDir("${outdir}/QC/bcftoolsstat", mode: 'copy')
 
     input:
@@ -421,8 +415,9 @@ process gatk_varianteval {
     @Output:
         Evaluation table containing a collection of summary statistics
     */
+    label 'process_mid'
+
     publishDir("${outdir}/QC/gatk_varianteval", mode: 'copy')
-    //module=['GATK/4.2.0.0']
 
     input: 
         tuple val(samplename), path("${samplename}.gvcf.gz") ,path("${samplename}.gvcf.gz.tbi")
@@ -464,12 +459,7 @@ process snpeff {
     @Output:
         Evaluation table containing a collection of summary statistics
     */
-
-        //genome = config['references']['SNPEFF_GENOME'],
-        //config = config['references']['SNPEFF_CONFIG'],
-        //bundle = config['references']['SNPEFF_BUNDLE'],
-            //envmodules: 'snpEff/4.3t'
-            //container: config['images']['wes_base']
+    label 'process_mid'
     publishDir("${outdir}/QC/snpeff", mode: 'copy')
 
     input:  
@@ -506,6 +496,7 @@ process somalier_extract {
     @Output:
         Exracted sites in (binary) somalier format
     */
+    label 'process_low'
     publishDir("${outdir}/QC/somalier", mode: 'copy')
 
     input:
@@ -551,6 +542,8 @@ process somalier_analysis {
     script_path_samples = config['scripts']['combineSamples'],
     script_path_pca = config['scripts']['ancestry'],
     */
+    label 'process_mid'
+
     publishDir("${outdir}/QC/somalier", mode: 'copy')
 
     input:

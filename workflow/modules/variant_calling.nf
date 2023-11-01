@@ -1,8 +1,8 @@
 GENOMEREF=file(params.genomes[params.genome].genome)
 GENOMEDICT=file(params.genomes[params.genome].genomedict)
-KGPGERMLINE=params.genomes[params.genome].kgp //1000G_phase1.snps.high_confidence.hg38.vcf.gz"
-DBSNP=file(params.genomes[params.genome].dbsnp) //dbsnp_138.hg38.vcf.gz"
-GNOMADGERMLINE=params.genomes[params.genome].gnomad //somatic-hg38-af-only-gnomad.hg38.vcf.gz
+KGPGERMLINE=params.genomes[params.genome].kgp 
+DBSNP=file(params.genomes[params.genome].dbsnp) 
+GNOMADGERMLINE=params.genomes[params.genome].gnomad 
 PON=file(params.genomes[params.genome].pon) 
 VEPCACHEDIR=file(params.genomes[params.genome].vepcache)
 VEPSPECIES=params.genomes[params.genome].vepspecies
@@ -13,6 +13,8 @@ outdir=file(params.output)
 
 
 process mutect2 {
+    label 'process_somaticcaller'
+
     input:
         tuple val(tumorname), path(tumor), path(tumorbai),val(normalname), path(normal), path(normalbai), path(bed)
     
@@ -24,7 +26,6 @@ process mutect2 {
 
     
     script:
-
     """
     gatk Mutect2 \
     --reference $GENOMEREF \
@@ -41,7 +42,6 @@ process mutect2 {
     """
 
     stub:
-    
     """
     touch ${tumor.simpleName}_${bed.simpleName}.mut2.vcf.gz
     touch ${tumor.simpleName}_${bed.simpleName}.f1r2.tar.gz
@@ -51,6 +51,8 @@ process mutect2 {
 
 
 process pileup_paired_t {
+    label 'process_highmem'
+
     input:
         tuple val(tumorname), path(tumor), path(tumorbai),val(normalname), path(normal), path(normalbai), path(bed)
     
@@ -59,7 +61,6 @@ process pileup_paired_t {
         path("${tumor.simpleName}_${bed.simpleName}.tumor.pileup.table")
 
     script:
-
     """
     gatk --java-options -Xmx48g GetPileupSummaries \
         -I ${tumor} \
@@ -70,7 +71,6 @@ process pileup_paired_t {
     """
 
     stub:
-    
     """
     touch ${tumor.simpleName}_${bed.simpleName}.tumor.pileup.table
     """
@@ -79,6 +79,8 @@ process pileup_paired_t {
 
 
 process pileup_paired_n {
+    label 'process_highmem'
+
     input:
         tuple val(tumorname), path(tumor), path(tumorbai),val(normalname), path(normal), path(normalbai), path(bed)
     
@@ -87,7 +89,6 @@ process pileup_paired_n {
         path("${tumor.simpleName}_${bed.simpleName}.normal.pileup.table")
 
     script:
-
     """
     gatk --java-options -Xmx48g GetPileupSummaries \
         -I ${normal} \
@@ -106,6 +107,7 @@ process pileup_paired_n {
 
 
 process contamination_paired {
+    label 'process_highmem'
 
     publishDir(path: "${outdir}/vcfs/mutect2", mode: 'copy')
 
@@ -159,6 +161,8 @@ process contamination_paired {
 }
 
 process learnreadorientationmodel {
+    label 'process_highmem'
+
     publishDir(path: "${outdir}/vcfs/mutect2", mode: 'copy')
 
     input:
@@ -185,6 +189,8 @@ process learnreadorientationmodel {
 
 
 process mergemut2stats {
+    label 'process_low'
+
     publishDir(path: "${outdir}/vcfs/mutect2", mode: 'copy')
 
     input:
@@ -213,6 +219,7 @@ process mergemut2stats {
 
 
 process mutect2filter {
+    label 'process_mid'
         
     publishDir(path: "${outdir}/vcfs/mutect2", mode: 'copy')
 
@@ -264,7 +271,7 @@ process mutect2filter {
 
 
 process strelka_tn {
-    
+    label 'process_highcpu'
     input:
         tuple val(tumorname), path(tumor), path(tumorbai), val(normalname), path(normal), path(normalbai), path(bed)
     
@@ -306,7 +313,8 @@ process strelka_tn {
 
 
 process vardict_tn {
-    
+    label 'process_highcpu'
+
     input:
         tuple val(tumorname), path(tumor), path(tumorbai), val(normalname), path(normal), path(normalbai), path(bed)
     
@@ -349,6 +357,8 @@ process vardict_tn {
 
 
 process varscan_tn {
+    label 'process_somaticcaller'
+
     input:
         tuple val(tumorname), path(tumor), path(tumorbai), 
         val(normalname), path(normal), path(normalbai), path(bed),
@@ -377,7 +387,7 @@ process varscan_tn {
 }
 
 process combineVariants {
-
+    label 'process_highmem'
     publishDir(path: "${outdir}/vcfs/", mode: 'copy')
 
     input:
@@ -392,7 +402,7 @@ process combineVariants {
     
     """
     mkdir ${vc}
-    gatk --java-options "-Xmx60g" MergeVcfs \
+    gatk --java-options "-Xmx48g" MergeVcfs \
         -O ${sample}.${vc}.temp.vcf.gz\
         -D $GENOMEDICT \
         -I $vcfin
@@ -420,7 +430,7 @@ process combineVariants {
 
 process combineVariants_strelka {
     //Concat all somatic snvs/indels across all files, strelka separates snv/indels
-
+    label 'process_mid'
     publishDir(path: "${outdir}/vcfs/strelka", mode: 'copy')
 
     input:
@@ -437,7 +447,7 @@ process combineVariants_strelka {
 
 
     """
-    bcftools concat $vcfin $indelsin -Oz -o ${sample}.temp.strelka.vcf.gz
+    bcftools concat $vcfin $indelsin --threads $task.cpus -Oz -o ${sample}.temp.strelka.vcf.gz
     bcftools sort ${sample}.temp.strelka.vcf.gz -Oz -o ${sample}.strelka.vcf.gz 
 
     bcftools view ${sample}.strelka.vcf.gz --threads $task.cpus -f PASS -Oz -o ${sample}.filtered.strelka.vcf.gz
@@ -538,6 +548,7 @@ process annotvep_tn {
 
 
 process combinemafs_tn {
+    label 'process_low'
     publishDir(path: "${outdir}/mafs/paired", mode: 'copy')
 
     input: 

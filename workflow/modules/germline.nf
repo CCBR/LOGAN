@@ -142,10 +142,9 @@ process deepvariant_combined {
 
 process glnexus {
 
-    publishDir("${outdir}/deepvariant", mode: 'copy')
-
     module=['glnexus','bcftools']
-    
+
+    publishDir("${outdir}/deepvariant", mode: 'copy')    
     input:
         path(gvcfs)
     

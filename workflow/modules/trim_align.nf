@@ -4,6 +4,7 @@ outdir=file(params.output)
 
 
 process fastp {
+    label 'process_mid'
     tag { name }
 
     input:
@@ -80,6 +81,8 @@ process bqsr {
     /*
     Base quality recalibration for all samples 
     */    
+
+    label 'process_highmem'
     input:
         tuple val(samplename), path("${samplename}.bam"), path("${samplename}.bai"), path(bed)
 
@@ -104,7 +107,7 @@ process bqsr {
 }
 
 process gatherbqsr {
-
+    label 'process_low'
     input: 
         tuple val(samplename), path(recalgroups)
     output:
@@ -132,6 +135,7 @@ process applybqsr {
     /*
     Base quality recalibration for all samples to 
     */   
+    label 'process_highmem'
     publishDir(path: "${outdir}/bams/BQSR", mode: 'copy') 
 
     input:
@@ -163,6 +167,7 @@ process applybqsr {
 
 
 process samtoolsindex {
+    label 'process_mid'
     publishDir(path: "${outdir}/bams/BQSR", mode: 'copy') 
     
     input:
@@ -184,7 +189,8 @@ process samtoolsindex {
 }
 
 //Save to CRAM for output
-process bamtocram_tonly{
+process bamtocram_tonly {
+    label 'process_mid'
     
     input: 
         tuple val(tumorname), path(tumor), path(tumorbai)

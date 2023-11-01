@@ -7,10 +7,12 @@ outdir=file(params.output)
 
 
 process svaba_somatic {
+    label 'process_highcpu'
+
     publishDir(path: "${outdir}/SV/svaba", mode: 'copy') 
 
     input:
-        tuple val(tumorname), path(tumor), path(tumorbai),val(normalname), path(normal), path(normalbai)
+        tuple val(tumorname), path(tumor), path(tumorbai), val(normalname), path(normal), path(normalbai)
     
     output:
         tuple val(tumorname),
@@ -57,7 +59,8 @@ process svaba_somatic {
 
 
 process manta_somatic {
-    //https://github.com/illumina/manta
+
+    label 'process_highcpu'
     publishDir(path: "${outdir}/SV/manta", mode: 'copy') 
 
     input:
@@ -108,35 +111,37 @@ process annotsv_tn {
     publishDir(path: "${outdir}/SV/annotated", mode: 'copy') 
 
     input:
-        tuple val(tumorname), path(somaticvcf)
+        tuple val(tumorname), path(somaticvcf), val(sv)
 
     output:
         tuple val(tumorname),
-        path("${tumorname}.tsv"),
-        path("${tumorname}.unannotated.tsv")
+        path("${sv}/${tumorname}.tsv"),
+        path("${sv}/${tumorname}.unannotated.tsv")
 
 
     script:
     """
+    mkdir ${sv}
+
     AnnotSV -SVinputFile ${somaticvcf} \
     -genomeBuild $GENOME \
     -SVinputInfo 1 -outputFile ${tumorname} \
-    -outputDir .
+    -outputDir ${sv}
 
     """
 
     stub:
     """
-    touch "${tumorname}.tsv"
-    touch "${tumorname}.unannotated.tsv"
+    mkdir ${sv}
+
+    touch "${sv}/${tumorname}.tsv"
+    touch "${sv}/${tumorname}.unannotated.tsv"
     """
 }
 
 
-
-
 process manta_tonly {
-    //https://github.com/illumina/manta
+    label 'process_highcpu'
     publishDir(path: "${outdir}/SVtonly/manta", mode: 'copy') 
 
     input:
@@ -185,6 +190,7 @@ process manta_tonly {
 
 
 process svaba_tonly {
+    label 'process_highcpu'
     publishDir(path: "${outdir}/SVtonly/svaba", mode: 'copy') 
 
     input:
