@@ -164,10 +164,6 @@ def main():
         cmd6=""
     code=c1+"\n"+c2+"\n"+c3+"\n"+cmd1+"\n"+cmd2+"\n"+cmd3+"\n"+cmd4+"\n"+cmd5+"\n"+cmd6
     time1=time.strftime("%Y_%m_%d_%H%M")
-    outswarmmut=args.output+"_"+time1+'.slurm'
-    with open(outswarmmut, "a") as outfile:
-        outfile.write(code+"\n")
-    sbatch_mut="sbatch --cpus-per-task=2 --mem=16g --time 10-00:00:00 --partition norm --output submit_"+time1+".log --error error_"+time1+".log --mail-type=BEGIN,TIME_LIMIT_90,END "+outswarmmut 
     if args.stub:
         cmd1_stub=cmd1+" --split_regions 4 -stub -without-podman T -without-conda -without-docker"
         if (args.vc):
@@ -193,17 +189,17 @@ def main():
         cmd_stub=cmd1_stub+"\n"+cmd2_stub+"\n"+cmd3_stub+"\n"+cmd4_stub+"\n"+cmd5_stub+"\n"+cmd6_stub
         print(cmd_stub)
         os.system(cmd_stub)
-    elif args.submit:
-        sbatch_out='kickoff_'+time1+'.sh'
-        with open(sbatch_out, "a") as outfile:
-            outfile.write(sbatch_mut+"\n")
-        print(sbatch_mut)
-        os.system(sbatch_mut)
     else:
+        outswarmmut=args.output+"_"+time1+'.slurm'
+        with open(outswarmmut, "a") as outfile:
+            outfile.write(code+"\n")
+        sbatch_mut="sbatch --cpus-per-task=2 --mem=16g --time 10-00:00:00 --partition norm --output submit_"+time1+".log --error error_"+time1+".log --mail-type=BEGIN,TIME_LIMIT_90,END "+outswarmmut 
         sbatch_out='kickoff_'+time1+'.sh'
         with open(sbatch_out, "a") as outfile:
             outfile.write(sbatch_mut+"\n")
         print(sbatch_mut)
+        if args.submit:
+            os.system(sbatch_mut)
 if __name__=="__main__":
   main()
 
