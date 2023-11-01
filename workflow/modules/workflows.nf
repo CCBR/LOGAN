@@ -33,8 +33,8 @@ include {mutect2_t_tonly; mutect2filter_tonly;
 
 include {svaba_somatic; manta_somatic; annotsv_tn as annotsv_svaba;annotsv_tn as annotsv_manta} from './structural_variant.nf'
 
-include {sequenza; pileup_sequenza as pileup_sequenza_tum; 
-        pileup_sequenza as pileup_sequenza_norm} from './copynumber.nf'
+include {sequenza; pileup_sequenza as pileup_sequenza_tum; seqz_sequenza_bychr;
+        pileup_sequenza as pileup_sequenza_norm; sequenza_frompile} from './copynumber.nf'
 
 include {splitinterval} from "./splitbed.nf"
 
@@ -292,12 +292,13 @@ workflow SV {
         //Svaba
         svaba_out=svaba_somatic(bamwithsample)
         .map{ tumor,bps,contigs,discord,alignents,gindel,gsv,so_indel,so_sv,unfil_gindel,unfil_gsv,unfil_so_indel,unfil_sv,log ->
-            tuple(tumor,so_sv)} 
+            tuple(tumor,so_sv,"svaba")} 
         annotsv_svaba(svaba_out).ifEmpty("Empty SV input--No SV annotated")
 
         //Manta
         manta_out=manta_somatic(bamwithsample)
-            .map{tumor,gsv,so_sv,unfil_sv,unfil_indel -> tuple(tumor,so_sv)} 
+            .map{tumor,gsv,so_sv,unfil_sv,unfil_indel -> 
+            tuple(tumor,so_sv,"manta")} 
         annotsv_manta(manta_out).ifEmpty("Empty SV input--No SV annotated")
 
 }
@@ -315,20 +316,27 @@ workflow CNV {
         */
         //SPLIT pileup jobs 
         if(params.genome=="mm10"){
-            tout=bamwithsample.multiMap{ tname,tumor,tbai,nname,norm,nbai-> 
-                tumor=tuple(${tname}_${nname},tname, tumor, tbai)
-                norm=tuple(${tname}_${nname},nname, norm, nbai)
-                }
-                .set(pileupout)
+            chrs=Channel.fromList(params.genomes[params.genome].chromosomes)
+            seqzin=bamwithsample.map{tname,tumor,tbai,nname,norm,nbai-> 
+                tuple("${tname}_${nname}",tname,tumor,tbai,nname,norm,nbai)}
+            seqzin.combine(chrs) | seqz_sequenza_bychr
+            seqz_sequenza_bychr.out.groupTuple()   
+              .map{pair, seqz -> tuple(pair, seqz.sort{it.name})}
+                | sequenza 
+                /*it -> (it.name=~ /${pair}_chr(.*?).seqz.gz/)[0][1].toInteger()}
+                )
+                */
+            /*
+            bamwithsample.multiMap{ tname,tumor,tbai,nname,norm,nbai-> 
+                tumor: tuple("${tname}_${nname}",tname, tumor, tbai)
+                norm: tuple("${tname}_${nname}",nname, norm, nbai)
+                }.set{pileupout}
             pileup_sequenza_tum(pileupout.tumor)
             pileup_sequenza_norm(pileupout.norm)
-            sequenza_frompile_tum.out.join(sequenza_frompile_norm) |
-            
-            
-                   .map{it-> tuple(it.simpleName,it,file("${it}.bai"))}
-
-
-
+            pileup_sequenza_tum.out.join(pileup_sequenza_norm.out) 
+                | sequenza_frompile
+            */
+                
         } 
        
 }

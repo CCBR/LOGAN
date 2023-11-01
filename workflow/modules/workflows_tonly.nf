@@ -202,12 +202,13 @@ workflow SV_TONLY {
         //Svaba
         svaba_out=svaba_tonly(bamwithsample)
         .map{ tumor,bps,contigs,discord,alignments,so_indel,so_sv,unfil_so_indel,unfil_sv,log ->
-            tuple(tumor,so_sv)} 
+            tuple(tumor,so_sv,"svaba")} 
         annotsv_svaba_tonly(svaba_out).ifEmpty("Empty SV input--No SV annotated")
 
         //Manta
         manta_out=manta_somatic(bamwithsample)
-            .map{tumor,gsv,so_sv,unfil_sv,unfil_indel,tumorSV -> tuple(tumor,so_sv)} 
+            .map{tumor,gsv,so_sv,unfil_sv,unfil_indel,tumorSV -> 
+            tuple(tumor,so_sv,"manta")} 
         annotsv_manta_tonly(manta_out).ifEmpty("Empty SV input--No SV annotated")
 
 }
