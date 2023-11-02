@@ -14,11 +14,22 @@ LABEL maintainer <nousomedr@nih.gov>
 # working directory and opt directories 
 WORKDIR /opt2 
 
-###Create annotsv DOCKER
+###Create AnnotSV 
 RUN wget https://github.com/lgmgeo/AnnotSV/archive/refs/tags/v3.3.6.tar.gz \
-    && tar -xvjf /opt2/AnnotSV-3.3.6.tar.gz \
-    && rm /opt2/AnnotSV-3.3.6.tar.gz
-ENV PATH="/opt2/AnnotSV-3.3.6:$PATH"
+    && tar -xvjf /opt2/3.3.6.tar.gz \
+    && rm /opt2/3.3.6.tar.gz
+ENV PATH="/opt2/AnnotSV-3.3.6/bin:$PATH"
+
+##ClassifyCNV
+RUN wget https://github.com/Genotek/ClassifyCNV/archive/refs/tags/v1.1.1.tar.gz \
+    && tar -xvjf /opt2/v1.1.1.tar.gz \
+    && rm /opt2/v1.1.1.tar.gz
+ENV PATH="/opt2/ClassifyCNV-1.1.1:$PATH"
+
+##Update the resources for ClassifyCNV
+RUN update_clingen.sh
+
+
 
 COPY Dockerfile /opt2/Dockerfile_${REPONAME}.${BUILD_TAG}
 RUN chmod a+r /opt2/Dockerfile_${REPONAME}.${BUILD_TAG}

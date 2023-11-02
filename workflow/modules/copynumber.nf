@@ -18,8 +18,7 @@ FREECPLOT = params.freec_plot
 outdir=file(params.output)
 
 process seqz_sequenza_bychr {
-
-    label 'process_med'
+    label 'process_mid'
 
     input:
         tuple val(pairid), val(tumorname), path(tumor), path(tumorbai),
@@ -32,7 +31,7 @@ process seqz_sequenza_bychr {
     """
         sequenza-utils bam2seqz \
         -gc ${SEQUENZAGC} \
-        -F $GENOMEREF \ 
+        -F $GENOMEREF \
         -C ${chr} \
         -n ${normal} \
         -t ${tumor} | gzip > "${tumorname}_${normalname}_${chr}.seqz.gz"
@@ -79,15 +78,15 @@ process sequenza {
     shell: 
     '''
     
-    zcat !{seqz} | awk ‘{if (NR==1) {print $0} else {if ($1!="chromosome"){print $0}}}’ |\
+    zcat !{seqz} | awk '{if (NR==1) {print $0} else {if ($1!="chromosome"){print $0}}}' |\
     sequenza-utils seqz_binning \
         -w 100 \
-        -s "!{pairid}.seqz.gz" > "!{pairid}.bin100.seqz"
+        -s - > !{pairid}.bin100.seqz
 
-    Rscript !SEQUENZA_SCRIPT \
-        "!{pairid}.bin100.seqz" \
+    Rscript !{SEQUENZA_SCRIPT} \
+        !{pairid}.bin100.seqz \
         . \
-        "!{pairid}" \
+        !{pairid} \
         !{task.cpus}
 
     '''
