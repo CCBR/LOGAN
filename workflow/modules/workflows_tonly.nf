@@ -31,7 +31,7 @@ include {mutect2_t_tonly; mutect2filter_tonly; pileup_paired_tonly;
 
 include {manta_tonly; svaba_tonly; annotsv_tn as annotsv_manta_tonly; annotsv_tn as annotsv_svaba_tonly} from './structural_variant.nf'
 
-include {freec } from './copynumber.nf'
+include {freec; purple } from './copynumber.nf'
 
 include {splitinterval} from "./splitbed.nf"
 
@@ -219,6 +219,9 @@ workflow CNV_TONLY {
         
     main: 
         //mm10 use sequenza only, hg38 use purple
+        if(params.genome=="hg38"){
+            purple(bamwithsample)
+        }
         if(params.genome=="mm10"){
             freec(bamwithsample)
         } 

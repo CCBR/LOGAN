@@ -45,7 +45,6 @@ def parse_args():
     parser.add_argument('--fastq',help='FQ Inputs')
     parser.add_argument('--file_input',help="TSV file of all fastq files used for input with 3 Colummns Sample Name, Pair1, Pair2")
     parser.add_argument('--bam',help="Glob of all the BAM files []")
-    parser.add_argument('--paired',help='Paired',action="store_true")
     parser.add_argument('--sample_sheet',help="Sample sheet and required for Paired")
     parser.add_argument('--splitregions',default=24,help="How splits per regions")
     parser.add_argument('--vc',help="Add Somatic VC calling",action="store_true")
@@ -71,7 +70,7 @@ def main():
     c2="module load nextflow"
     c3="module load singularity"
     #Paired Mode-> either align/VC/SV/CNV/germline(QC as well) with FASTQ
-    if args.paired and args.sample_sheet:
+    if args.sample_sheet:
         sample_path="--sample_sheet '"+args.sample_sheet+"'"
         ##Input Section
         if args.fastq:
@@ -92,7 +91,7 @@ def main():
         if args.germline:
             germmode="--PIPE_QC"
     else:
-    ##SET DEFAULT for Tumor-Only Modes//Tumor Only Mode (No paired flag or sample sheet)
+    ##SET DEFAULT for Tumor-Only Modes//Tumor Only Mode (No sample sheet)
         alignmode="--PIPE_TONLY_ALIGN"
         qcmode="--PIPE_TONLY_QC"
         if args.vc:
@@ -132,9 +131,13 @@ def main():
     else:
         resume=""
     ###COMBINE ALL COMMANDS (PIPE ALIGN)
+    if args.stub:
+        splitreg="4"
+    else:
+        splitreg=args.splitregions
     commandbase=["nextflow run",dirname + '/main.nf',"-c "+ dirname +"/nextflow.config",
         in1,profile,resume,sample_path,"--genome",args.genome,
-        "--output '" +args.output+"'"+" --split_regions " + str(args.splitregions)]
+        "--output '" +args.output+"'"+" --split_regions " + splitreg]
     commandalign=commandbase + [alignmode]
     cmd1=' '.join(commandalign)
     if (args.vc):
@@ -165,25 +168,25 @@ def main():
     code=c1+"\n"+c2+"\n"+c3+"\n"+cmd1+"\n"+cmd2+"\n"+cmd3+"\n"+cmd4+"\n"+cmd5+"\n"+cmd6
     time1=time.strftime("%Y_%m_%d_%H%M")
     if args.stub:
-        cmd1_stub=cmd1+" --split_regions 4 -stub -without-podman T -without-conda -without-docker"
+        cmd1_stub=cmd1+" -stub -without-podman T -without-conda -without-docker"
         if (args.vc):
-            cmd2_stub=cmd2+" --split_regions 4 -stub -without-podman T -without-conda -without-docker"
+            cmd2_stub=cmd2+" -stub -without-podman T -without-conda -without-docker"
         else:
             cmd2_stub=""
         if (args.sv):
-            cmd3_stub=cmd3+" --split_regions 4 -stub -without-podman T -without-conda -without-docker"
+            cmd3_stub=cmd3+" -stub -without-podman T -without-conda -without-docker"
         else:
             cmd3_stub=""
         if (args.cnv):
-            cmd4_stub=cmd4+" --split_regions 4 -stub -without-podman T -without-conda -without-docker"
+            cmd4_stub=cmd4+" -stub -without-podman T -without-conda -without-docker"
         else:
             cmd4_stub=""
         if (args.germline):
-            cmd5_stub=cmd5+" --split_regions 4 -stub -without-podman T -without-conda -without-docker"
+            cmd5_stub=cmd5+" -stub -without-podman T -without-conda -without-docker"
         else:
             cmd5_stub=""
         if (args.qc):
-            cmd6_stub=cmd6+" --split_regions 4 -stub -without-podman T -without-conda -without-docker"
+            cmd6_stub=cmd6+" -stub -without-podman T -without-conda -without-docker"
         else:
             cmd6_stub=""
         cmd_stub=cmd1_stub+"\n"+cmd2_stub+"\n"+cmd3_stub+"\n"+cmd4_stub+"\n"+cmd5_stub+"\n"+cmd6_stub

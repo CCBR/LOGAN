@@ -160,6 +160,7 @@ process contamination_paired {
     
 }
 
+
 process learnreadorientationmodel {
     label 'process_highmem'
 
@@ -185,7 +186,6 @@ process learnreadorientationmodel {
     touch ${sample}.read-orientation-model.tar.gz
     """
 }
-
 
 
 process mergemut2stats {
@@ -214,8 +214,6 @@ process mergemut2stats {
     """
 
 }
-
-
 
 
 process mutect2filter {
@@ -267,7 +265,6 @@ process mutect2filter {
 
 
 }
-
 
 
 process strelka_tn {
@@ -355,7 +352,6 @@ process vardict_tn {
 }
 
 
-
 process varscan_tn {
     label 'process_somaticcaller'
 
@@ -385,6 +381,35 @@ process varscan_tn {
     """
 
 }
+
+process octopus_tn {
+       label 'process_highcpu'
+
+    input:
+        tuple val(tumorname), path(tumor), path(tumorbai), val(normalname), path(normal), path(normalbai), path(bed)
+    
+    output:
+        tuple val(tumorname),
+        path("${tumorname}_vs_${normalname}_${bed.simpleName}.octopus.vcf")
+    
+    script:
+
+    """
+    octopus -R $GENOMEREF -I ${normal} ${tumor} --normal-sample ${normalname} \
+    --annotations AC AD DP -t ${bed} \
+    --forest $GERMLINE_FOREST \
+    --somatic-forest $SOMATIC_FOREST \
+    -o ${tumorname}_vs_${normalname}_${bed.simpleName}.octopus.vcf --threads $task.cpus
+    """
+
+    stub:
+    
+    """
+    touch "${tumorname}_vs_${normalname}_${bed.simpleName}.octopus.vcf"
+    """
+
+} 
+
 
 process combineVariants {
     label 'process_highmem'
@@ -464,20 +489,6 @@ process combineVariants_strelka {
 
 }
 
-/*
-process combineVariants_allcallers {
-
-    publishDir(path: "${outdir}/vcfs/", mode: 'copy')
-
-    input:
-        tuple val(sample), path(inputvcf), val(vc)
-    
-    output:
-        tuple val(sample), 
-        path("${vc}/${sample}.${vc}.marked.vcf.gz"), path("${vc}/${sample}.${vc}.norm.vcf.gz")
-
-}
-*/
 
 process annotvep_tn {    
     publishDir(path: "${outdir}/mafs/", mode: 'copy')
@@ -572,3 +583,19 @@ process combinemafs_tn {
     """
 }
 
+
+
+/*
+process combineVariants_allcallers {
+
+    publishDir(path: "${outdir}/vcfs/", mode: 'copy')
+
+    input:
+        tuple val(sample), path(inputvcf), val(vc)
+    
+    output:
+        tuple val(sample), 
+        path("${vc}/${sample}.${vc}.marked.vcf.gz"), path("${vc}/${sample}.${vc}.norm.vcf.gz")
+
+}
+*/

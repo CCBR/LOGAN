@@ -10,9 +10,11 @@ PIPE_ALIGN=params.PIPE_ALIGN
 PIPE_VC=params.PIPE_VC
 PIPE_SV=params.PIPE_SV
 PIPE_CNV=params.PIPE_CNV
-PIPE_QC=params.PIPE_QC
-PIPE_GERMLINE=params.PIPE_GERMLINE
 
+PIPE_QC_GL=params.PIPE_QC_GL
+PIPE_QC_NOGL=params.PIPE_QC_NOGL
+
+PIPE_GL=params.PIPE_GL
 PIPE_BAMVC=params.PIPE_BAMVC
 
 PIPE_TONLY_ALIGN=params.PIPE_TONLY_ALIGN
@@ -23,10 +25,11 @@ PIPE_TONLY_CNV=params.PIPE_TONLY_CNV
 PIPE_TONLY_BAMVC=params.PIPE_TONLY_BAMVC
 PIPE_TONLY_QC=params.PIPE_TONLY_QC
 
+GENOME=params.genome
 
-include {INPUT; ALIGN; GERMLINE;
-    VC; INPUT_BAMVC; SV; CNV;
-    QC} from "./workflow/modules/workflows.nf"
+include {INPUT; ALIGN; GL;
+    VC; INPUT_BAMVC; SV; CNVmm10; CNVhg38;
+    QC_GL; QC_NOGL} from "./workflow/modules/workflows.nf"
 
 
 include {INPUT_TONLY; ALIGN_TONLY;
@@ -55,13 +58,11 @@ workflow {
         INPUT()
         ALIGN(INPUT.out.fastqinput,INPUT.out.sample_sheet)
     } 
-
-
     //Germline
-    if (PIPE_GERMLINE){
+    if (PIPE_GL){
         INPUT()
         ALIGN(INPUT.out.fastqinput,INPUT.out.sample_sheet)
-        GERMLINE(ALIGN.out.bambyinterval)
+        GL(ALIGN.out.bambyinterval)
     }
 
     //Tumor-Normal Pipelines
@@ -70,22 +71,31 @@ workflow {
         ALIGN(INPUT.out.fastqinput,INPUT.out.sample_sheet)
         VC(ALIGN.out.bamwithsample,ALIGN.out.splitout,ALIGN.out.sample_sheet)
     }
-    if (PIPE_QC){
+    if (PIPE_QC_GL){
         INPUT()
         ALIGN(INPUT.out.fastqinput,INPUT.out.sample_sheet)
-        GERMLINE(ALIGN.out.bambyinterval)
-        QC(ALIGN.out.fastqin,ALIGN.out.fastpout,ALIGN.out.bqsrout,GERMLINE.out.glnexusout,GERMLINE.out.bcfout)
-
+        GL(ALIGN.out.bambyinterval)
+        QC_GL(ALIGN.out.fastqin,ALIGN.out.fastpout,ALIGN.out.bqsrout,GL.out.glnexusout,GL.out.bcfout)
+    }  
+    if (PIPE_QC_NOGL){
+        INPUT()
+        ALIGN(INPUT.out.fastqinput,INPUT.out.sample_sheet)
+        QC_NOGL(ALIGN.out.fastqin,ALIGN.out.fastpout,ALIGN.out.bqsrout)
     }  
     if (PIPE_SV){
         INPUT()
         ALIGN(INPUT.out.fastqinput,INPUT.out.sample_sheet)
         SV(ALIGN.out.bamwithsample)
     }  
-    if (PIPE_CNV){
+    if (PIPE_CNV && params.genome == "mm10"){
         INPUT()
         ALIGN(INPUT.out.fastqinput,INPUT.out.sample_sheet)
-        CNV(ALIGN.out.bamwithsample)
+        CNV_mm10(ALIGN.out.bamwithsample)
+    }  
+  if (PIPE_CNV && params.genome == "hg38"){
+        INPUT()
+        ALIGN(INPUT.out.fastqinput,INPUT.out.sample_sheet)
+        CNV_mm10(ALIGN.out.bamwithsample)
     }  
     if (PIPE_BAMVC){
         INPUT_BAMVC()

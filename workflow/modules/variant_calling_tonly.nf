@@ -224,10 +224,6 @@ process mutect2filter_tonly {
 }
 
 
-
-
-
-
 process varscan_tonly {
     label 'process_somaticcaller'
     input:
@@ -259,6 +255,7 @@ process varscan_tonly {
     """
 
 }
+
 
 process vardict_tonly {
     label 'process_highcpu'
@@ -297,7 +294,35 @@ process vardict_tonly {
 
     """
 
+}
 
+
+process octopus_tonly {
+       label 'process_highcpu'
+
+    input:
+        tuple val(tumorname), path(tumor), path(tumorbai), path(bed)
+    
+    output:
+        tuple val(tumorname),
+        path("${tumorname}_${bed.simpleName}.octopus.vcf")
+    
+    script:
+
+    """
+    octopus -R $GENOMEREF -C cancer -I ${tumor} \
+    --annotations AC AD DP -t ${bed} \
+    --somatic-forest $SOMATIC_FOREST \
+    -o ${tumorname}_${bed.simpleName}.octopus.vcf --threads $task.cpus
+
+    """
+
+    stub:
+    
+    """
+    touch ${tumorname}_${bed.simpleName}.octopus.vcf
+
+    """
 }
 
 
