@@ -15,25 +15,31 @@ PIPE_QC_GL=params.PIPE_QC_GL
 PIPE_QC_NOGL=params.PIPE_QC_NOGL
 
 PIPE_GL=params.PIPE_GL
-PIPE_BAMVC=params.PIPE_BAMVC
 
 PIPE_TONLY_ALIGN=params.PIPE_TONLY_ALIGN
 PIPE_TONLY_VC=params.PIPE_TONLY_VC
 PIPE_TONLY_SV=params.PIPE_TONLY_SV
 PIPE_TONLY_CNV=params.PIPE_TONLY_CNV
-
-PIPE_TONLY_BAMVC=params.PIPE_TONLY_BAMVC
 PIPE_TONLY_QC=params.PIPE_TONLY_QC
 
-GENOME=params.genome
+
+PIPE_BAMVC=params.PIPE_BAMVC
+PIPE_BAMSV=params.PIPE_BAMCNV
+PIPE_BAMCNV=params.PIPE_BAMCNV
+
+PIPE_TONLY_BAMVC=params.PIPE_TONLY_BAMVC
+PIPE_TONLY_BAMSV=params.PIPE_TONLY_BAMCNV
+PIPE_TONLY_BAMCNV=params.PIPE_TONLY_BAMCNV
+
 
 include {INPUT; ALIGN; GL;
     VC; INPUT_BAMVC; SV; CNVmm10; CNVhg38;
     QC_GL; QC_NOGL} from "./workflow/modules/workflows.nf"
 
 
-include {INPUT_TONLY; ALIGN_TONLY;
-    VC_TONLY; INPUT_TONLY_BAMVC; QC_TONLY} from "./workflow/modules/workflows_tonly.nf"
+include {INPUT_TONLY; INPUT_TONLY_BAM;
+    ALIGN_TONLY;
+    VC_TONLY; SV_TONLY; CNV_TONLY; QC_TONLY } from "./workflow/modules/workflows_tonly.nf"
 
 
 log.info """\
@@ -52,7 +58,6 @@ log.info """\
 
 //Final Workflow
 workflow {
-
 
     if (PIPE_ALIGN){
         INPUT()
@@ -87,27 +92,40 @@ workflow {
         ALIGN(INPUT.out.fastqinput,INPUT.out.sample_sheet)
         SV(ALIGN.out.bamwithsample)
     }  
-    if (PIPE_CNV && params.genome == "mm10"){
+    if (PIPE_CNV){
         INPUT()
         ALIGN(INPUT.out.fastqinput,INPUT.out.sample_sheet)
-        CNV_mm10(ALIGN.out.bamwithsample)
-    }  
-  if (PIPE_CNV && params.genome == "hg38"){
-        INPUT()
-        ALIGN(INPUT.out.fastqinput,INPUT.out.sample_sheet)
-        CNV_mm10(ALIGN.out.bamwithsample)
+        if (params.genome == "mm10"){
+            CNVmm10(ALIGN.out.bamwithsample)
+        } else if (params.genome== "hg38"){
+            CNVhg38(ALIGN.out.bamwithsample)
+
+        }
     }  
     if (PIPE_BAMVC){
         INPUT_BAMVC()
         VC(INPUT_BAMVC.out.bamwithsample,INPUT_BAMVC.out.splitout,INPUT_BAMVC.out.sample_sheet)
     }  
+    if (PIPE_BAMSV){
+        INPUT_BAMVC()
+        SV(INPUT_BAMVC.out.bamwithsample)
+    }  
+    if (PIPE_BAMCNV){
+        INPUT_BAMVC()
+        if (params.genome == "mm10"){
+            CNVmm10(INPUT_BAMVC.out.bamwithsample)
+        } else if (params.genome== "hg38"){
+            CNVhg38(INPUT_BAMVC.out.bamwithsample)
+
+        }
+    }  
+
 
     ///Tumor Only Pipelines
     if (PIPE_TONLY_ALIGN){
         INPUT_TONLY()
         ALIGN_TONLY(INPUT_TONLY.out.fastqinput,INPUT_TONLY.out.sample_sheet)
     }
-
     if (PIPE_TONLY_VC){
         INPUT_TONLY()
         ALIGN_TONLY(INPUT_TONLY.out.fastqinput,INPUT_TONLY.out.sample_sheet)
@@ -116,24 +134,37 @@ workflow {
     if (PIPE_TONLY_SV){
         INPUT_TONLY()
         ALIGN_TONLY(INPUT_TONLY.out.fastqinput,INPUT_TONLY.out.sample_sheet)
-        SV_TONLY(ALIGN.out.bamwithsample)
+        SV_TONLY(ALIGN_TONLY.out.bamwithsample)
     }   
     if (PIPE_TONLY_CNV){
         INPUT_TONLY()
         ALIGN_TONLY(INPUT_TONLY.out.fastqinput,INPUT_TONLY.out.sample_sheet)
-        CNV_TONLY(ALIGN.out.bamwithsample)
-    }    
+        if (params.genome == "mm10"){
+            CNV_TONLY(INPUT_TONLY.out.bamwithsample)
+        } else if (params.genome== "hg38"){
+            CNV_TONLY(INPUT_TONLY.out.bamwithsample)
+
+        }
+    }  
+
     if (PIPE_TONLY_QC){
         INPUT_TONLY()
         ALIGN_TONLY(INPUT_TONLY.out.fastqinput,INPUT_TONLY.out.sample_sheet)
         QC_TONLY(ALIGN_TONLY.out.fastqin,ALIGN_TONLY.out.fastpout,ALIGN_TONLY.out.bqsrout)
 
     }  
-
-    //Variant Calling from BAM only/Tumor Only
+    //Variant Calling from BAM/Tumor Only
     if (PIPE_TONLY_BAMVC){
-        INPUT_TONLY_BAMVC()
-        VC_TONLY(ALIGN_TONLY.out.bamwithsample,ALIGN_TONLY.out.splitout,ALIGN_TONLY.out.sample_sheet)
+        INPUT_TONLY_BAM()
+        VC_TONLY(INPUT_TONLY_BAM.out.bamwithsample,INPUT_TONLY_BAM.out.splitout,INPUT_TONLY_BAM.out.sample_sheet)
+    }
+    if (PIPE_TONLY_BAMSV){
+        INPUT_TONLY_BAM()
+        SV_TONLY(INPUT_TONLY_BAM.out.bamwithsample,INPUT_TONLY_BAM.out.splitout,INPUT_TONLY_BAM.out.sample_sheet)
+    }  
+    if (PIPE_TONLY_BAMCNV){
+        INPUT_TONLY_BAM()
+        CNV_TONLY(INPUT_TONLY_BAM.out.bamwithsample,INPUT_TONLY_BAM.out.splitout,INPUT_TONLY_BAM.out.sample_sheet)
     }  
 }
 

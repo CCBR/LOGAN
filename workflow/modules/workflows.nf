@@ -36,7 +36,7 @@ include {mutect2_t_tonly; mutect2filter_tonly;
 
 include {svaba_somatic; manta_somatic; annotsv_tn as annotsv_svaba;annotsv_tn as annotsv_manta} from './structural_variant.nf'
 
-include {sequenza;  seqz_sequenza_bychr; freec } from './copynumber.nf'
+include {sequenza; seqz_sequenza_bychr; freec; freec_paired } from './copynumber.nf'
 
 include {splitinterval} from "./splitbed.nf"
 
@@ -327,9 +327,7 @@ workflow CNVmm10 {
             seqz_sequenza_bychr.out.groupTuple()   
               .map{pair, seqz -> tuple(pair, seqz.sort{it.name})}
                 | sequenza 
-            bamwithsample.map{tname,tumor,tbai,nname,norm,nbai-> 
-                tuple(tname,tumor,tbai)} | freec 
-                
+            bamwithsample | freec_paired
         } 
 }
 

@@ -6,6 +6,7 @@ outdir=file(params.output)
 process fastp {
     label 'process_mid'
     tag { name }
+    publishDir(path: "${outdir}/QC/fastp", mode: 'copy', pattern: '{*fastp.json,*fastp.html}') 
 
     input:
     tuple val(samplename), path(fqs)

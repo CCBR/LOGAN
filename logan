@@ -79,6 +79,7 @@ def main():
             in1="--file_input "+args.file_input
         elif args.bam:
             in1="--bam "+args.bam
+            baminput=True
         else:
             print("Missing sample sheet for paired mode or you would like Tumor only mode?")
         alignmode='--PIPE_ALIGN'
@@ -89,33 +90,61 @@ def main():
         if args.cnv:
             cnvmode="--PIPE_CNV"
         if args.germline:
-            germmode="--PIPE_QC"
+            germmode="--PIPE_GERMLINE"
+        if args.qc and args.germline:
+            qcmode="--PIPE_QC_GL"
+        elif args.qc:
+            qcmode="--PIPE_QC_NOGL"
     else:
     ##SET DEFAULT for Tumor-Only Modes//Tumor Only Mode (No sample sheet)
         alignmode="--PIPE_TONLY_ALIGN"
         qcmode="--PIPE_TONLY_QC"
+        if (args.file_input and re.search(r'.bam', open(args.file_input, 'r').read())) or args.bam:
+            baminput = True
+        sample_path=""
         if args.vc:
-            sample_path=""
             if args.fastq:
                 vcmode="--PIPE_TONLY_VC"
                 in1="--fastq_input '"+args.fastq+"'"
-            if args.file_input:
-                vcmode="--PIPE_TONLY_VC"
-                in1="--file_input '"+args.file_input+"'"
             elif args.bam:
                 vcmode="--PIPE_TONLY_BAMVC"
                 in1="--bam_input '"+args.bam+"'"
             elif args.file_input:
-                vcmode="--PIPE_TONLY_BAMVC"
                 in1="--file_input "+args.file_input
-        if args.qc:
-            sample_path=""
+                bamin = re.search(r'.bam', open(args.file_input, 'r').read())
+                if bamin: 
+                    vcmode="--PIPE_TONLY_BAMVC"
+                else:
+                    vcmode="--PIPE_TONLY_VC"
+        if args.sv:
             if args.fastq:
+                svmode="--PIPE_TONLY_SV"
                 in1="--fastq_input '"+args.fastq+"'"
             elif args.bam:
+                svmode="--PIPE_TONLY_BAMSV"
                 in1="--bam_input '"+args.bam+"'"
-        else: 
-            sample_path=""
+            elif args.file_input:
+                in1="--file_input "+args.file_input
+                bamin = re.search(r'.bam', open(args.file_input, 'r').read())
+                if bamin: 
+                    svmode="--PIPE_TONLY_BAMSV"
+                else:
+                    svmode="--PIPE_TONLY_SV"
+        if args.cnv:
+            if args.fastq:
+                cnvmode="--PIPE_TONLY_CNV"
+                in1="--fastq_input '"+args.fastq+"'"
+            elif args.bam:
+                cnvmode="--PIPE_TONLY_BAMCNV"
+                in1="--bam_input '"+args.bam+"'"
+            elif args.file_input:
+                in1="--file_input "+args.file_input
+                bamin = re.search(r'.bam', open(args.file_input, 'r').read())
+                if bamin: 
+                    cnvmode="--PIPE_TONLY_BAMCNV"
+                else:
+                    cnvmode="--PIPE_TONLY_CNV"
+        if args.qc:
             if args.fastq:
                 in1="--fastq_input '"+args.fastq+"'"
             elif args.file_input:
@@ -134,12 +163,16 @@ def main():
     if args.stub:
         splitreg="4"
     else:
-        splitreg=args.splitregions
+        splitreg=str(args.splitregions)
     commandbase=["nextflow run",dirname + '/main.nf',"-c "+ dirname +"/nextflow.config",
         in1,profile,resume,sample_path,"--genome",args.genome,
         "--output '" +args.output+"'"+" --split_regions " + splitreg]
-    commandalign=commandbase + [alignmode]
-    cmd1=' '.join(commandalign)
+    ##FINAL COMMANDS
+    if not 'baminput' in locals():
+        commandalign=commandbase + [alignmode]
+        cmd1=' '.join(commandalign)
+    else:
+        cmd1=''
     if (args.vc):
         commandvc=commandbase + [vcmode]
         cmd2=' '.join(commandvc)
@@ -156,8 +189,8 @@ def main():
     else:
         cmd4=""
     if (args.germline):
-        commandgermline=commandbase + [germmode]
-        cmd5=' '.join(commandgermline)
+        commandgl=commandbase + [germmode]
+        cmd5=' '.join(commandgl)
     else:
         cmd5=""
     if (args.qc):
@@ -167,26 +200,27 @@ def main():
         cmd6=""
     code=c1+"\n"+c2+"\n"+c3+"\n"+cmd1+"\n"+cmd2+"\n"+cmd3+"\n"+cmd4+"\n"+cmd5+"\n"+cmd6
     time1=time.strftime("%Y_%m_%d_%H%M")
+    stubbase=" -stub -without-podman T -without-conda -without-docker"
     if args.stub:
-        cmd1_stub=cmd1+" -stub -without-podman T -without-conda -without-docker"
+        cmd1_stub=cmd1 + stubbase
         if (args.vc):
-            cmd2_stub=cmd2+" -stub -without-podman T -without-conda -without-docker"
+            cmd2_stub=cmd2 + stubbase
         else:
             cmd2_stub=""
         if (args.sv):
-            cmd3_stub=cmd3+" -stub -without-podman T -without-conda -without-docker"
+            cmd3_stub=cmd3 + stubbase
         else:
             cmd3_stub=""
         if (args.cnv):
-            cmd4_stub=cmd4+" -stub -without-podman T -without-conda -without-docker"
+            cmd4_stub=cmd4 + stubbase
         else:
             cmd4_stub=""
         if (args.germline):
-            cmd5_stub=cmd5+" -stub -without-podman T -without-conda -without-docker"
+            cmd5_stub=cmd5 + stubbase
         else:
             cmd5_stub=""
         if (args.qc):
-            cmd6_stub=cmd6+" -stub -without-podman T -without-conda -without-docker"
+            cmd6_stub=cmd6 + stubbase
         else:
             cmd6_stub=""
         cmd_stub=cmd1_stub+"\n"+cmd2_stub+"\n"+cmd3_stub+"\n"+cmd4_stub+"\n"+cmd5_stub+"\n"+cmd6_stub

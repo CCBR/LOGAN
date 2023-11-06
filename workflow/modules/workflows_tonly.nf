@@ -110,7 +110,6 @@ workflow ALIGN_TONLY {
         fastpout=fastp.out
         fastqin=fastqinput
         splitout=splitinterval.out
-        //indelbambyinterval
         bqsrbambyinterval
         sample_sheet
         bqsrout=applybqsr.out
@@ -206,7 +205,7 @@ workflow SV_TONLY {
         annotsv_svaba_tonly(svaba_out).ifEmpty("Empty SV input--No SV annotated")
 
         //Manta
-        manta_out=manta_somatic(bamwithsample)
+        manta_out=manta_tonly(bamwithsample)
             .map{tumor,gsv,so_sv,unfil_sv,unfil_indel,tumorSV -> 
             tuple(tumor,so_sv,"manta")} 
         annotsv_manta_tonly(manta_out).ifEmpty("Empty SV input--No SV annotated")
@@ -245,11 +244,9 @@ workflow QC_TONLY {
     samtools_flagstats(bqsrout)
     qualimap_bamqc(bqsrout)
 
-
     somalier_extract(bqsrout) 
     som_in=somalier_extract.out.collect()
     somalier_analysis(som_in)
-    
     
     //Prep for MultiQC input
     fclane_out=fc_lane.out.map{samplename,info->info}.collect()
@@ -275,7 +272,7 @@ workflow QC_TONLY {
 
 
 //Variant Calling from BAM only
-workflow INPUT_TONLY_BAMVC {
+workflow INPUT_TONLY_BAM {
     main:
   
     //Either BAM Input or File sheet input 
@@ -303,7 +300,7 @@ workflow INPUT_TONLY_BAMVC {
     emit:
         bamwithsample
         splitout=splitinterval.out
-       sample_sheet
+        sample_sheet
     
 
 }

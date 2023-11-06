@@ -9,6 +9,7 @@ FREECPILEUP=file(params.genomes[params.genome].FREEC.FREECPILEUP)
 FREECSNPS = file(params.genomes[params.genome].FREEC.FREECSNPS)
 FREECTARGETS=file(params.genomes[params.genome].intervals)
 FREECSCRIPT = params.script_freec
+FREECPAIR_SCRIPT = params.script_freecpaired
 FREECSIGNIFICANCE = params.freec_significance
 FREECPLOT = params.freec_plot
 }
@@ -125,6 +126,49 @@ process sequenza {
 
     """
 
+}
+
+process freec_paired {
+    label 'process_highcpu'
+    publishDir("${outdir}/cnv/freec", mode: 'copy')
+
+    input:
+        tuple val(tumorname), path(tumor), path(tumorbai), val(normalname), path(normal), path(normalbai)
+
+    shell: """
+
+    perl $FREECPAIR_SCRIPT \
+        . \
+        $FREECLENGTHS \
+        $FREECCHROMS \
+        ${tumor} \
+        ${normal} \
+        $FREECPILE \
+        $GENOMEREF \
+        $FREECSNPS \
+        $FREECTARGETS
+
+    freec -conf freec_genome_config.txt
+
+    cat $FREECSIGNIFICANCE | \
+        R --slave \
+        --args ${tumorname}.bam_CNVs \
+        ${tumorname}.bam_ratio.txt
+
+    cat $FREECPLOT | \
+        R --slave \
+        --args 2 \
+        ${tumorname}_vs_${normalname}.bam_ratio.txt \
+        ${tumorname}_vs_${normalname}.bam_BAF.txt
+
+    """      
+
+    stub:
+    """
+    touch ${tumorname}_vs_${normalname}.bam_CNVs.p.value.txt  
+    touch ${tumorname}_vs_${normalname}.bam_ratio.txt 
+    touch ${tumorname}_vs_${normalname}.bam_BAF.txt 
+    """
 }
 
 
