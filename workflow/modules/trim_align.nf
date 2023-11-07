@@ -83,7 +83,7 @@ process bqsr {
     Base quality recalibration for all samples 
     */    
 
-    label 'process_highmem'
+    label 'process_low'
     input:
         tuple val(samplename), path("${samplename}.bam"), path("${samplename}.bai"), path(bed)
 
@@ -136,7 +136,7 @@ process applybqsr {
     /*
     Base quality recalibration for all samples to 
     */   
-    label 'process_highmem'
+    label 'process_low'
     publishDir(path: "${outdir}/bams/BQSR", mode: 'copy') 
 
     input:
