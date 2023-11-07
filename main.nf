@@ -140,9 +140,9 @@ workflow {
         INPUT_TONLY()
         ALIGN_TONLY(INPUT_TONLY.out.fastqinput,INPUT_TONLY.out.sample_sheet)
         if (params.genome == "mm10"){
-            CNV_TONLY(INPUT_TONLY.out.bamwithsample)
+            CNV_TONLY(ALIGN_TONLY.out.bamwithsample)
         } else if (params.genome== "hg38"){
-            CNV_TONLY(INPUT_TONLY.out.bamwithsample)
+            CNV_TONLY(ALIGN_TONLY.out.bamwithsample)
 
         }
     }  

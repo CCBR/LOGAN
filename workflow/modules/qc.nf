@@ -195,7 +195,7 @@ process qualimap_bamqc {
     //module: config['images']['qualimap']
     
     input:
-        tuple val(samplename), path("${samplename}.bqsr.bam"), path("${samplename}.bqsr.bai")
+        tuple val(samplename), path(bam), path(bai)
 
     output: 
         tuple path("${samplename}_genome_results.txt"), path("${samplename}_qualimapReport.html")
@@ -203,7 +203,7 @@ process qualimap_bamqc {
     script: 
     """
     unset DISPLAY
-    qualimap bamqc -bam ${samplename}.bqsr.bam \
+    qualimap bamqc -bam ${bam} \
         --java-mem-size=112G \
         -c -ip \
         -outdir ${samplename} \
@@ -239,14 +239,14 @@ process samtools_flagstats {
     publishDir("${outdir}/QC/flagstats/", mode: "copy")
     
     input:
-        tuple val(samplename), path("${samplename}.bqsr.bam"), path("${samplename}.bqsr.bai")
+        tuple val(samplename), path(bam), path(bai)
     
     output:
         path("${samplename}.samtools_flagstat.txt")
 
     script: 
     """
-    samtools flagstat ${samplename}.bqsr.bam > ${samplename}.samtools_flagstat.txt
+    samtools flagstat ${bam} > ${samplename}.samtools_flagstat.txt
     """
 
     stub:
@@ -274,7 +274,7 @@ process mosdepth {
     publishDir("${outdir}/QC/mosdepth/", mode: "copy")
 
     input:
-        tuple val(samplename), path("${samplename}.bqsr.bam"), path("${samplename}.bqsr.bai")
+        tuple val(samplename), path(bam), path(bai)
     
     output:
         path("${samplename}.mosdepth.region.dist.txt"),
@@ -285,7 +285,7 @@ process mosdepth {
 
     script: 
     """
-    mosdepth -n --fast-mode --by 500  ${samplename} ${samplename}.bqsr.bam -t $task.cpus
+    mosdepth -n --fast-mode --by 500  ${samplename} ${bam} -t $task.cpus
     """
 
     stub:
