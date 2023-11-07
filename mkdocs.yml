@@ -1,6 +1,6 @@
-site_name: CCBR wgs-seek
+site_name: CCBR LOGAN
 site_description: >-
-  CCBR Whole Genome Sequencing Pipeline 
+  CCBR LOGAN-whoLe genOme-sequencinG Analysis pipeliNe
 nav:
   - Home: 'index.md'
   - Pipeline:
