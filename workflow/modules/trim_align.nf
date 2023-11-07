@@ -6,6 +6,7 @@ outdir=file(params.output)
 process fastp {
     label 'process_mid'
     tag { name }
+    publishDir(path: "${outdir}/QC/fastp", mode: 'copy', pattern: '{*fastp.json,*fastp.html}') 
 
     input:
     tuple val(samplename), path(fqs)
@@ -82,7 +83,7 @@ process bqsr {
     Base quality recalibration for all samples 
     */    
 
-    label 'process_highmem'
+    label 'process_low'
     input:
         tuple val(samplename), path("${samplename}.bam"), path("${samplename}.bai"), path(bed)
 
@@ -91,7 +92,7 @@ process bqsr {
 
     script:
     """
-    gatk --java-options '-Xmx32g' BaseRecalibrator \
+    gatk --java-options '-Xmx16g' BaseRecalibrator \
     --input ${samplename}.bam \
     --reference ${GENOMEREF} \
     ${KNOWNRECAL} \
@@ -135,7 +136,7 @@ process applybqsr {
     /*
     Base quality recalibration for all samples to 
     */   
-    label 'process_highmem'
+    label 'process_low'
     publishDir(path: "${outdir}/bams/BQSR", mode: 'copy') 
 
     input:
@@ -178,7 +179,7 @@ process samtoolsindex {
 
     script:
     """
-    samtools index -@ 4 ${bam} ${bam}.bai
+    samtools index -@ $task.cpus ${bam} ${bam}.bai
     """
 
     stub:
@@ -200,7 +201,7 @@ process bamtocram_tonly {
 
     script:
     """
-        samtools view -@ 4 -C -T $GENOMEREF -o ${sample}.cram {$tumor}.bam
+        samtools view -@ $task.cpus -C -T $GENOMEREF -o ${sample}.cram {$tumor}.bam
     """
 }
 

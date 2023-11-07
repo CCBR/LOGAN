@@ -7,6 +7,8 @@ PON=file(params.genomes[params.genome].pon)
 VEPCACHEDIR=file(params.genomes[params.genome].vepcache)
 VEPSPECIES=params.genomes[params.genome].vepspecies
 VEPBUILD=params.genomes[params.genome].vepbuild
+SOMATIC_FOREST=params.genomes[params.genome].octopus_sforest
+GERMLINE_FOREST=params.genomes[params.genome].octopus_gforest
 
 //Output
 outdir=file(params.output)
@@ -204,7 +206,7 @@ process mutect2filter_tonly {
 
     gatk SelectVariants \
         -R $GENOMEREF \
-        --variant ${sample}.tonly.marked.vcf.gz \
+        --variant ${sample}.tonly.mut2.marked.vcf.gz \
         --exclude-filtered \
         --output ${sample}.tonly.mut2.final.vcf.gz
 
@@ -222,10 +224,6 @@ process mutect2filter_tonly {
     touch ${sample}.tonly.marked.vcf.gz.filteringStats.tsv
     """
 }
-
-
-
-
 
 
 process varscan_tonly {
@@ -259,6 +257,7 @@ process varscan_tonly {
     """
 
 }
+
 
 process vardict_tonly {
     label 'process_highcpu'
@@ -297,7 +296,35 @@ process vardict_tonly {
 
     """
 
+}
 
+
+process octopus_tonly {
+       label 'process_highcpu'
+
+    input:
+        tuple val(tumorname), path(tumor), path(tumorbai), path(bed)
+    
+    output:
+        tuple val(tumorname),
+        path("${tumorname}_${bed.simpleName}.octopus.vcf")
+    
+    script:
+
+    """
+    octopus -R $GENOMEREF -C cancer -I ${tumor} \
+    --annotations AC AD DP -t ${bed} \
+    --somatic-forest $SOMATIC_FOREST \
+    -o ${tumorname}_${bed.simpleName}.octopus.vcf --threads $task.cpus
+
+    """
+
+    stub:
+    
+    """
+    touch ${tumorname}_${bed.simpleName}.octopus.vcf
+
+    """
 }
 
 
