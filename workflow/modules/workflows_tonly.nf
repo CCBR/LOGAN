@@ -17,16 +17,18 @@ include {fastp; bwamem2;
 include {mutect2; mutect2filter; pileup_paired_t; pileup_paired_n; 
     contamination_paired; learnreadorientationmodel;mergemut2stats;
     combineVariants as combineVariants_vardict; combineVariants as combineVariants_varscan; 
-    combineVariants as combineVariants_vardict_tonly; combineVariants as combineVariants_varscan_tonly
+    combineVariants as combineVariants_vardict_tonly; combineVariants as combineVariants_varscan_tonly;
+    combineVariants as combineVariants_octopus_tonly; 
     annotvep_tn as annotvep_tn_mut2; annotvep_tn as annotvep_tn_strelka; annotvep_tn as annotvep_tn_varscan; annotvep_tn as annotvep_tn_vardict;
     combinemafs_tn} from './variant_calling.nf'
 
 include {mutect2_t_tonly; mutect2filter_tonly; pileup_paired_tonly; 
-    varscan_tonly; vardict_tonly; 
+    varscan_tonly; vardict_tonly; octopus_tonly;
     contamination_tumoronly;
     learnreadorientationmodel_tonly; 
     mergemut2stats_tonly;
-    annotvep_tonly as annotvep_tonly_varscan; annotvep_tonly as annotvep_tonly_vardict; annotvep_tonly as annotvep_tonly_mut2;
+    annotvep_tonly as annotvep_tonly_varscan; annotvep_tonly as annotvep_tonly_vardict; 
+    annotvep_tonly as annotvep_tonly_mut2; annotvep_tonly as annotvep_tonly_octopus;
     combinemafs_tonly} from './variant_calling_tonly.nf'
 
 include {manta_tonly; svaba_tonly; annotsv_tn as annotsv_manta_tonly; annotsv_tn as annotsv_svaba_tonly} from './structural_variant.nf'
@@ -186,6 +188,15 @@ workflow VC_TONLY {
     
     varscan_tonly_comb.join(sample_sheet)
     .map{tumor,marked,normvcf ->tuple(tumor,"varscan_tonly",normvcf)} | annotvep_tonly_varscan
+
+     //Octopus_tonly
+    octopus_tonly_comb=bambyinterval.map{tumor,bam,bai,bed->
+    tuple(tumor,bam,bai,bed)} | octopus_tonly 
+    octopus_tonly_comb1=octopus_tonly_comb.groupTuple().map{tumor,vcf-> tuple(tumor,vcf,"octopus_tonly")} | combineVariants_octopus_tonly
+    
+    octopus_tonly_comb1.join(sample_sheet)
+    .map{tumor,marked,normvcf ->tuple(tumor,"octopus_tonly",normvcf)} | annotvep_tonly_octopus
+
 
     //Combine All Final
     //annotvep_tonly_mut2.out.concat(annotvep_tonly_vardict.out).concat(annotvep_tonly_varscan.out) | combinemafs_tonly

@@ -7,6 +7,8 @@ PON=file(params.genomes[params.genome].pon)
 VEPCACHEDIR=file(params.genomes[params.genome].vepcache)
 VEPSPECIES=params.genomes[params.genome].vepspecies
 VEPBUILD=params.genomes[params.genome].vepbuild
+SOMATIC_FOREST=params.genomes[params.genome].octopus_sforest
+GERMLINE_FOREST=params.genomes[params.genome].octopus_gforest
 
 //Output
 outdir=file(params.output)
@@ -397,9 +399,10 @@ process octopus_tn {
     """
     octopus -R $GENOMEREF -I ${normal} ${tumor} --normal-sample ${normalname} \
     --annotations AC AD DP -t ${bed} \
-    --forest $GERMLINE_FOREST \
-    --somatic-forest $SOMATIC_FOREST \
-    -o ${tumorname}_vs_${normalname}_${bed.simpleName}.octopus.vcf --threads $task.cpus
+    --threads $task.cpus \
+    $GERMLINE_FOREST \
+    $SOMATIC_FOREST \
+    -o ${tumorname}_vs_${normalname}_${bed.simpleName}.octopus.vcf 
     """
 
     stub:

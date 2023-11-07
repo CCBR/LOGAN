@@ -7,6 +7,8 @@ PON=file(params.genomes[params.genome].pon)
 VEPCACHEDIR=file(params.genomes[params.genome].vepcache)
 VEPSPECIES=params.genomes[params.genome].vepspecies
 VEPBUILD=params.genomes[params.genome].vepbuild
+SOMATIC_FOREST=params.genomes[params.genome].octopus_sforest
+GERMLINE_FOREST=params.genomes[params.genome].octopus_gforest
 
 //Output
 outdir=file(params.output)
@@ -204,7 +206,7 @@ process mutect2filter_tonly {
 
     gatk SelectVariants \
         -R $GENOMEREF \
-        --variant ${sample}.tonly.marked.vcf.gz \
+        --variant ${sample}.tonly.mut2.marked.vcf.gz \
         --exclude-filtered \
         --output ${sample}.tonly.mut2.final.vcf.gz
 

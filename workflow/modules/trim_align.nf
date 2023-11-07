@@ -92,7 +92,7 @@ process bqsr {
 
     script:
     """
-    gatk --java-options '-Xmx32g' BaseRecalibrator \
+    gatk --java-options '-Xmx16g' BaseRecalibrator \
     --input ${samplename}.bam \
     --reference ${GENOMEREF} \
     ${KNOWNRECAL} \
@@ -179,7 +179,7 @@ process samtoolsindex {
 
     script:
     """
-    samtools index -@ 4 ${bam} ${bam}.bai
+    samtools index -@ $task.cpus ${bam} ${bam}.bai
     """
 
     stub:
@@ -201,7 +201,7 @@ process bamtocram_tonly {
 
     script:
     """
-        samtools view -@ 4 -C -T $GENOMEREF -o ${sample}.cram {$tumor}.bam
+        samtools view -@ $task.cpus -C -T $GENOMEREF -o ${sample}.cram {$tumor}.bam
     """
 }
 

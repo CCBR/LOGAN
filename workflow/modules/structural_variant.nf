@@ -167,8 +167,6 @@ process manta_tonly {
 
     wd/runWorkflow.py -m local -j 10 -g 10
     
-    mv wd/results/variants/diploidSV.vcf.gz ${tumor.simpleName}.diplodSV.vcf.gz
-    mv wd/results/variants/somaticSV.vcf.gz ${tumor.simpleName}.somaticSV.vcf.gz
     mv wd/results/variants/candidateSV.vcf.gz ${tumor.simpleName}.candidateSV.vcf.gz
     mv wd/results/variants/candidateSmallIndels.vcf.gz ${tumor.simpleName}.candidateSmallIndels.vcf.gz
     mv wd/results/variants/tumorSV.vcf.gz ${tumor.simpleName}.tumorSV.vcf.gz
@@ -178,8 +176,6 @@ process manta_tonly {
     stub:
     
     """
-    touch ${tumor.simpleName}.diplodSV.vcf.gz
-    touch ${tumor.simpleName}.somaticSV.vcf.gz
     touch ${tumor.simpleName}.candidateSV.vcf.gz
     touch ${tumor.simpleName}.candidateSmallIndels.vcf.gz
     touch ${tumor.simpleName}.tumorSV.vcf.gz
