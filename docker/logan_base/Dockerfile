@@ -164,6 +164,15 @@ RUN wget https://github.com/AstraZeneca-NGS/VarDictJava/releases/download/v1.8.3
     && rm /opt2/VarDict-1.8.3.tar
 ENV PATH="/opt2/VarDict-1.8.3/bin:$PATH"
 
+# Install Octopus/v0.7.4
+RUN wget https://github.com/luntergroup/octopus/archive/refs/tags/v0.7.4.tar.gz \ 
+    && tar -xvzf /opt2/v0.7.4.tar.gz \
+    && rm /opt2/v0.7.4.tar.gz \
+    && cd /opt2/octopus-0.7.4 \
+    && cmake .
+ENV PATH="/opt2/octopus-0.7.4/bin:$PATH"
+
+
 # Fastp From Opengene github
 RUN wget http://opengene.org/fastp/fastp.0.23.2 \
     && mkdir fastp \
