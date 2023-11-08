@@ -525,7 +525,7 @@ process somalier_extract {
     """
 }
 
-process somalier_analysis {
+process somalier_analysis_human {
     /*
     To estimate relatedness, Somalier uses extracted site information to
     compare across all samples. This step also runs the ancestry estimation
@@ -535,14 +535,8 @@ process somalier_analysis {
     @Output:
         Separate tab-separated value (TSV) files with relatedness and ancestry outputs
 
-    ancestry_db = config['references']['SOMALIER']['ANCESTRY_DB'],
-    sites_vcf = config['references']['SOMALIER']['SITES_VCF'],
-    genomeFasta = config['references']['GENOME'],
-    script_path_gender = config['scripts']['genderPrediction'],
-    script_path_samples = config['scripts']['combineSamples'],
-    script_path_pca = config['scripts']['ancestry'],
     */
-    label 'process_mid'
+    label 'process_low'
 
     publishDir("${outdir}/QC/somalier", mode: 'copy')
 
@@ -596,6 +590,57 @@ process somalier_analysis {
     """
 }
 
+process somalier_analysis_mouse {
+    /*
+    To estimate relatedness, Somalier uses extracted site information to
+    compare across all samples. This step also runs the ancestry estimation
+    function in Somalier.
+    @Input:
+        Exracted sites in (binary) somalier format for ALL samples in the cohort
+    @Output:
+        Separate tab-separated value (TSV) files with relatedness and ancestry outputs
+
+    */
+    label 'process_low'
+
+    publishDir("${outdir}/QC/somalier", mode: 'copy')
+
+    input:
+        path(somalierin)
+    
+    output:
+        tuple path("relatedness.pairs.tsv"), 
+        path("relatedness.samples.tsv"),
+        path("predicted.genders.tsv"),
+        path("predicted.pairs.tsv")
+    
+    script:
+    """ 
+    echo "Estimating relatedness"
+    somalier relate \
+        -o "relatedness" \
+        $somalierin
+    
+    Rscript $SCRIPT_PATH_GENDER \
+        relatedness.samples.tsv \
+        predicted.genders.tsv    
+    
+    Rscript $SCRIPT_PATH_SAMPLES \
+        relatedness.pairs.tsv \
+        predicted.pairs.tsv
+    
+    """
+    
+    stub:
+
+    """
+    touch relatedness.pairs.tsv
+    touch relatedness.samples.tsv
+    touch predicted.genders.tsv
+    touch predicted.pairs.tsv
+    
+    """
+}
 
 process multiqc {
 

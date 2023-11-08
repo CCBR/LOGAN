@@ -6,7 +6,8 @@ include {fc_lane; fastq_screen;kraken;qualimap_bamqc;
     samtools_flagstats;vcftools;collectvariantcallmetrics;
     bcftools_stats;gatk_varianteval;
     snpeff;fastqc;
-    somalier_extract;somalier_analysis;multiqc} from  './qc.nf'
+    somalier_extract;somalier_analysis_human;somalier_analysis_mouse;
+    multiqc} from  './qc.nf'
 
 include {deepvariant_step1;deepvariant_step2;deepvariant_step3;
     deepvariant_combined;glnexus} from './germline.nf'
@@ -217,10 +218,11 @@ workflow SV_TONLY {
 
         //Manta
         manta_out=manta_tonly(bamwithsample)
-            .map{tumor,gsv,so_sv,unfil_sv,unfil_indel,tumorSV -> 
-            tuple(tumor,so_sv,"manta")} 
+            .map{tumor, sv, indel, tumorsv -> 
+            tuple(tumor,tumorsv,"manta")} 
         annotsv_manta_tonly(manta_out).ifEmpty("Empty SV input--No SV annotated")
 
+        //Delly
 }
 
 workflow CNV_TONLY {
@@ -257,7 +259,14 @@ workflow QC_TONLY {
 
     somalier_extract(bqsrout) 
     som_in=somalier_extract.out.collect()
-    somalier_analysis(som_in)
+    if(params.genome=="hg38"){ 
+        somalier_analysis_human(som_in)
+        somalier_analysis_out=somalier_analysis_human.out.collect()
+    }
+    else if(params.genome=="mm10"){ 
+        somalier_analysis_mouse(som_in)
+        somalier_analysis_out=somalier_analysis_mouse.out.collect()
+    }
     
     //Prep for MultiQC input
     fclane_out=fc_lane.out.map{samplename,info->info}.collect()
@@ -268,7 +277,8 @@ workflow QC_TONLY {
     fastqc_out=fastqc.out.map{samplename,html,zip->tuple(html,zip)}.collect()
 
     samtools_flagstats_out=samtools_flagstats.out.collect()
-    somalier_analysis_out=somalier_analysis.out.collect()
+
+
 
     conall=fclane_out.concat(fqs_out,kraken_out,qualimap_out,fastqc_out,
     samtools_flagstats_out,
@@ -285,23 +295,22 @@ workflow QC_TONLY {
 //Variant Calling from BAM only
 workflow INPUT_TONLY_BAM {
     main:
-  
     //Either BAM Input or File sheet input 
     if(params.bam_input){
         baminputonly=Channel.fromPath(params.bam_input)
-           .map{it-> tuple(it.simpleName,it,file("${it}.bai"))}
 
         sample_sheet=baminputonly.map{samplename,bam,bai -> tuple (
              samplename)}.view()
+
     }else if(params.file_input) {
         baminputonly=Channel.fromPath(params.file_input)
                         .splitCsv(header: false, sep: "\t", strip:true)
-                        .map{ sample,bam -> 
-                        tuple(sample, file(bam),file("${bam}.bai"))
+                        .map{ sample,bam,bai  -> 
+                        tuple(sample, file(bam),file(bai))
                                   }
+
         sample_sheet=baminputonly.map{samplename,bam,bai -> tuple (
-             samplename)}.view()
-        
+             samplename)}
     }
 
     splitinterval(intervalbedin)
@@ -313,6 +322,5 @@ workflow INPUT_TONLY_BAM {
         splitout=splitinterval.out
         sample_sheet
     
-
 }
 

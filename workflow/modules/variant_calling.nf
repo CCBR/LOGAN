@@ -385,7 +385,7 @@ process varscan_tn {
 }
 
 process octopus_tn {
-       label 'process_highcpu'
+    //label 'process_highcpu' Using separate docker for octopus
 
     input:
         tuple val(tumorname), path(tumor), path(tumorbai), val(normalname), path(normal), path(normalbai), path(bed)
