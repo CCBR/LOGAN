@@ -6,7 +6,8 @@ include {fc_lane; fastq_screen;kraken;qualimap_bamqc;fastqc;
     samtools_flagstats;vcftools;collectvariantcallmetrics;
     bcftools_stats;gatk_varianteval;
     snpeff;
-    somalier_extract;somalier_analysis;multiqc} from  './qc.nf'
+    somalier_extract;somalier_analysis_human;somalier_analysis_mouse;
+    multiqc} from  './qc.nf'
 
 include {fastp; bwamem2; //indelrealign; 
     bqsr; gatherbqsr; applybqsr; samtoolsindex} from './trim_align.nf'
@@ -391,7 +392,6 @@ workflow QC_NOGL {
     //Somalier
     somalier_extract(applybqsr) 
     som_in=somalier_extract.out.collect()
-    somalier_analysis(som_in)
 
     //Prep for MultiQC input
     fclane_out=fc_lane.out.map{samplename,info->info}.collect()
@@ -402,7 +402,15 @@ workflow QC_NOGL {
     fastqc_out=fastqc.out.map{samplename,html,zip->tuple(html,zip)}.collect()
 
     samtools_flagstats_out=samtools_flagstats.out.collect()
-    somalier_analysis_out=somalier_analysis.out.collect()
+
+    if(params.genome=="hg38"){ 
+        somalier_analysis_human(som_in)
+        somalier_analysis_out=somalier_analysis_human.out.collect()
+    }
+    else if(params.genome=="mm10"){ 
+        somalier_analysis_mouse(som_in)
+        somalier_analysis_out=somalier_analysis_mouse.out.collect()
+    }
 
     conall=fclane_out.concat(fqs_out,kraken_out,qualimap_out,samtools_flagstats_out,
         somalier_analysis_out).flatten().toList()

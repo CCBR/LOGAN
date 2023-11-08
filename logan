@@ -230,7 +230,7 @@ def main():
         outswarmmut=args.output+"_"+time1+'.slurm'
         with open(outswarmmut, "a") as outfile:
             outfile.write(code+"\n")
-        sbatch_mut="sbatch --cpus-per-task=2 --mem=8g --time 10-00:00:00 --partition norm --output submit_"+time1+".log --error error_"+time1+".log --mail-type=BEGIN,TIME_LIMIT_90,END "+outswarmmut 
+        sbatch_mut="sbatch --cpus-per-task=2 --mem=8g --time 10-00:00:00 --partition norm --output submit_"+time1+".log --error error_"+time1+".log --mail-type=BEGIN,END "+outswarmmut 
         sbatch_out='kickoff_'+time1+'.sh'
         with open(sbatch_out, "a") as outfile:
             outfile.write(sbatch_mut+"\n")

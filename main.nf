@@ -28,7 +28,7 @@ PIPE_BAMSV=params.PIPE_BAMCNV
 PIPE_BAMCNV=params.PIPE_BAMCNV
 
 PIPE_TONLY_BAMVC=params.PIPE_TONLY_BAMVC
-PIPE_TONLY_BAMSV=params.PIPE_TONLY_BAMCNV
+PIPE_TONLY_BAMSV=params.PIPE_TONLY_BAMSV
 PIPE_TONLY_BAMCNV=params.PIPE_TONLY_BAMCNV
 
 
@@ -160,11 +160,16 @@ workflow {
     }
     if (PIPE_TONLY_BAMSV){
         INPUT_TONLY_BAM()
-        SV_TONLY(INPUT_TONLY_BAM.out.bamwithsample,INPUT_TONLY_BAM.out.splitout,INPUT_TONLY_BAM.out.sample_sheet)
+        SV_TONLY(INPUT_TONLY_BAM.out.bamwithsample)
     }  
     if (PIPE_TONLY_BAMCNV){
         INPUT_TONLY_BAM()
-        CNV_TONLY(INPUT_TONLY_BAM.out.bamwithsample,INPUT_TONLY_BAM.out.splitout,INPUT_TONLY_BAM.out.sample_sheet)
+        if (params.genome == "mm10"){
+            CNV_TONLY(INPUT_TONLY_BAM.out.bamwithsample)
+        }else if (params.genome== "hg38"){
+            CNV_TONLY(INPUT_TONLY_BAM.out.bamwithsample)
+
+        }
     }  
 }
 

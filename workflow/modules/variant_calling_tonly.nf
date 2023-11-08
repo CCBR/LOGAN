@@ -17,6 +17,7 @@ outdir=file(params.output)
 
 process pileup_paired_tonly {
     label 'process_highmem'
+
     input:
         tuple val(tumorname), path(tumor), path(tumorbai), path(bed)
     
@@ -211,7 +212,7 @@ process mutect2filter_tonly {
         --output ${sample}.tonly.mut2.final.vcf.gz
 
     bcftools sort ${sample}.tonly.mut2.final.vcf.gz -@ $task.cpus -Oz |\
-    bcftools norm --threads 16 --check-ref s -f $GENOMEREF -O v |\
+    bcftools norm --threads $task.cpus --check-ref s -f $GENOMEREF -O v |\
         awk '{{gsub(/\\y[W|K|Y|R|S|M]\\y/,"N",\$4); OFS = "\t"; print}}' |\
         sed '/^\$/d' > ${sample}.tonly.mut2.norm.vcf.gz
 
@@ -300,7 +301,7 @@ process vardict_tonly {
 
 
 process octopus_tonly {
-       label 'process_highcpu'
+    //label 'process_highcpu'
 
     input:
         tuple val(tumorname), path(tumor), path(tumorbai), path(bed)
@@ -314,7 +315,7 @@ process octopus_tonly {
     """
     octopus -R $GENOMEREF -C cancer -I ${tumor} \
     --annotations AC AD DP -t ${bed} \
-    --somatic-forest $SOMATIC_FOREST \
+    $SOMATIC_FOREST \
     -o ${tumorname}_${bed.simpleName}.octopus.vcf --threads $task.cpus
 
     """

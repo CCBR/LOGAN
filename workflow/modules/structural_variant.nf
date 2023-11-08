@@ -149,8 +149,6 @@ process manta_tonly {
     
     output:
         tuple val(tumorname),
-        path("${tumor.simpleName}.diplodSV.vcf.gz"),
-        path("${tumor.simpleName}.somaticSV.vcf.gz"),
         path("${tumor.simpleName}.candidateSV.vcf.gz"),
         path("${tumor.simpleName}.candidateSmallIndels.vcf.gz"),
         path("${tumor.simpleName}.tumorSV.vcf.gz")
@@ -198,10 +196,10 @@ process svaba_tonly {
         path("${tumor.simpleName}.contigs.bam"),
         path("${tumor.simpleName}.discordant.txt.gz"),
         path("${tumor.simpleName}.alignments.txt.gz"),
-        path("${tumor.simpleName}.svaba.somatic.indel.vcf"),
-        path("${tumor.simpleName}.svaba.somatic.sv.vcf"),
-        path("${tumor.simpleName}.svaba.unfiltered.somatic.indel.vcf"),
-        path("${tumor.simpleName}.svaba.unfiltered.somatic.sv.vcf"),
+        path("${tumor.simpleName}.svaba.indel.vcf"),
+        path("${tumor.simpleName}.svaba.sv.vcf"),
+        path("${tumor.simpleName}.svaba.unfiltered.indel.vcf"),
+        path("${tumor.simpleName}.svaba.unfiltered.sv.vcf"),
         path("${tumor.simpleName}.log")
 
 
@@ -217,10 +215,10 @@ process svaba_tonly {
     touch "${tumor.simpleName}.contigs.bam"
     touch "${tumor.simpleName}.discordant.txt.gz"
     touch "${tumor.simpleName}.alignments.txt.gz"
-    touch "${tumor.simpleName}.svaba.somatic.indel.vcf"
-    touch "${tumor.simpleName}.svaba.somatic.sv.vcf"
-    touch "${tumor.simpleName}.svaba.unfiltered.somatic.indel.vcf"
-    touch "${tumor.simpleName}.svaba.unfiltered.somatic.sv.vcf"
+    touch "${tumor.simpleName}.svaba.indel.vcf"
+    touch "${tumor.simpleName}.svaba.sv.vcf"
+    touch "${tumor.simpleName}.svaba.unfiltered.indel.vcf"
+    touch "${tumor.simpleName}.svaba.unfiltered.sv.vcf"
     touch "${tumor.simpleName}.log"
 
     """
