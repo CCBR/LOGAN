@@ -143,7 +143,7 @@ process freec_paired {
         $FREECCHROMS \
         ${tumor} \
         ${normal} \
-        $FREECPILE \
+        $FREECPILEUP \
         $GENOMEREF \
         $FREECSNPS \
         $FREECTARGETS
@@ -152,8 +152,8 @@ process freec_paired {
 
     cat $FREECSIGNIFICANCE | \
         R --slave \
-        --args ${tumorname}.bam_CNVs \
-        ${tumorname}.bam_ratio.txt
+        --args ${tumor}_CNVs \
+        ${tumor}_ratio.txt
 
     cat $FREECPLOT | \
         R --slave \
@@ -167,13 +167,16 @@ process freec_paired {
     """
     touch ${tumorname}_vs_${normalname}.bam_CNVs.p.value.txt  
     touch ${tumorname}_vs_${normalname}.bam_ratio.txt 
-    touch ${tumorname}_vs_${normalname}.bam_BAF.txt 
+    touch ${tumorname}_vs_${normalname}.bam_BAF.txt
+    touch ${tumorname}_vs_${normalname}.bam_ratio.txt.log2.png
+    touch ${tumorname}_vs_${normalname}.bam_ratio.txt.png
+
     """
 }
 
 
 process freec {
-    label 'process_highcpu'
+    label 'process_mid'
     publishDir("${outdir}/cnv/freec", mode: 'copy')
 
     input:
@@ -186,7 +189,7 @@ process freec {
         $FREECLENGTHS \
         $FREECCHROMS \
         ${tumor} \
-        $FREECPILE \
+        $FREECPILEUP \
         $GENOMEREF \
         $FREECSNPS \
         $FREECTARGETS
@@ -195,22 +198,25 @@ process freec {
 
     cat $FREECSIGNIFICANCE | \
         R --slave \
-        --args ${tumorname}.bam_CNVs \
-        ${tumorname}.bam_ratio.txt
+        --args ${tumor}_CNVs \
+        ${tumor}_ratio.txt
 
     cat $FREECPLOT | \
         R --slave \
         --args 2 \
-        ${tumorname}.bam_ratio.txt \
-        ${tumorname}.bam_BAF.txt
+        ${tumor}_ratio.txt \
+        ${tumor}_BAF.txt
 
     """      
 
     stub:
     """
-    touch ${tumorname}.bam_CNVs.p.value.txt  
-    touch ${tumorname}.bam_ratio.txt 
-    touch ${tumorname}.bam_BAF.txt 
+    touch ${tumor}_CNVs.p.value.txt  
+    touch ${tumor}_ratio.txt 
+    touch ${tumor}_BAF.txt 
+    touch ${tumor}_ratio.txt.log2.png
+    touch ${tumor}_ratio.txt.png
+
     """
 }
 

@@ -224,3 +224,42 @@ process svaba_tonly {
     """
 }
 
+
+
+
+
+process annotsv_tonly {
+     //AnnotSV for Manta/Svaba works with either vcf.gz or .vcf files
+     //Requires bedtools,bcftools
+
+    module = ['annotsv/3.3.1']
+    publishDir(path: "${outdir}/SVtonly/annotated", mode: 'copy') 
+
+    input:
+        tuple val(tumorname), path(somaticvcf), val(sv)
+
+    output:
+        tuple val(tumorname),
+        path("${sv}/${tumorname}.tsv"),
+        path("${sv}/${tumorname}.unannotated.tsv")
+
+
+    script:
+    """
+    mkdir ${sv}
+
+    AnnotSV -SVinputFile ${somaticvcf} \
+    -genomeBuild $GENOME \
+    -SVinputInfo 1 -outputFile ${tumorname} \
+    -outputDir ${sv}
+
+    """
+
+    stub:
+    """
+    mkdir ${sv}
+
+    touch "${sv}/${tumorname}.tsv"
+    touch "${sv}/${tumorname}.unannotated.tsv"
+    """
+}
