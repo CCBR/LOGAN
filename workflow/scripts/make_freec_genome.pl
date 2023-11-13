@@ -23,7 +23,7 @@ print C "BedGraphOutput = TRUE\ndegree = 3\nforceGCcontentNormalization = 0\nmin
 print C "chrLenFile = $chrLenFile\n";
 print C "ploidy = 2,3,4\nbreakPointThreshold = 0.8\nwindow = 50000\n";
 print C "chrFiles = $chrFiles\n";
-print C "minimalSubclonePresence = 20\nmaxThreads = 8\n";
+print C "minimalSubclonePresence = 20\nmaxThreads = 4\n";
 print C "outputDir = $ARGV[0]\n\n";
  
 print C '[sample]' . "\n\n";
