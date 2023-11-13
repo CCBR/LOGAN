@@ -187,7 +187,8 @@ process mutect2filter_tonly {
         tuple val(sample), path(mutvcfs), path(stats), path(obs), path(pileups),path(tumorcontamination)
     output:
         tuple val(sample), path("${sample}.tonly.mut2.marked.vcf.gz"), 
-        path("${sample}.tonly.mut2.norm.vcf.gz"), path("${sample}.tonly.marked.vcf.gz.filteringStats.tsv")
+        path("${sample}.tonly.mut2.norm.vcf.gz"), 
+        path("${sample}.tonly.mut2.marked.vcf.gz.filteringStats.tsv")
 
     script:
     //Include the stats and  concat ${mutvcfs} -Oz -o ${sample}.concat.vcf.gz
@@ -211,10 +212,11 @@ process mutect2filter_tonly {
         --exclude-filtered \
         --output ${sample}.tonly.mut2.final.vcf.gz
 
-    bcftools sort ${sample}.tonly.mut2.final.vcf.gz -@ $task.cpus -Oz |\
+    bcftools sort ${sample}.tonly.mut2.final.vcf.gz |\
     bcftools norm --threads $task.cpus --check-ref s -f $GENOMEREF -O v |\
         awk '{{gsub(/\\y[W|K|Y|R|S|M]\\y/,"N",\$4); OFS = "\t"; print}}' |\
-        sed '/^\$/d' > ${sample}.tonly.mut2.norm.vcf.gz
+        sed '/^\$/d' |\
+    bcftools view - -Oz -o  ${sample}.tonly.mut2.norm.vcf.gz
 
     """
 
@@ -222,7 +224,7 @@ process mutect2filter_tonly {
     """
     touch ${sample}.tonly.mut2.marked.vcf.gz
     touch ${sample}.tonly.mut2.norm.vcf.gz
-    touch ${sample}.tonly.marked.vcf.gz.filteringStats.tsv
+    touch ${sample}.tonly.mut2.marked.vcf.gz.filteringStats.tsv
     """
 }
 
@@ -308,7 +310,7 @@ process octopus_tonly {
     
     output:
         tuple val(tumorname),
-        path("${tumorname}_${bed.simpleName}.octopus.vcf")
+        path("${tumorname}_${bed.simpleName}.octopus.vcf.gz")
     
     script:
 
@@ -316,14 +318,14 @@ process octopus_tonly {
     octopus -R $GENOMEREF -C cancer -I ${tumor} \
     --annotations AC AD DP -t ${bed} \
     $SOMATIC_FOREST \
-    -o ${tumorname}_${bed.simpleName}.octopus.vcf --threads $task.cpus
+    -o ${tumorname}_${bed.simpleName}.octopus.vcf.gz --threads $task.cpus
 
     """
 
     stub:
     
     """
-    touch ${tumorname}_${bed.simpleName}.octopus.vcf
+    touch ${tumorname}_${bed.simpleName}.octopus.vcf.gz
 
     """
 }

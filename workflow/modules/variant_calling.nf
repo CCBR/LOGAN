@@ -227,7 +227,8 @@ process mutect2filter {
         tuple val(sample), path(mutvcfs), path(stats), path(obs), path(pileups), path(normal_pileups),path(tumorcontamination),path(normalcontamination)
     output:
         tuple val(sample), path("${sample}.mut2.marked.vcf.gz"), 
-        path("${sample}.mut2.norm.vcf.gz"), path("${sample}.marked.vcf.gz.filteringStats.tsv")
+        path("${sample}.mut2.norm.vcf.gz"), 
+        path("${sample}.mut2.marked.vcf.gz.filteringStats.tsv")
 
     script:
     //Include the stats and  concat ${mutvcfs} -Oz -o ${sample}.concat.vcf.gz
@@ -252,17 +253,18 @@ process mutect2filter {
         --exclude-filtered \
         --output ${sample}.mut2.final.vcf.gz
     
-    bcftools sort ${sample}.mut2.final.vcf.gz -@ $task.cpus -Oz |\
+    bcftools sort ${sample}.mut2.final.vcf.gz |\
     bcftools norm --threads $task.cpus --check-ref s -f $GENOMEREF -O v |\
         awk '{{gsub(/\\y[W|K|Y|R|S|M]\\y/,"N",\$4); OFS = "\\t"; print}}' |\
-        sed '/^\$/d' > ${sample}.mut2.norm.vcf.gz
+        sed '/^\$/d' > ${sample}.mut2.norm.vcf |\
+    bcftools view - -Oz -o  ${sample}.mut2.norm.vcf.gz
     """
 
     stub:
     """
     touch ${sample}.mut2.marked.vcf.gz
     touch ${sample}.mut2.norm.vcf.gz
-    touch ${sample}.marked.vcf.gz.filteringStats.tsv
+    touch ${sample}.mut2.marked.vcf.gz.filteringStats.tsv
     """
 
 
@@ -388,8 +390,10 @@ process octopus_tn {
     //label 'process_highcpu' Using separate docker for octopus
 
     input:
-        tuple val(tumorname), path(tumor), path(tumorbai), val(normalname), path(normal), path(normalbai), path(bed)
+        tuple val(tumorname), path(tumor), path(tumorbai), 
+        val(normalname), path(normal), path(normalbai), path(bed)
     
+
     output:
         tuple val(tumorname),
         path("${tumorname}_vs_${normalname}_${bed.simpleName}.octopus.vcf")
@@ -398,6 +402,7 @@ process octopus_tn {
 
     """
     octopus -R $GENOMEREF -I ${normal} ${tumor} --normal-sample ${normalname} \
+    -C cancer \
     --annotations AC AD DP -t ${bed} \
     --threads $task.cpus \
     $GERMLINE_FOREST \
@@ -431,7 +436,7 @@ process combineVariants {
     """
     mkdir ${vc}
     gatk --java-options "-Xmx48g" MergeVcfs \
-        -O ${sample}.${vc}.temp.vcf.gz\
+        -O ${sample}.${vc}.temp.vcf.gz \
         -D $GENOMEDICT \
         -I $vcfin
     bcftools sort ${sample}.${vc}.temp.vcf.gz -Oz -o ${sample}.${vc}.marked.vcf.gz
@@ -454,6 +459,75 @@ process combineVariants {
     """
 
 }
+
+
+
+process bcftools_index_octopus {
+    label 'process_low'
+
+    input:
+        tuple val(sample),
+        path(vcf)
+
+    output:
+        tuple val(sample), 
+        path(vcf), 
+        path("${vcf}.tbi")
+    
+    script:    
+    """
+    bcftools index -t ${vcf}
+    """
+
+    stub:
+    """
+    touch ${vcf}
+    touch ${vcf}.tbi
+    """
+
+}
+
+process combineVariants_octopus {
+    label 'process_highmem'
+    publishDir(path: "${outdir}/vcfs/", mode: 'copy')
+
+    input:
+        tuple val(sample), path(vcfs), path(vcfsindex), val(vc)
+    
+    output:
+        tuple val(sample), 
+        path("${vc}/${sample}.${vc}.marked.vcf.gz"), path("${vc}/${sample}.${vc}.norm.vcf.gz")
+    
+    script:
+    vcfin = vcfs.join(" ")
+    
+    """
+    mkdir ${vc}
+    bcftools concat $vcfin -a -Oz -o ${sample}.${vc}.temp.vcf.gz
+    bcftools sort ${sample}.${vc}.temp.vcf.gz -Oz -o ${sample}.${vc}.marked.vcf.gz
+    bcftools norm ${sample}.${vc}.marked.vcf.gz --threads $task.cpus --check-ref s -f $GENOMEREF -O v |\
+        awk '{{gsub(/\\y[W|K|Y|R|S|M]\\y/,"N",\$4); OFS = "\\t"; print}}' |\
+        sed '/^\$/d' > ${sample}.${vc}.temp.vcf
+
+    bcftools view ${sample}.${vc}.temp.vcf -f PASS -Oz -o ${vc}/${sample}.${vc}.norm.vcf.gz
+
+    mv ${sample}.${vc}.marked.vcf.gz ${vc}
+    """
+
+    stub:
+
+    """
+    mkdir ${vc}
+    touch ${vc}/${sample}.${vc}.marked.vcf.gz
+    touch ${vc}/${sample}.${vc}.norm.vcf.gz
+    
+    """
+
+}
+
+
+
+
 
 
 process combineVariants_strelka {
