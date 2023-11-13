@@ -78,16 +78,22 @@ def main():
         elif args.file_input:
             in1="--file_input "+args.file_input
         elif args.bam:
-            in1="--bam "+args.bam
+            in1="--bam_input '"+args.bam+"'"
             baminput=True
         else:
             print("Missing sample sheet for paired mode or you would like Tumor only mode?")
         alignmode='--PIPE_ALIGN'
-        if args.vc:
+        if args.vc and baminput:
+            vcmode="--PIPE_BAMVC"
+        elif args.vc:  
             vcmode="--PIPE_VC"
-        if args.sv:
+        if args.sv and baminput:
+            svmode="--PIPE_BAMSV"
+        elif args.sv:
             svmode="--PIPE_SV"
-        if args.cnv:
+        if args.cnv and baminput:
+            cnvmode="--PIPE_BAMCNV"
+        elif args.cnv:
             cnvmode="--PIPE_CNV"
         if args.germline:
             germmode="--PIPE_GERMLINE"
@@ -202,7 +208,10 @@ def main():
     time1=time.strftime("%Y_%m_%d_%H%M")
     stubbase=" -stub -without-podman T -without-conda -without-docker"
     if args.stub:
-        cmd1_stub=cmd1 + stubbase
+        if not 'baminput' in locals():
+            cmd1_stub=cmd1 + stubbase
+        else:
+            cmd1_stub=""
         if (args.vc):
             cmd2_stub=cmd2 + stubbase
         else:

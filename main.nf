@@ -33,7 +33,7 @@ PIPE_TONLY_BAMCNV=params.PIPE_TONLY_BAMCNV
 
 
 include {INPUT; ALIGN; GL;
-    VC; INPUT_BAMVC; SV; CNVmm10; CNVhg38;
+    VC; INPUT_BAM; SV; CNVmm10; CNVhg38;
     QC_GL; QC_NOGL} from "./workflow/modules/workflows.nf"
 
 
@@ -103,19 +103,19 @@ workflow {
         }
     }  
     if (PIPE_BAMVC){
-        INPUT_BAMVC()
-        VC(INPUT_BAMVC.out.bamwithsample,INPUT_BAMVC.out.splitout,INPUT_BAMVC.out.sample_sheet)
+        INPUT_BAM()
+        VC(INPUT_BAM.out.bamwithsample,INPUT_BAM.out.splitout,INPUT_BAM.out.sample_sheet)
     }  
     if (PIPE_BAMSV){
-        INPUT_BAMVC()
-        SV(INPUT_BAMVC.out.bamwithsample)
+        INPUT_BAM()
+        SV(INPUT_BAM.out.bamwithsample)
     }  
     if (PIPE_BAMCNV){
-        INPUT_BAMVC()
+        INPUT_BAM()
         if (params.genome == "mm10"){
-            CNVmm10(INPUT_BAMVC.out.bamwithsample)
+            CNVmm10(INPUT_BAM.out.bamwithsample)
         } else if (params.genome== "hg38"){
-            CNVhg38(INPUT_BAMVC.out.bamwithsample)
+            CNVhg38(INPUT_BAM.out.bamwithsample)
 
         }
     }  

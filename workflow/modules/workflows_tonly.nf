@@ -16,15 +16,17 @@ include {fastp; bwamem2;
     bqsr; gatherbqsr; applybqsr; samtoolsindex} from './trim_align.nf'
     
 include {mutect2; mutect2filter; pileup_paired_t; pileup_paired_n; 
-    contamination_paired; learnreadorientationmodel;mergemut2stats;
+    bcftools_index_octopus;
+    contamination_paired; learnreadorientationmodel; mergemut2stats;
     combineVariants as combineVariants_vardict; combineVariants as combineVariants_varscan; 
     combineVariants as combineVariants_vardict_tonly; combineVariants as combineVariants_varscan_tonly;
-    combineVariants as combineVariants_octopus_tonly; 
+    combineVariants_octopus ; 
     annotvep_tn as annotvep_tn_mut2; annotvep_tn as annotvep_tn_strelka; annotvep_tn as annotvep_tn_varscan; annotvep_tn as annotvep_tn_vardict;
     combinemafs_tn} from './variant_calling.nf'
 
 include {mutect2_t_tonly; mutect2filter_tonly; pileup_paired_tonly; 
-    varscan_tonly; vardict_tonly; octopus_tonly;
+    varscan_tonly; vardict_tonly; 
+    octopus_tonly; 
     contamination_tumoronly;
     learnreadorientationmodel_tonly; 
     mergemut2stats_tonly;
@@ -32,7 +34,7 @@ include {mutect2_t_tonly; mutect2filter_tonly; pileup_paired_tonly;
     annotvep_tonly as annotvep_tonly_mut2; annotvep_tonly as annotvep_tonly_octopus;
     combinemafs_tonly} from './variant_calling_tonly.nf'
 
-include {manta_tonly; svaba_tonly; annotsv_tn as annotsv_manta_tonly; annotsv_tn as annotsv_svaba_tonly} from './structural_variant.nf'
+include {manta_tonly; svaba_tonly; annotsv_tonly as annotsv_manta_tonly; annotsv_tonly as annotsv_svaba_tonly} from './structural_variant.nf'
 
 include {freec; purple } from './copynumber.nf'
 
@@ -172,8 +174,7 @@ workflow VC_TONLY {
     mutect2filter_tonly(mut2tonly_filter)
     
     
-    //##VCF2MAF TO
-
+    //vcf2maf Annotate
     mutect2filter_tonly.out
     .join(sample_sheet)
     .map{tumor,markedvcf,finalvcf,stats -> tuple(tumor,"mutect2",finalvcf)} | annotvep_tonly_mut2
@@ -190,10 +191,10 @@ workflow VC_TONLY {
     varscan_tonly_comb.join(sample_sheet)
     .map{tumor,marked,normvcf ->tuple(tumor,"varscan_tonly",normvcf)} | annotvep_tonly_varscan
 
-     //Octopus_tonly
+    //Octopus_tonly
     octopus_tonly_comb=bambyinterval.map{tumor,bam,bai,bed->
-    tuple(tumor,bam,bai,bed)} | octopus_tonly 
-    octopus_tonly_comb1=octopus_tonly_comb.groupTuple().map{tumor,vcf-> tuple(tumor,vcf,"octopus_tonly")} | combineVariants_octopus_tonly
+    tuple(tumor,bam,bai,bed)} | octopus_tonly | bcftools_index_octopus
+    octopus_tonly_comb1=octopus_tonly_comb.groupTuple().map{tumor,vcf,vcfindex-> tuple(tumor,vcf,vcfindex, "octopus_tonly")} | combineVariants_octopus
     
     octopus_tonly_comb1.join(sample_sheet)
     .map{tumor,marked,normvcf ->tuple(tumor,"octopus_tonly",normvcf)} | annotvep_tonly_octopus
@@ -297,10 +298,24 @@ workflow INPUT_TONLY_BAM {
     main:
     //Either BAM Input or File sheet input 
     if(params.bam_input){
-        baminputonly=Channel.fromPath(params.bam_input)
+        bambai=params.bam_input +".bai"
+        baionly = bambai.replace(".bam", "")
+        bamcheck1=file(bambai)
+        bamcheck2=file(baionly)
 
+        if (bamcheck1.size()>0){
+            baminputonly=Channel.fromPath(params.bam_input)
+           .map{it-> tuple(it.simpleName,it,file("${it}.bai"))}
+        }
+        if (bamcheck2.size()>0){
+            bai=Channel.from(bamcheck2).map{it -> tuple(it.simpleName,it)}.view()
+            baminputonly=Channel.fromPath(params.bam_input)
+           .map{it-> tuple(it.simpleName,it)}
+           .join(bai)
+        }
+        
         sample_sheet=baminputonly.map{samplename,bam,bai -> tuple (
-             samplename)}.view()
+             samplename)}
 
     }else if(params.file_input) {
         baminputonly=Channel.fromPath(params.file_input)

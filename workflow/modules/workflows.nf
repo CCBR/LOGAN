@@ -18,10 +18,10 @@ include {deepvariant_step1;deepvariant_step2;deepvariant_step3;
 include {mutect2; mutect2filter; pileup_paired_t; pileup_paired_n; 
     contamination_paired; learnreadorientationmodel;mergemut2stats;
     strelka_tn; combineVariants_strelka; 
-    varscan_tn; vardict_tn; octopus_tn;
+    varscan_tn; vardict_tn; octopus_tn; bcftools_index_octopus; bcftools_index_octopus as bcftools_index_octopus_tonly;
     combineVariants as combineVariants_vardict; combineVariants as combineVariants_varscan; 
     combineVariants as combineVariants_vardict_tonly; combineVariants as combineVariants_varscan_tonly;
-    combineVariants as combineVariants_octopus; combineVariants as combineVariants_octopus_tonly;
+    combineVariants_octopus; combineVariants_octopus as combineVariants_octopus_tonly;
     annotvep_tn as annotvep_tn_mut2; annotvep_tn as annotvep_tn_strelka; 
     annotvep_tn as annotvep_tn_varscan; annotvep_tn as annotvep_tn_vardict; annotvep_tn as annotvep_tn_octopus;
     combinemafs_tn} from './variant_calling.nf'
@@ -275,19 +275,22 @@ workflow VC {
     .map{tumor,marked,normvcf,normal ->tuple(tumor,"varscan_tonly",normvcf)} | annotvep_tonly_varscan
 
     //Octopus_TN
-    octopus_comb=octopus_tn(bambyinterval).groupTuple().map{tumor,vcf-> tuple(tumor,vcf,"octopus")} | combineVariants_octopus
+    octopus_comb=octopus_tn(bambyinterval) | bcftools_index_octopus
+    octopus_comb.groupTuple().map{tumor,vcf,vcfindex-> tuple(tumor,vcf,vcfindex,"octopus")}  | combineVariants_octopus
     octopus_comb.join(sample_sheet)
-    .map{tumor,marked,normvcf,normal ->tuple(tumor,normal,"varscan",normvcf)} | annotvep_tn_octopus
+    .map{tumor,marked,normvcf,normal ->tuple(tumor,normal,"octopus",normvcf)} | annotvep_tn_octopus
 
-    //Octopus_tonly
-    octopus_tonly_comb=bambyinterval.map{tumor,bam,bai,normal,nbam,nbai,bed->
-    tuple(tumor,bam,bai,bed)} | octopus_tonly 
-    octopus_tonly_comb1=octopus_tonly_comb.groupTuple().map{tumor,vcf-> tuple(tumor,vcf,"octopus_tonly")} | combineVariants_octopus_tonly
     
-    octopus_tonly_comb1.join(sample_sheet)
+     //Octopus_tonly
+    octopus_tonly_out=bambyinterval.map{tumor,bam,bai,normal,nbam,nbai,bed->
+    tuple(tumor,bam,bai,bed)} | octopus_tonly | bcftools_index_octopus_tonly
+    octopus_tonly_comb=octopus_tonly_out.groupTuple().map{tumor,vcf,vcfindex-> tuple(tumor,vcf,vcfindex,"octopus_tonly")} | combineVariants_octopus_tonly
+    
+    octopus_tonly_comb.join(sample_sheet)
     .map{tumor,marked,normvcf,normal ->tuple(tumor,"octopus_tonly",normvcf)} | annotvep_tonly_octopus
 
 
+   
     //Combine All Variants Using VCF and Then Reannotate
     //annotvep_tn_mut2.out.concat(annotvep_tn_strelka.out).concat(annotvep_tn_vardict.out).concat(annotvep_tn_varscan.out) | combinemafs_tn
     //annotvep_tonly_mut2.out.concat(annotvep_tonly_vardict.out).concat(annotvep_tonly_varscan.out) | combinemafs_tonly
@@ -471,7 +474,7 @@ workflow QC_GL {
 
 
 //Variant Calling from BAM only
-workflow INPUT_BAMVC {
+workflow INPUT_BAM {
     
    if(params.sample_sheet){
         sample_sheet=Channel.fromPath(params.sample_sheet, checkIfExists: true)
@@ -486,13 +489,28 @@ workflow INPUT_BAMVC {
     
     //Either BAM Input or File sheet input 
     if(params.bam_input){
-        baminputonly=Channel.fromPath(params.bam_input)
+        //Check if Index is .bai or .bam.bai
+        bambai=params.bam_input +".bai"
+        baionly = bambai.replace(".bam", "")
+        bamcheck1=file(bambai)
+        bamcheck2=file(baionly)
+
+        if (bamcheck1.size()>0){
+            baminputonly=Channel.fromPath(params.bam_input)
            .map{it-> tuple(it.simpleName,it,file("${it}.bai"))}
+        }
+        if (bamcheck2.size()>0){
+            bai=Channel.from(bamcheck2).map{it -> tuple(it.simpleName,it)}.view()
+            baminputonly=Channel.fromPath(params.bam_input)
+           .map{it-> tuple(it.simpleName,it)}
+           .join(bai)
+        }
+        
     }else if(params.file_input) {
         baminputonly=Channel.fromPath(params.file_input)
                         .splitCsv(header: false, sep: "\t", strip:true)
-                        .map{ sample,bam -> 
-                        tuple(sample, file(bam),file("${bam}.bai"))
+                        .map{ sample,bam,bai  -> 
+                        tuple(sample, file(bam),file(bai))
                                   }
     }
 
