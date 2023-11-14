@@ -418,6 +418,84 @@ process octopus_tn {
 
 } 
 
+process lofreq_tn {
+    label 'process_somaticcaller' 
+    module=["lofreq/2.1.5","bcftools/1.17"]
+
+    input:
+        tuple val(tumorname), path(tumor), path(tumorbai), 
+        val(normalname), path(normal), path(normalbai), path(bed)
+    
+
+    output:
+        tuple val(tumorname),
+        path("${tumorname}_vs_${normalname}_${bed.simpleName}_somatic_final.snvs.vcf.gz"),
+        path("${tumorname}_vs_${normalname}_${bed.simpleName}_somatic_final_minus-dbsnp.snvs.vcf.gz"),
+        path("${tumorname}_vs_${normalname}_${bed.simpleName}_somatic_final.indels.vcf.gz"),
+        path("${tumorname}_vs_${normalname}_${bed.simpleName}_somatic_final_minus-dbsnp.indels.vcf.gz"),
+        path("${tumorname}_vs_${normalname}_${bed.simpleName}_lofreq.vcf.gz")
+    
+    script:
+
+    """
+    lofreq -f $GENOMEREF -n ${normal} -t ${tumor} \
+        -d $DBSNP \
+        --threads $task.cpus \
+        -l ${bed} \
+        --call-indels \
+        -o ${tumorname}_vs_${normalname}_${bed.simpleName}
+    
+    bcftools concat ${tumorname}_vs_${normalname}_${bed.simpleName}_somatic_final_minus-dbsnp.snvs.vcf.gz \
+        ${tumorname}_vs_${normalname}_${bed.simpleName}_somatic_final_minus-dbsnp.indels.vcf.gz" --threads $task.cpus -Oz -o \
+        ${tumorname}_vs_${normalname}_${bed.simpleName}_lofreq.vcf.gz"
+
+
+    """
+
+    stub:
+    
+    """
+    touch "${tumorname}_vs_${normalname}_${bed.simpleName}_somatic_final.snvs.vcf.gz"
+    touch "${tumorname}_vs_${normalname}_${bed.simpleName}_somatic_final_minus-dbsnp.snvs.vcf.gz"
+    touch "${tumorname}_vs_${normalname}_${bed.simpleName}_somatic_final.indels.vcf.gz"
+    touch "${tumorname}_vs_${normalname}_${bed.simpleName}_somatic_final_minus-dbsnp.indels.vcf.gz"
+    touch "${tumorname}_vs_${normalname}_${bed.simpleName}_lofreq.vcf.gz"
+    
+    """
+} 
+
+
+
+process muse_tn {
+    label 'process_somaticcaller' 
+    module=["muse/2.0.1"]
+
+    input:
+        tuple val(tumorname), path(tumor), path(tumorbai), 
+        val(normalname), path(normal), path(normalbai)
+    
+
+    output:
+        tuple val(tumorname),
+        path("${tumorname}_vs_${normalname}.vcf.gz")
+    
+    script:
+
+    """
+    MuSE call -f $GENOMEREF -O ${tumorname}_vs_${normalname} -n $task.cpus $tumor $normal
+    MuSE sump -I ${tumorname}_vs_${normalname}.MuSE.txt \
+        -O ${tumorname}_vs_${normalname} -n $task.cpus -D $DBSNP -G
+        
+    """
+
+    stub:
+    
+    """
+    touch "${tumorname}_vs_${normalname}.vcf.gz"
+    """
+
+} 
+
 
 process combineVariants {
     label 'process_highmem'

@@ -34,12 +34,13 @@ include {mutect2_t_tonly; mutect2filter_tonly; pileup_paired_tonly;
     annotvep_tonly as annotvep_tonly_mut2; annotvep_tonly as annotvep_tonly_octopus;
     combinemafs_tonly} from './variant_calling_tonly.nf'
 
-include {manta_tonly; svaba_tonly; annotsv_tonly as annotsv_manta_tonly; annotsv_tonly as annotsv_svaba_tonly} from './structural_variant.nf'
+include {manta_tonly; svaba_tonly; survivor_sv; gunzip;
+annotsv_tonly as annotsv_manta_tonly; annotsv_tonly as annotsv_svaba_tonly;
+annotsv_tonly as annotsv_survivor_tonly} from './structural_variant.nf'
 
-include {freec; purple } from './copynumber.nf'
+include {freec; amber; cobalt; purple  } from './copynumber.nf'
 
 include {splitinterval} from "./splitbed.nf"
-
 
 
 workflow INPUT_TONLY {
@@ -101,9 +102,7 @@ workflow ALIGN_TONLY {
 
     tobqsr=bwamem2.out.combine(gatherbqsr.out,by:0)
     applybqsr(tobqsr) 
-    //samtoolsindex(applybqsr.out)
-    //samtoolsindex.out.view()
-    //bamwithsample=samtoolsindex.out.join(sample_sheet).map{it.swap(3,0)}.join(samtoolsindex.out).map{it.swap(3,0)}
+    
     bamwithsample=applybqsr.out.join(sample_sheet)
     .map{samplename,tumor,tumorbai -> tuple( samplename,tumor,tumorbai)
         }
@@ -199,9 +198,12 @@ workflow VC_TONLY {
     octopus_tonly_comb1.join(sample_sheet)
     .map{tumor,marked,normvcf ->tuple(tumor,"octopus_tonly",normvcf)} | annotvep_tonly_octopus
 
-
     //Combine All Final
     //annotvep_tonly_mut2.out.concat(annotvep_tonly_vardict.out).concat(annotvep_tonly_varscan.out) | combinemafs_tonly
+
+
+    emit:
+        somaticcall_input=combineVariants_octopus.out
 
 }
 
@@ -214,31 +216,60 @@ workflow SV_TONLY {
         //Svaba
         svaba_out=svaba_tonly(bamwithsample)
         .map{ tumor,bps,contigs,discord,alignments,so_indel,so_sv,unfil_so_indel,unfil_sv,log ->
-            tuple(tumor,so_sv,"svaba")} 
+            tuple(tumor,so_sv,"svaba_tonly")} 
         annotsv_svaba_tonly(svaba_out).ifEmpty("Empty SV input--No SV annotated")
 
         //Manta
         manta_out=manta_tonly(bamwithsample)
             .map{tumor, sv, indel, tumorsv -> 
-            tuple(tumor,tumorsv,"manta")} 
+            tuple(tumor,tumorsv,"manta_tonly")} 
         annotsv_manta_tonly(manta_out).ifEmpty("Empty SV input--No SV annotated")
 
-        //Delly
+        //Delly-WIP
+
+        //Survivor
+        gunzip(manta_out).concat(svaba_out).groupTuple()
+       | survivor_sv |annotsv_survivor_tonly.out.ifEmpty("Empty SV input--No SV annotated")
 }
 
-workflow CNV_TONLY {
+
+
+workflow CNVmouse_tonly {
     take:
         bamwithsample
         
     main: 
-        //mm10 use sequenza only, hg38 use purple
-        if(params.genome=="hg38"){
-            purple(bamwithsample)
-        }
-        if(params.genome=="mm10"){
-            freec(bamwithsample)
-        } 
-       
+        freec(bamwithsample)
+}
+
+
+workflow CNVhuman_tonly {
+    take:
+        bamwithsample
+        somaticcall_input
+
+    main: 
+        //FREEC
+        bamwithsample.map{tname,tumor,tbai,nname,norm,nbai-> 
+            tuple(tname,tumor,tbai)} | freec 
+        
+        //Purple
+        bamwithsample.map{tname,tumor,tbai,nname,norm,nbai-> 
+            tuple(tname,tumor,tbai)} | amber
+        bamwithsample.map{tname,tumor,tbai,nname,norm,nbai-> 
+            tuple(tname,tumor,tbai)} | cobalt
+        purplein=cobalt.out.join(amber.out)
+        purplein.join(somaticcall_input).view()| purple
+
+        //Sequenza
+        //chrs=Channel.fromList(params.genomes[params.genome].chromosomes)
+        //seqzin=bamwithsample.map{tname,tumor,tbai,nname,norm,nbai-> 
+         //   tuple("${tname}_${nname}",tname,tumor,tbai,nname,norm,nbai)}
+        //seqzin.combine(chrs) | seqz_sequenza_bychr
+        //seqz_sequenza_bychr.out.groupTuple()   
+         //   .map{pair, seqz -> tuple(pair, seqz.sort{it.name})}
+          //  | sequenza 
+        
 }
 
 workflow QC_TONLY {
@@ -313,7 +344,7 @@ workflow INPUT_TONLY_BAM {
            .map{it-> tuple(it.simpleName,it)}
            .join(bai)
         }
-        
+
         sample_sheet=baminputonly.map{samplename,bam,bai -> tuple (
              samplename)}
 

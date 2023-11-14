@@ -83,19 +83,21 @@ def main():
         else:
             print("Missing sample sheet for paired mode or you would like Tumor only mode?")
         alignmode='--PIPE_ALIGN'
-        if args.vc and baminput:
+        if args.vc and args.bam:
             vcmode="--PIPE_BAMVC"
         elif args.vc:  
             vcmode="--PIPE_VC"
-        if args.sv and baminput:
+        if args.sv and args.bam:
             svmode="--PIPE_BAMSV"
         elif args.sv:
             svmode="--PIPE_SV"
-        if args.cnv and baminput:
+        if args.cnv and args.bam:
             cnvmode="--PIPE_BAMCNV"
         elif args.cnv:
             cnvmode="--PIPE_CNV"
-        if args.germline:
+        if args.germline and args.bam:
+            germmode="--PIPE_BAMGERMLINE"
+        elif args.germline:
             germmode="--PIPE_GERMLINE"
         if args.qc and args.germline:
             qcmode="--PIPE_QC_GL"
