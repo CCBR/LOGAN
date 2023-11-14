@@ -142,7 +142,7 @@ process annotsv_tn {
 
 process manta_tonly {
     label 'process_highcpu'
-    publishDir(path: "${outdir}/SVtonly/manta", mode: 'copy') 
+    publishDir(path: "${outdir}/SV/manta_tonly", mode: 'copy') 
 
     input:
         tuple val(tumorname), path(tumor), path(tumorbai)
@@ -185,7 +185,7 @@ process manta_tonly {
 
 process svaba_tonly {
     label 'process_highcpu'
-    publishDir(path: "${outdir}/SVtonly/svaba", mode: 'copy') 
+    publishDir(path: "${outdir}/SV/svaba_tonly", mode: 'copy') 
 
     input:
         tuple val(tumorname), path(tumor), path(tumorbai)
@@ -225,7 +225,59 @@ process svaba_tonly {
 }
 
 
+process gunzip {
 
+    input:
+        tuple val(tumorname), 
+        path(vcf), val(sv)
+
+    output:
+        tuple val(tumorname), 
+        path("${tumorname}.tumorSV.vcf"), val(sv)
+
+    script:
+    """
+    gunzip ${vcf} > ${tumorname}.tumorSV.vcf
+    """
+
+    stub:
+
+    """
+    touch ${tumorname}.tumorSV.vcf
+    """
+
+}
+
+
+process survivor_sv {
+    module = ['survivor']
+    publishDir(path: "${outdir}/SV/survivor", mode: 'copy') 
+
+    input:
+        tuple val(tumorname), 
+        path(vcfs),val(svs)
+
+    output:
+        tuple val(tumorname),
+        path("${tumorname}_merged.vcf"),
+        val("survivor")
+
+
+    script:
+    strin = vcfs.join("\\n")
+
+    """
+    echo -e '$strin' > filelistin
+    SURVIVOR merge filelistin 1000 2 1 1 1 30 ${tumorname}_merged.vcf
+    """
+
+    stub:
+    strin = vcfs.join("\\n")
+    """
+    echo -e '$strin' > filelistin
+    touch "${tumorname}_merged.vcf"
+    """
+}
 
 
 process annotsv_tonly {
@@ -233,7 +285,7 @@ process annotsv_tonly {
      //Requires bedtools,bcftools
 
     module = ['annotsv/3.3.1']
-    publishDir(path: "${outdir}/SVtonly/annotated", mode: 'copy') 
+    publishDir(path: "${outdir}/SV/annotated_tonly", mode: 'copy') 
 
     input:
         tuple val(tumorname), path(somaticvcf), val(sv)
