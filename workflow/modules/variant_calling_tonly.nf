@@ -322,13 +322,13 @@ process octopus_tonly {
     $SOMATIC_FOREST \
     -o ${tumorname}_${bed.simpleName}.tonly.octopus.vcf.gz --threads $task.cpus
 
+
     """
 
     stub:
     
     """
     touch ${tumorname}_${bed.simpleName}.tonly.octopus.vcf.gz
-
     """
 }
 

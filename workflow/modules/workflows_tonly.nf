@@ -173,6 +173,7 @@ workflow VC_TONLY {
     | map{tumor,markedvcf,markedindex,finalvcf,finalindex,stats -> tuple(tumor,"mutect2",finalvcf,finalindex)} 
     annotvep_tonly_mut2(mutect2_tonly_in)
 
+
     //VarDict
     vardict_in_tonly=vardict_tonly(bambyinterval) | groupTuple()| map{tumor,vcf -> tuple(tumor,vcf,"vardict_tonly")} 
     | combineVariants_vardict_tonly
@@ -203,6 +204,11 @@ workflow VC_TONLY {
         | somaticcombine_tonly 
         | map{tumor,vcf,index ->tuple(tumor,"combined_tonly",vcf,index)} 
         | annotvep_tonly_combined
+
+
+
+    emit:
+        somaticcall_input=combineVariants_octopus.out
 
 
     emit:
