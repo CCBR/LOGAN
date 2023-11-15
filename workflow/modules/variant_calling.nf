@@ -224,16 +224,16 @@ process mutect2filter {
     publishDir(path: "${outdir}/vcfs/mutect2", mode: 'copy')
 
     input:
-        tuple val(sample), path(mutvcfs), path(stats), path(obs), path(pileups), path(normal_pileups),path(tumorcontamination),path(normalcontamination)
+        tuple val(sample), path(mutvcfs), path(stats), path(obs), 
+        path(pileups), path(normal_pileups),path(tumorcontamination),path(normalcontamination)
     output:
-        tuple val(sample), path("${sample}.mut2.marked.vcf.gz"), 
-        path("${sample}.mut2.norm.vcf.gz"), 
+        tuple val(sample), 
+        path("${sample}.mut2.marked.vcf.gz"), path("${sample}.mut2.marked.vcf.gz.tbi"),
+        path("${sample}.mut2.norm.vcf.gz"), path("${sample}.mut2.norm.vcf.gz.tbi"), 
         path("${sample}.mut2.marked.vcf.gz.filteringStats.tsv")
 
     script:
-    //Include the stats and  concat ${mutvcfs} -Oz -o ${sample}.concat.vcf.gz
     mut2in = mutvcfs.join(" -I ")
-
 
     """
     gatk GatherVcfs -I ${mut2in} -O ${sample}.concat.vcf.gz 
@@ -258,12 +258,13 @@ process mutect2filter {
         awk '{{gsub(/\\y[W|K|Y|R|S|M]\\y/,"N",\$4); OFS = "\\t"; print}}' |\
         sed '/^\$/d' > ${sample}.mut2.norm.vcf |\
     bcftools view - -Oz -o  ${sample}.mut2.norm.vcf.gz
+    bcftools index -t ${sample}.mut2.norm.vcf.gz
     """
 
     stub:
     """
-    touch ${sample}.mut2.marked.vcf.gz
-    touch ${sample}.mut2.norm.vcf.gz
+    touch ${sample}.mut2.marked.vcf.gz ${sample}.mut2.marked.vcf.gz.tbi
+    touch ${sample}.mut2.norm.vcf.gz ${sample}.mut2.norm.vcf.gz.tbi
     touch ${sample}.mut2.marked.vcf.gz.filteringStats.tsv
     """
 
@@ -395,7 +396,7 @@ process octopus_tn {
     
 
     output:
-        tuple val(tumorname),
+        tuple val("${tumorname}_vs_${normalname}"), 
         path("${tumorname}_vs_${normalname}_${bed.simpleName}.octopus.vcf.gz")
     
     script:
@@ -506,8 +507,11 @@ process combineVariants {
     
     output:
         tuple val(sample), 
-        path("${vc}/${sample}.${vc}.marked.vcf.gz"), path("${vc}/${sample}.${vc}.norm.vcf.gz")
-    
+        path("${vc}/${sample}.${vc}.marked.vcf.gz"), 
+        path("${vc}/${sample}.${vc}.marked.vcf.gz.tbi"), 
+        path("${vc}/${sample}.${vc}.norm.vcf.gz"),
+        path("${vc}/${sample}.${vc}.norm.vcf.gz.tbi")
+
     script:
     vcfin = inputvcf.join(" -I ")
     
@@ -518,13 +522,16 @@ process combineVariants {
         -D $GENOMEDICT \
         -I $vcfin
     bcftools sort ${sample}.${vc}.temp.vcf.gz -Oz -o ${sample}.${vc}.marked.vcf.gz
-    bcftools norm ${sample}.${vc}.marked.vcf.gz --threads $task.cpus --check-ref s -f $GENOMEREF -O v |\
+    bcftools norm ${sample}.${vc}.marked.vcf.gz -m- --threads $task.cpus --check-ref s -f $GENOMEREF -O v |\
         awk '{{gsub(/\\y[W|K|Y|R|S|M]\\y/,"N",\$4); OFS = "\\t"; print}}' |\
         sed '/^\$/d' > ${sample}.${vc}.temp.vcf
 
     bcftools view ${sample}.${vc}.temp.vcf -f PASS -Oz -o ${vc}/${sample}.${vc}.norm.vcf.gz
 
     mv ${sample}.${vc}.marked.vcf.gz ${vc}
+    
+    bcftools index ${vc}/${sample}.${vc}.marked.vcf.gz -t
+    bcftools index ${vc}/${sample}.${vc}.norm.vcf.gz -t
     """
 
     stub:
@@ -533,6 +540,79 @@ process combineVariants {
     mkdir ${vc}
     touch ${vc}/${sample}.${vc}.marked.vcf.gz
     touch ${vc}/${sample}.${vc}.norm.vcf.gz
+    touch ${vc}/${sample}.${vc}.marked.vcf.gz.tbi
+    touch ${vc}/${sample}.${vc}.norm.vcf.gz.tbi
+    """
+
+}
+
+
+
+process bcftools_index_octopus {
+    label 'process_low'
+
+    input:
+        tuple val(sample),
+        path(vcf)
+
+    output:
+        tuple val(sample), 
+        path(vcf), 
+        path("${vcf}.tbi")
+    
+    script:    
+    """
+    bcftools index -t ${vcf}
+    """
+
+    stub:
+    """
+    touch ${vcf} ${vcf}.tbi
+    """
+
+}
+
+process combineVariants_octopus {
+    label 'process_highmem'
+    publishDir(path: "${outdir}/vcfs/", mode: 'copy')
+
+    input:
+        tuple val(sample), path(vcfs), path(vcfsindex), val(vc)
+    
+    output:
+        tuple val(sample), 
+        path("${vc}/${sample}.${vc}.marked.vcf.gz"), 
+        path("${vc}/${sample}.${vc}.marked.vcf.gz.tbi"), 
+        path("${vc}/${sample}.${vc}.norm.vcf.gz"),
+        path("${vc}/${sample}.${vc}.norm.vcf.gz.tbi")
+    
+    script:
+    vcfin = vcfs.join(" ")
+    
+    """
+    mkdir ${vc}
+    bcftools concat $vcfin -a -Oz -o ${sample}.${vc}.temp.vcf.gz
+    bcftools sort ${sample}.${vc}.temp.vcf.gz -Oz -o ${sample}.${vc}.marked.vcf.gz
+    bcftools norm ${sample}.${vc}.marked.vcf.gz -m- --threads $task.cpus --check-ref s -f $GENOMEREF -O v |\
+        awk '{{gsub(/\\y[W|K|Y|R|S|M]\\y/,"N",\$4); OFS = "\\t"; print}}' |\
+        sed '/^\$/d' > ${sample}.${vc}.temp.vcf
+
+    bcftools view ${sample}.${vc}.temp.vcf -f PASS -Oz -o ${vc}/${sample}.${vc}.norm.vcf.gz
+
+    mv ${sample}.${vc}.marked.vcf.gz ${vc}
+
+    bcftools index ${vc}/${sample}.${vc}.marked.vcf.gz -t
+    bcftools index ${vc}/${sample}.${vc}.norm.vcf.gz -t
+    """
+
+    stub:
+
+    """
+    mkdir ${vc}
+    touch ${vc}/${sample}.${vc}.marked.vcf.gz
+    touch ${vc}/${sample}.${vc}.norm.vcf.gz
+    touch ${vc}/${sample}.${vc}.marked.vcf.gz.tbi
+    touch ${vc}/${sample}.${vc}.norm.vcf.gz.tbi
     
     """
 
@@ -617,7 +697,9 @@ process combineVariants_strelka {
         tuple val(sample), path(strelkasnvs), path(strelkaindels)
     
     output:
-        tuple val(sample), path("${sample}.strelka.vcf.gz"),path("${sample}.filtered.strelka.vcf.gz")
+        tuple val(sample), 
+        path("${sample}.strelka.vcf.gz"),path("${sample}.strelka.vcf.gz.tbi"),
+        path("${sample}.filtered.strelka.vcf.gz"),path("${sample}.filtered.strelka.vcf.gz.tbi")
     
     
     script:
@@ -628,29 +710,72 @@ process combineVariants_strelka {
 
     """
     bcftools concat $vcfin $indelsin --threads $task.cpus -Oz -o ${sample}.temp.strelka.vcf.gz
-    bcftools sort ${sample}.temp.strelka.vcf.gz -Oz -o ${sample}.strelka.vcf.gz 
+    bcftools norm ${sample}.temp.strelka.vcf.gz -m- --threads $task.cpus --check-ref s -f $GENOMEREF -O v |\
+        awk '{{gsub(/\\y[W|K|Y|R|S|M]\\y/,"N",\$4); OFS = "\\t"; print}}' |\
+        sed '/^\$/d' > ${sample}.temp1.strelka.vcf.gz
+
+    bcftools sort ${sample}.temp1.strelka.vcf.gz -Oz -o ${sample}.strelka.vcf.gz 
 
     bcftools view ${sample}.strelka.vcf.gz --threads $task.cpus -f PASS -Oz -o ${sample}.filtered.strelka.vcf.gz
 
+    bcftools index ${sample}.strelka.vcf.gz -t
+    bcftools index ${sample}.filtered.strelka.vcf.gz -t
     """
 
     stub:
 
     """
-    touch ${sample}.strelka.vcf.gz
-    touch ${sample}.filtered.strelka.vcf.gz
+    touch ${sample}.strelka.vcf.gz ${sample}.strelka.vcf.gz.tbi
+    touch ${sample}.filtered.strelka.vcf.gz ${sample}.filtered.strelka.vcf.gz.tbi
     
     """
 
 }
 
+process somaticcombine {
+    label 'process_mid'
+    publishDir(path: "${outdir}/vcfs/combined", mode: 'copy')
+
+    input: 
+        tuple val(tumorsample), val(normal),
+        val(callers),
+        path(vcfs), path(vcfindex)
+
+    output:
+        tuple val(tumorsample), val(normal),
+        path("${tumorsample}_combined.vcf.gz"),
+        path("${tumorsample}_combined.vcf.gz.tbi")
+
+    script:
+    vcfin1=[callers, vcfs].transpose().collect { a, b -> a + " " + b }
+    vcfin2="-V:" + vcfin1.join(" -V:")
+    println vcfin2
+
+    """
+    java -jar DISCVRSeq-1.3.61.jar MergeVcfsAndGenotypes \
+        -R $GENOMEREF \
+        --genotypeMergeOption PRIORITIZE \
+        --priority_list mutect2,strelka,octopus,muse,lofreq,vardict,varscan \
+        --filteredRecordsMergeType KEEP_IF_ANY_UNFILTERED
+        -O ${tumorsample}_combined.vcf.gz \
+        $vcfin2
+    """
+
+    stub:
+
+    """
+    touch ${tumorsample}_combined.vcf.gz
+    touch ${tumorsample}_combined.vcf.gz.tbi
+    """
+
+}
 
 process annotvep_tn {    
     publishDir(path: "${outdir}/mafs/", mode: 'copy')
 
     input:
         tuple val(tumorsample), val(normalsample), 
-        val(vc), path(tumorvcf) 
+        val(vc), path(tumorvcf),path(vcfindex) 
 
     output:
         path("paired/${vc}/${tumorsample}.maf")
@@ -739,18 +864,3 @@ process combinemafs_tn {
 }
 
 
-
-/*
-process combineVariants_allcallers {
-
-    publishDir(path: "${outdir}/vcfs/", mode: 'copy')
-
-    input:
-        tuple val(sample), path(inputvcf), val(vc)
-    
-    output:
-        tuple val(sample), 
-        path("${vc}/${sample}.${vc}.marked.vcf.gz"), path("${vc}/${sample}.${vc}.norm.vcf.gz")
-
-}
-*/

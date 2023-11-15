@@ -52,15 +52,9 @@ RUN wget https://github.com/broadinstitute/gatk/releases/download/4.3.0.0/gatk-4
     && /opt2/gatk-4.3.0.0/gatk --list
 ENV PATH="/opt2/gatk-4.3.0.0:$PATH"
 
-# Install last release of GATK3 (GATK/3.8-1)
-# Only being used for the CombineVariants
-# command that is not available in GATK4
-# Available via env variable: $GATK_JAR
-# Requires Java8 or 1.8
-RUN wget https://storage.googleapis.com/gatk-software/package-archive/gatk/GenomeAnalysisTK-3.8-1-0-gf15c1c3ef.tar.bz2 \
-    && tar -xvjf /opt2/GenomeAnalysisTK-3.8-1-0-gf15c1c3ef.tar.bz2 \
-    && rm /opt2/GenomeAnalysisTK-3.8-1-0-gf15c1c3ef.tar.bz2
-ENV GATK_JAR="/opt2/GenomeAnalysisTK-3.8-1-0-gf15c1c3ef/GenomeAnalysisTK.jar"
+# Use DISCVRSeq For CombineVariants Replacement
+RUN wget https://github.com/BimberLab/DISCVRSeq/releases/download/1.3.61/DISCVRSeq-1.3.61.jar 
+ENV DISCVRSeq_JAR="/opt2/DISCVRSeq-1.3.61.jar"
 
 # Install dependencies needed to add a new repository over HTTPS
 RUN DEBIAN_FRONTEND=noninteractive apt-get install -y \
@@ -164,6 +158,15 @@ RUN wget https://github.com/AstraZeneca-NGS/VarDictJava/releases/download/v1.8.3
     && rm /opt2/VarDict-1.8.3.tar
 ENV PATH="/opt2/VarDict-1.8.3/bin:$PATH"
 
+# Install Octopus/v0.7.4
+#RUN wget https://github.com/luntergroup/octopus/archive/refs/tags/v0.7.4.tar.gz \ 
+#    && tar -xvzf /opt2/v0.7.4.tar.gz \
+#    && rm /opt2/v0.7.4.tar.gz \
+#    && cd /opt2/octopus-0.7.4 \
+#    && cmake .
+#ENV PATH="/opt2/octopus-0.7.4/bin:$PATH"
+
+
 # Fastp From Opengene github
 RUN wget http://opengene.org/fastp/fastp.0.23.2 \
     && mkdir fastp \
@@ -192,6 +195,25 @@ RUN wget -O svaba_1.2.0 https://github.com/walaj/svaba/releases/download/v1.2.0/
     && chmod a+x svaba/svaba
 
 ENV PATH="/opt2/svaba:$PATH"
+
+# LOFREQ
+RUN wget https://github.com/CSB5/lofreq/raw/master/dist/lofreq_star-2.1.5_linux-x86-64.tgz \
+    && tar -xzf lofreq_star-2.1.5_linux-x86-64.tgz \ 
+    && chmod a+x lofreq_star-2.1.5_linux-x86-64/bin/lofreq 
+
+ENV PATH="/opt2/lofreq_star-2.1.5_linux-x86-64/bin/:$PATH"
+# MUSE
+RUN wget -O muse_2.0.4.tar.gz https://github.com/wwylab/MuSE/archive/refs/tags/v2.0.4.tar.gz \
+    && tar -xzf muse_2.0.4.tar.gz \ 
+    && cd MuSE-2.0.4 \
+    && ./install_muse.sh \
+    && mv MuSE /opt2/ \
+    && chmod a+x /opt2/MuSE \
+    && rm -R /opt2/MuSE-2.0.4 \
+    && rm /opt2/muse_2.0.4.tar.gz
+
+ENV PATH="/opt2/MuSE:$PATH"
+
 
 
 # Add Dockerfile and argparse.bash script
