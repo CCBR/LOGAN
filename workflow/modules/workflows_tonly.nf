@@ -32,7 +32,8 @@ include {mutect2_t_tonly; mutect2filter_tonly; pileup_paired_tonly;
     mergemut2stats_tonly;
     annotvep_tonly as annotvep_tonly_varscan; annotvep_tonly as annotvep_tonly_vardict; 
     annotvep_tonly as annotvep_tonly_mut2; annotvep_tonly as annotvep_tonly_octopus;
-    combinemafs_tonly} from './variant_calling_tonly.nf'
+    annotvep_tonly as annotvep_tonly_combined;
+    combinemafs_tonly; somaticcombine_tonly} from './variant_calling_tonly.nf'
 
 include {manta_tonly; svaba_tonly; survivor_sv; gunzip;
 annotsv_tonly as annotsv_manta_tonly; annotsv_tonly as annotsv_svaba_tonly;
@@ -167,36 +168,41 @@ workflow VC_TONLY {
     .join(learnreadorientationmodel_tonly.out)
     .join(contamination_tumoronly.out)
 
-    mutect2filter_tonly(mut2tonly_filter)
-    
-    //Annotate
-    mutect2filter_tonly.out
-    .join(sample_sheet)
-    .map{tumor,markedvcf,finalvcf,stats -> tuple(tumor,"mutect2",finalvcf)} | annotvep_tonly_mut2
+    mutect2_tonly_in=mutect2filter_tonly(mut2tonly_filter) 
+    | join(sample_sheet)
+    | map{tumor,markedvcf,markedindex,finalvcf,finalindex,stats -> tuple(tumor,"mutect2",finalvcf,finalindex)} 
+    annotvep_tonly_mut2(mutect2_tonly_in)
 
-    //VarDict_tonly
-    vardict_tonly(bambyinterval).groupTuple().map{tumor,vcf-> tuple(tumor,vcf,"vardict_tonly")} | combineVariants_vardict_tonly
-    combineVariants_vardict_tonly.out.join(sample_sheet)
-    .map{tumor,marked,normvcf ->tuple(tumor,"vardict_tonly",normvcf)} | annotvep_tonly_vardict
+    //VarDict
+    vardict_in_tonly=vardict_tonly(bambyinterval) | groupTuple()| map{tumor,vcf -> tuple(tumor,vcf,"vardict_tonly")} 
+    | combineVariants_vardict_tonly
+    | join(sample_sheet)
+    | map{tumor,marked,markedindex,normvcf,normindex ->tuple(tumor,"vardict_tonly",normvcf,normindex)}
+    annotvep_tonly_vardict(vardict_in_tonly)
 
     //VarScan_tonly
-    varscan_in=bambyinterval.join(contamination_tumoronly.out)
-    varscan_tonly_comb=varscan_tonly(varscan_in).groupTuple().map{tumor,vcf-> tuple(tumor,vcf,"varscan")} | combineVariants_varscan_tonly
-    
-    varscan_tonly_comb.join(sample_sheet)
-    .map{tumor,marked,normvcf ->tuple(tumor,"varscan_tonly",normvcf)} | annotvep_tonly_varscan
+    varscan_in_tonly=bambyinterval.join(contamination_tumoronly.out)
+        | varscan_tonly | groupTuple() | map{tumor,vcf-> tuple(tumor,vcf,"varscan")} 
+        | combineVariants_varscan_tonly 
+        | join(sample_sheet)
+        | map{tumor,marked,markedindex,normvcf,normindex ->tuple(tumor,"varscan_tonly",normvcf,normindex)} 
+    annotvep_tonly_varscan(varscan_in_tonly)
 
     //Octopus_tonly
-    octopus_tonly_comb=bambyinterval.map{tumor,bam,bai,bed->
-    tuple(tumor,bam,bai,bed)} | octopus_tonly | bcftools_index_octopus
-    octopus_tonly_comb1=octopus_tonly_comb.groupTuple().map{tumor,vcf,vcfindex-> tuple(tumor,vcf,vcfindex, "octopus_tonly")} | combineVariants_octopus
-    
-    octopus_tonly_comb1.join(sample_sheet)
-    .map{tumor,marked,normvcf ->tuple(tumor,"octopus_tonly",normvcf)} | annotvep_tonly_octopus
+    octopus_in_tonly=bambyinterval | octopus_tonly | bcftools_index_octopus
+    | groupTuple()
+    | map{tumor,vcf,vcfindex -> tuple(tumor,vcf.toSorted{it -> it.name}
+            ,vcfindex, "octopus_tonly")} 
+    | combineVariants_octopus | join(sample_sheet)
+    | map{tumor,marked,markedindex,normvcf,normindex ->tuple(tumor,"octopus_tonly",normvcf,normindex)} 
+    annotvep_tonly_octopus(octopus_in_tonly)
 
 
-    //Combine All Final
-    //annotvep_tonly_mut2.out.concat(annotvep_tonly_vardict.out).concat(annotvep_tonly_varscan.out) | combinemafs_tonly
+    mutect2_tonly_in|concat(octopus_in_tonly)
+        | concat(vardict_in_tonly)|concat(varscan_in_tonly)
+        | somaticcombine_tonly 
+        | map{tumor,vcf,index ->tuple(tumor,"combined_tonly",vcf,index)} 
+        | annotvep_tonly_combined
 
 
     emit:

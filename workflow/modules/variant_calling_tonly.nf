@@ -186,8 +186,9 @@ process mutect2filter_tonly {
     input:
         tuple val(sample), path(mutvcfs), path(stats), path(obs), path(pileups),path(tumorcontamination)
     output:
-        tuple val(sample), path("${sample}.tonly.mut2.marked.vcf.gz"), 
-        path("${sample}.tonly.mut2.norm.vcf.gz"), 
+        tuple val(sample), 
+        path("${sample}.tonly.mut2.marked.vcf.gz"),path("${sample}.tonly.mut2.marked.vcf.gz.tbi"), 
+        path("${sample}.tonly.mut2.norm.vcf.gz"),path("${sample}.tonly.mut2.norm.vcf.gz.tbi"), 
         path("${sample}.tonly.mut2.marked.vcf.gz.filteringStats.tsv")
 
     script:
@@ -217,13 +218,14 @@ process mutect2filter_tonly {
         awk '{{gsub(/\\y[W|K|Y|R|S|M]\\y/,"N",\$4); OFS = "\t"; print}}' |\
         sed '/^\$/d' |\
     bcftools view - -Oz -o  ${sample}.tonly.mut2.norm.vcf.gz
+    bcftools index -t ${sample}.tonly.mut2.norm.vcf.gz
 
     """
 
     stub:
     """
-    touch ${sample}.tonly.mut2.marked.vcf.gz
-    touch ${sample}.tonly.mut2.norm.vcf.gz
+    touch ${sample}.tonly.mut2.marked.vcf.gz ${sample}.tonly.mut2.marked.vcf.gz.tbi
+    touch ${sample}.tonly.mut2.norm.vcf.gz ${sample}.tonly.mut2.norm.vcf.gz.tbi
     touch ${sample}.tonly.mut2.marked.vcf.gz.filteringStats.tsv
     """
 }
@@ -310,7 +312,7 @@ process octopus_tonly {
     
     output:
         tuple val(tumorname),
-        path("${tumorname}_${bed.simpleName}.octopus.vcf.gz")
+        path("${tumorname}_${bed.simpleName}.tonly.octopus.vcf.gz")
     
     script:
 
@@ -318,25 +320,62 @@ process octopus_tonly {
     octopus -R $GENOMEREF -C cancer -I ${tumor} \
     --annotations AC AD DP -t ${bed} \
     $SOMATIC_FOREST \
-    -o ${tumorname}_${bed.simpleName}.octopus.vcf.gz --threads $task.cpus
+    -o ${tumorname}_${bed.simpleName}.tonly.octopus.vcf.gz --threads $task.cpus
 
     """
 
     stub:
     
     """
-    touch ${tumorname}_${bed.simpleName}.octopus.vcf.gz
+    touch ${tumorname}_${bed.simpleName}.tonly.octopus.vcf.gz
 
     """
 }
 
+
+process somaticcombine_tonly {
+    label 'process_mid'
+    publishDir(path: "${outdir}/vcfs/combined_tonly", mode: 'copy')
+
+    input: 
+        tuple val(tumorsample), 
+        val(callers),
+        path(vcfs), path(vcfindex)
+
+    output:
+        tuple val(tumorsample),
+        path("${tumorsample}_combined_tonly.vcf.gz"),
+        path("${tumorsample}_combined_tonly.vcf.gz.tbi")
+
+    script:
+        vcfin1=[callers, vcfs].transpose().collect { a, b -> a + " " + b }
+        vcfin2="-V:" + vcfin1.join(" -V:")
+        println vcfin2
+
+    """
+    java -jar DISCVRSeq-1.3.61.jar MergeVcfsAndGenotypes \
+        -R $GENOMEREF \
+        --genotypeMergeOption PRIORITIZE \
+        --priority_list mutect2,octopus,vardict,varscan \
+        --filteredRecordsMergeType KEEP_IF_ANY_UNFILTERED
+        -O ${tumorsample}_combined.vcf.gz \
+        $vcfin2
+    """
+
+    stub:
+    """
+    touch ${tumorsample}_combined_tonly.vcf.gz ${tumorsample}_combined_tonly.vcf.gz.tbi
+    """
+
+}
 
 process annotvep_tonly {
     publishDir("${outdir}/mafs", mode: "copy")
 
     input:
         tuple val(tumorsample), 
-        val(vc), path(tumorvcf) 
+        val(vc), path(tumorvcf), 
+        path(vcfindex)
 
 
     output:
