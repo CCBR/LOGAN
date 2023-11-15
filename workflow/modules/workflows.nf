@@ -26,6 +26,7 @@ include {mutect2; mutect2filter; pileup_paired_t; pileup_paired_n;
     combineVariants_octopus; combineVariants_octopus as combineVariants_octopus_tonly;
     annotvep_tn as annotvep_tn_mut2; annotvep_tn as annotvep_tn_strelka; 
     annotvep_tn as annotvep_tn_varscan; annotvep_tn as annotvep_tn_vardict; annotvep_tn as annotvep_tn_octopus;
+    annotvep_tn as annotvep_tn_lofreq; annotvep_tn as annotvep_tn_muse;
     combinemafs_tn} from './variant_calling.nf'
 
 include {mutect2_t_tonly; mutect2filter_tonly; 
@@ -42,7 +43,8 @@ include {svaba_somatic; manta_somatic;
     annotsv_tn as annotsv_survivor_tn
     annotsv_tn as annotsv_svaba;annotsv_tn as annotsv_manta} from './structural_variant.nf'
 
-include {sequenza; seqz_sequenza_bychr; freec; freec_paired } from './copynumber.nf'
+include {amber_tn; cobalt_tn; purple;
+    sequenza; seqz_sequenza_bychr; freec; freec_paired } from './copynumber.nf'
 
 include {splitinterval} from "./splitbed.nf"
 
@@ -280,26 +282,30 @@ workflow VC {
     .map{tumor,marked,normvcf,normal ->tuple(tumor,"varscan_tonly",normvcf)} | annotvep_tonly_varscan
 
     //Lofreq TN
-    lofreq_tn(bambyinterval).groupTuple().map{tumor,snv,dbsnv,indel,dbindel,vcf-> tuple(tumor,vcf,"lofreq")} | combineVariants_lofreq
+    lofreq_tn(bambyinterval).groupTuple().map{tumor,snv,dbsnv,indel,dbindel,vcf-> tuple(tumor,vcf,"lofreq")} 
+        | combineVariants_lofreq | join(sample_sheet)| map{tumor,marked,normvcf,normal ->tuple(tumor,normal,"lofreq",normvcf)} 
+        | annotvep_tn_lofreq
 
     //MuSE TN
-    muse_tn(bamwithsample).groupTuple().map{tumor,vcf-> tuple(tumor,vcf,"muse")} | combineVariants_muse
+    muse_tn(bamwithsample).groupTuple().map{tumor,vcf-> tuple(tumor,vcf,"muse")} 
+        | combineVariants_muse | join(sample_sheet)| map{tumor,marked,normvcf,normal ->tuple(tumor,normal,"muse",normvcf)} 
+        | annotvep_tn_muse
 
     //Octopus_TN
-    octopus_comb=octopus_tn(bambyinterval) | bcftools_index_octopus
-    octopus_comb.groupTuple().map{tumor,vcf,vcfindex-> tuple(tumor,vcf,vcfindex,"octopus")}  | combineVariants_octopus
-    octopus_annotin=octopus_comb.join(sample_sheet)
-        .map{tumor,marked,normvcf,normal ->tuple(tumor,normal,"octopus",normvcf)} 
+    octopus_annotin=octopus_tn(bambyinterval) | bcftools_index_octopus
+        | groupTuple()  |map{tumor,vcf,vcfindex-> tuple(tumor,vcf,vcfindex,"octopus")} 
+        | combineVariants_octopus | join(sample_sheet)|map{tumor,marked,normvcf,normal ->tuple(tumor,normal,"octopus",normvcf)} 
     annotvep_tn_octopus(octopus_annotin)
 
     
     //Octopus_TOnly
     octopus_tonly_out=bambyinterval.map{tumor,bam,bai,normal,nbam,nbai,bed->
     tuple(tumor,bam,bai,bed)} | octopus_tonly | bcftools_index_octopus_tonly
-    octopus_tonly_comb=octopus_tonly_out.groupTuple().map{tumor,vcf,vcfindex-> tuple(tumor,vcf,vcfindex,"octopus_tonly")} | combineVariants_octopus_tonly
+    octopus_tonly_comb=octopus_tonly_out.groupTuple().map{tumor,vcf,vcfindex-> tuple(tumor,vcf,vcfindex,"octopus_tonly")} 
+        | combineVariants_octopus_tonly
     
-    octopus_tonly_comb.join(sample_sheet)
-    .map{tumor,marked,normvcf,normal ->tuple(tumor,"octopus_tonly",normvcf)} | annotvep_tonly_octopus
+    octopus_tonly_comb.join(sample_sheet) |
+        map{tumor,marked,normvcf,normal ->tuple(tumor,"octopus_tonly",normvcf)} | annotvep_tonly_octopus
 
     //Combine All Variants Using VCF and Then Reannotate
     //annotvep_tn_mut2.out.concat(annotvep_tn_strelka.out).concat(annotvep_tn_vardict.out).concat(annotvep_tn_varscan.out) | combinemafs_tn
@@ -307,10 +313,8 @@ workflow VC {
 
     //Implement PCGR Annotator/CivIC Next
 
-    if (params.genome=="hg38"){
-        emit:
-            somaticcall_input=octopus_annotin
-    }
+    emit:
+        somaticcall_input=octopus_annotin
 
 }
 
@@ -374,17 +378,13 @@ workflow CNVhuman {
             .map{pair, seqz -> tuple(pair, seqz.sort{it.name})}
             | sequenza 
 
-        //FREEC
-        bamwithsample.map{tname,tumor,tbai,nname,norm,nbai-> 
-            tuple(tname,tumor,tbai)} | freec 
-        
         //Purple
-        bamwithsample.map{tname,tumor,tbai,nname,norm,nbai-> 
-            tuple(tname,tumor,tbai)} | amber
-        bamwithsample.map{tname,tumor,tbai,nname,norm,nbai-> 
-            tuple(tname,tumor,tbai)} | cobalt
-        purplein=cobalt.out.join(amber.out)
-        purplein.join(somaticcall_input).view()| purple
+        bamwithsample | amber_tn
+        bamwithsample | cobalt_tn
+        purplein=amber_tn.out.join(cobalt_tn.out)
+        purplein.join(somaticcall_input)| 
+        map{t1,amber,cobalt,n1,vc,vcf -> tuple(t1,amber,cobalt,vcf)}  
+            | purple
         
 }         
 

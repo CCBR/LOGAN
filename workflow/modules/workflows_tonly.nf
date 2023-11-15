@@ -38,7 +38,7 @@ include {manta_tonly; svaba_tonly; survivor_sv; gunzip;
 annotsv_tonly as annotsv_manta_tonly; annotsv_tonly as annotsv_svaba_tonly;
 annotsv_tonly as annotsv_survivor_tonly} from './structural_variant.nf'
 
-include {freec; amber; cobalt; purple  } from './copynumber.nf'
+include {freec; amber_tonly; cobalt_tonly; purple  } from './copynumber.nf'
 
 include {splitinterval} from "./splitbed.nf"
 
@@ -141,12 +141,11 @@ workflow VC_TONLY {
     
     //LOR     
     mut2tout_lor=mutect2_t_tonly.out.groupTuple()
-    .map { samplename,vcfs,f1r2,stats -> tuple( samplename,
-    f1r2.toSorted{ it -> (it.name =~ /${samplename}_(.*?).f1r2.tar.gz/)[0][1].toInteger() } 
-    )}
-    learnreadorientationmodel_tonly(mut2tout_lor)
+        .map { samplename,vcfs,f1r2,stats -> tuple( samplename,
+        f1r2.toSorted{ it -> (it.name =~ /${samplename}_(.*?).f1r2.tar.gz/)[0][1].toInteger() } 
+        )}
+        learnreadorientationmodel_tonly(mut2tout_lor)
 
-    
     //Stats
     mut2tonly_mstats=mutect2_t_tonly.out.groupTuple()
     .map { samplename,vcfs,f1r2,stats -> tuple( samplename,
@@ -154,11 +153,9 @@ workflow VC_TONLY {
     )}
     mergemut2stats_tonly(mut2tonly_mstats)
 
-    
     //Contamination
     contamination_tumoronly(pileup_paired_tout)
 
-    
     //Final TUMOR ONLY FILTER
     allmut2tonly=mutect2_t_tonly.out.groupTuple()
     .map { samplename,vcfs,f1r2,stats -> tuple( samplename,
@@ -172,8 +169,7 @@ workflow VC_TONLY {
 
     mutect2filter_tonly(mut2tonly_filter)
     
-    
-    //vcf2maf Annotate
+    //Annotate
     mutect2filter_tonly.out
     .join(sample_sheet)
     .map{tumor,markedvcf,finalvcf,stats -> tuple(tumor,"mutect2",finalvcf)} | annotvep_tonly_mut2
@@ -197,6 +193,7 @@ workflow VC_TONLY {
     
     octopus_tonly_comb1.join(sample_sheet)
     .map{tumor,marked,normvcf ->tuple(tumor,"octopus_tonly",normvcf)} | annotvep_tonly_octopus
+
 
     //Combine All Final
     //annotvep_tonly_mut2.out.concat(annotvep_tonly_vardict.out).concat(annotvep_tonly_varscan.out) | combinemafs_tonly
@@ -229,7 +226,7 @@ workflow SV_TONLY {
 
         //Survivor
         gunzip(manta_out).concat(svaba_out).groupTuple()
-       | survivor_sv |annotsv_survivor_tonly.out.ifEmpty("Empty SV input--No SV annotated")
+       | survivor_sv | annotsv_survivor_tonly.out.ifEmpty("Empty SV input--No SV annotated")
 }
 
 
@@ -249,26 +246,16 @@ workflow CNVhuman_tonly {
         somaticcall_input
 
     main: 
-        //FREEC
-        bamwithsample.map{tname,tumor,tbai,nname,norm,nbai-> 
-            tuple(tname,tumor,tbai)} | freec 
+        //FREEC-Unpaired onlypu
+        bamwithsample | freec 
         
         //Purple
-        bamwithsample.map{tname,tumor,tbai,nname,norm,nbai-> 
-            tuple(tname,tumor,tbai)} | amber
-        bamwithsample.map{tname,tumor,tbai,nname,norm,nbai-> 
-            tuple(tname,tumor,tbai)} | cobalt
-        purplein=cobalt.out.join(amber.out)
-        purplein.join(somaticcall_input).view()| purple
-
-        //Sequenza
-        //chrs=Channel.fromList(params.genomes[params.genome].chromosomes)
-        //seqzin=bamwithsample.map{tname,tumor,tbai,nname,norm,nbai-> 
-         //   tuple("${tname}_${nname}",tname,tumor,tbai,nname,norm,nbai)}
-        //seqzin.combine(chrs) | seqz_sequenza_bychr
-        //seqz_sequenza_bychr.out.groupTuple()   
-         //   .map{pair, seqz -> tuple(pair, seqz.sort{it.name})}
-          //  | sequenza 
+        bamwithsample | amber_tonly
+        bamwithsample | cobalt_tonly
+        purplein=amber_tonly.out.join(cobalt_tonly.out)
+        purplein.join(somaticcall_input)| 
+        map{t1,amber,cobalt,vc,vcf -> tuple(t1,amber,cobalt,vcf)}  
+            | purple
         
 }
 

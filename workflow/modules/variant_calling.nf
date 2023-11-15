@@ -396,7 +396,7 @@ process octopus_tn {
 
     output:
         tuple val(tumorname),
-        path("${tumorname}_vs_${normalname}_${bed.simpleName}.octopus.vcf")
+        path("${tumorname}_vs_${normalname}_${bed.simpleName}.octopus.vcf.gz")
     
     script:
 
@@ -407,13 +407,13 @@ process octopus_tn {
     --threads $task.cpus \
     $GERMLINE_FOREST \
     $SOMATIC_FOREST \
-    -o ${tumorname}_vs_${normalname}_${bed.simpleName}.octopus.vcf 
+    -o ${tumorname}_vs_${normalname}_${bed.simpleName}.octopus.vcf.gz
     """
 
     stub:
     
     """
-    touch "${tumorname}_vs_${normalname}_${bed.simpleName}.octopus.vcf"
+    touch "${tumorname}_vs_${normalname}_${bed.simpleName}.octopus.vcf.gz"
     """
 
 } 
