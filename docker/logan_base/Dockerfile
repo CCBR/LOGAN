@@ -210,7 +210,7 @@ RUN wget https://github.com/CSB5/lofreq/raw/master/dist/lofreq_star-2.1.5_linux-
 ENV PATH="/opt2/lofreq_star-2.1.5_linux-x86-64/bin/:$PATH"
 # MUSE
 RUN wget -O muse_2.0.4.tar.gz https://github.com/wwylab/MuSE/archive/refs/tags/v2.0.4.tar.gz \
-    && tar -xzf v2.0.4.tar.gz \ 
+    && tar -xzf muse_2.0.4.tar.gz \ 
     && cd MuSE-2.0.4 \
     && ./install_muse.sh \
     && mv MuSE /opt2/ \
