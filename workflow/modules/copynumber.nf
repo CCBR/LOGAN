@@ -14,9 +14,6 @@ FREECSIGNIFICANCE = params.freec_significance
 FREECPLOT = params.freec_plot
 }
 
-cobalt="/data/SCLC-BRAINMETS/cn/cobalt_v1.14.jar"
-amber="/data/SCLC-BRAINMETS/cn/amber-3.9.jar"
-purple="/data/SCLC-BRAINMETS/cn/purple_v3.8.2.jar"
 GERMLINEHET="/data/SCLC-BRAINMETS/cn/copy_number/GermlineHetPon.38.vcf.gz"
 GCPROFILE='/data/SCLC-BRAINMETS/cn/copy_number/GC_profile.1000bp.38.cnp'
 DIPLODREG='/data/SCLC-BRAINMETS/cn/copy_number/DiploidRegions.38.bed.gz'
@@ -240,7 +237,7 @@ process amber_tonly {
 
     """
 
-    java -Xmx32G -cp $amber com.hartwig.hmftools.amber.AmberApplication \
+    java -Xmx32G -cp amber.jar com.hartwig.hmftools.amber.AmberApplication \
     -tumor ${tumorname} -tumor_bam ${tumor} \
     -output_dir ${tumorname}_amber \
     -threads $task.cpus \
@@ -276,7 +273,7 @@ process amber_tn {
 
     """
 
-    java -Xmx32G -cp $amber com.hartwig.hmftools.amber.AmberApplication \
+    java -Xmx32G -cp amber.jar com.hartwig.hmftools.amber.AmberApplication \
     -tumor ${tumorname} -tumor_bam ${tumor} \
     -reference ${normalname} -reference_bam ${normal} \
     -output_dir ${tumorname}_vs_${normalname}_amber \
@@ -311,7 +308,7 @@ process cobalt_tonly {
 
     """
 
-    java -jar -Xmx8G $cobalt \
+    java -jar -Xmx8G cobalt.jar \
     -tumor ${tumorname} -tumor_bam ${tumor} \
     -output_dir ${tumorname}_cobalt \
     -threads $task.cpus \
@@ -346,7 +343,7 @@ process cobalt_tn {
 
     """
 
-    java -jar -Xmx8G $cobalt \
+    java -jar -Xmx8G cobalt.jar \
     -tumor ${tumorname} -tumor_bam ${tumorname} \
     -reference ${normalname} -reference_bam ${normal} \
     -output_dir ${tumorname}_vs_${normalname}_cobalt \
@@ -382,7 +379,7 @@ process purple {
 
     """
 
-    java -jar $purple \
+    java -jar purple.jar \
     -tumor ${tumorname} \
     -amber ${amberin} \
     -cobalt ${cobaltin} \
