@@ -421,7 +421,6 @@ process octopus_tn {
 
 process lofreq_tn {
     label 'process_somaticcaller' 
-    module=["lofreq/2.1.5","bcftools/1.17"]
 
     input:
         tuple val(tumorname), path(tumor), path(tumorbai), 
@@ -439,7 +438,7 @@ process lofreq_tn {
     script:
 
     """
-    lofreq -f $GENOMEREF -n ${normal} -t ${tumor} \
+    lofreq somatic -f $GENOMEREF -n ${normal} -t ${tumor} \
         -d $DBSNP \
         --threads $task.cpus \
         -l ${bed} \
