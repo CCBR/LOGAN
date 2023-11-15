@@ -238,7 +238,7 @@ workflow SV_TONLY {
 
         //Survivor
         gunzip(manta_out).concat(svaba_out).groupTuple()
-       | survivor_sv | annotsv_survivor_tonly.out.ifEmpty("Empty SV input--No SV annotated")
+       | survivor_sv | annotsv_survivor_tonly | ifEmpty("Empty SV input--No SV annotated")
 }
 
 
@@ -266,8 +266,9 @@ workflow CNVhuman_tonly {
         bamwithsample | cobalt_tonly
         purplein=amber_tonly.out.join(cobalt_tonly.out)
         purplein.join(somaticcall_input)| 
-        map{t1,amber,cobalt,vc,vcf -> tuple(t1,amber,cobalt,vcf)}  
+        map{t1,amber,cobalt,vc,vcf,index -> tuple(t1,amber,cobalt,vcf,index)}  
             | purple
+
         
 }
 

@@ -405,7 +405,7 @@ workflow CNVhuman {
         bamwithsample | cobalt_tn
         purplein=amber_tn.out.join(cobalt_tn.out)
         purplein.join(somaticcall_input)| 
-        map{t1,amber,cobalt,n1,vc,vcf -> tuple(t1,amber,cobalt,vcf)}  
+        map{t1,amber,cobalt,n1,vc,vcf,vcfindex -> tuple(t1,amber,cobalt,vcf,vcfindex)}  
             | purple
         
 }         

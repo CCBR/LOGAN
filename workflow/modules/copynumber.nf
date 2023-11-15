@@ -370,7 +370,8 @@ process purple {
         tuple val(tumorname),
         path(cobaltin), 
         path(amberin),
-        path(somaticvcf)
+        path(somaticvcf),
+        path(somaticvcfindex)
 
     output:
         tuple val(tumorname), path("${tumorname}")

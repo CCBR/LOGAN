@@ -548,29 +548,6 @@ process combineVariants {
 
 
 
-process bcftools_index_octopus {
-    label 'process_low'
-
-    input:
-        tuple val(sample),
-        path(vcf)
-
-    output:
-        tuple val(sample), 
-        path(vcf), 
-        path("${vcf}.tbi")
-    
-    script:    
-    """
-    bcftools index -t ${vcf}
-    """
-
-    stub:
-    """
-    touch ${vcf} ${vcf}.tbi
-    """
-
-}
 
 process combineVariants_octopus {
     label 'process_highmem'
@@ -645,43 +622,6 @@ process bcftools_index_octopus {
 
 }
 
-process combineVariants_octopus {
-    label 'process_highmem'
-    publishDir(path: "${outdir}/vcfs/", mode: 'copy')
-
-    input:
-        tuple val(sample), path(vcfs), path(vcfsindex), val(vc)
-    
-    output:
-        tuple val(sample), 
-        path("${vc}/${sample}.${vc}.marked.vcf.gz"), path("${vc}/${sample}.${vc}.norm.vcf.gz")
-    
-    script:
-    vcfin = vcfs.join(" ")
-    
-    """
-    mkdir ${vc}
-    bcftools concat $vcfin -a -Oz -o ${sample}.${vc}.temp.vcf.gz
-    bcftools sort ${sample}.${vc}.temp.vcf.gz -Oz -o ${sample}.${vc}.marked.vcf.gz
-    bcftools norm ${sample}.${vc}.marked.vcf.gz --threads $task.cpus --check-ref s -f $GENOMEREF -O v |\
-        awk '{{gsub(/\\y[W|K|Y|R|S|M]\\y/,"N",\$4); OFS = "\\t"; print}}' |\
-        sed '/^\$/d' > ${sample}.${vc}.temp.vcf
-
-    bcftools view ${sample}.${vc}.temp.vcf -f PASS -Oz -o ${vc}/${sample}.${vc}.norm.vcf.gz
-
-    mv ${sample}.${vc}.marked.vcf.gz ${vc}
-    """
-
-    stub:
-
-    """
-    mkdir ${vc}
-    touch ${vc}/${sample}.${vc}.marked.vcf.gz
-    touch ${vc}/${sample}.${vc}.norm.vcf.gz
-    
-    """
-
-}
 
 
 
