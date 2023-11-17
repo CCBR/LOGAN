@@ -1,6 +1,6 @@
 [build-system]
 requires = [
-    "setuptools >= 48",
+    "setuptools >= 62.3.0",
     "wheel >= 0.29.0",
 ]
 build-backend = 'setuptools.build_meta'
@@ -8,9 +8,10 @@ build-backend = 'setuptools.build_meta'
 [project]
 name = 'LOGAN'
 dynamic = ['version','readme']
-description = "TODO insert description of LOGAN here"
+description = "whoLe genOme-sequencinG Analysis pipeliNe"
 keywords = ["bioinformatics", "nextflow"]
 authors = [
+    {name = 'Darryl Nousome', email = 'darryl.nousome@nih.gov'},
     {name = "Kelly Sovacool", email = "kelly.sovacool@nih.gov"},
     {name = "Vishal Koparde", email = "vishal.koparde@nih.gov"},
 ]
@@ -31,9 +32,8 @@ classifiers = [
     "Programming Language :: Python :: 3.9",
     "Topic :: Scientific/Engineering :: Bio-Informatics",
 ]
-requires-python = ">=3.7"
+requires-python = ">=3.8"
 dependencies = [
-    "nextflow >= 0.4.0",
     "pyyaml >= 6.0",
     "Click >= 8.1.3",
 ]
@@ -55,14 +55,14 @@ logan = "logan.src.__main__:main"
 Homepage = "https://ccbr.github.io/LOGAN"
 Documentation = "https://ccbr.github.io/LOGAN"
 Repository = "https://github.com/CCBR/LOGAN"
-Changelog = "https://github.com/CCBR/LOGAN/blob/main/docs/CHANGELOG.md"
+Changelog = "https://github.com/CCBR/LOGAN/blob/main/CHANGELOG.md"
 
 [tool.setuptools.package-dir]
 logan = "."
 
 [tool.setuptools.package-data]
-"*" = ["CITATION.cff", "LICENSE", "VERSION", "main.nf", "nextflow.conf", "bin/", "conf/", "modules/*/*", "submodules/*/*"]
+"*" = ["CITATION.cff", "LICENSE", "VERSION", "main.nf", "nextflow.config", "assets/**", "bin/**", "conf/**", "lib/**", "modules/**", "subworkflows/**", "workflows/**", "tests/**"]
 
 [tool.setuptools.dynamic]
-version = {file = "src/VERSION"}
+version = {file = "VERSION"}
 readme = {file = "README.md"}
