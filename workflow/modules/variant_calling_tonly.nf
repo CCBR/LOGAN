@@ -333,6 +333,7 @@ process octopus_tonly {
 }
 
 
+
 process somaticcombine_tonly {
     label 'process_mid'
     publishDir(path: "${outdir}/vcfs/combined_tonly", mode: 'copy')

@@ -139,31 +139,25 @@ workflow VC_TONLY {
 
     mutect2_t_tonly(bambyinterval)    
     
-    
-    //LOR     
-    mut2tout_lor=mutect2_t_tonly.out.groupTuple()
-        .map { samplename,vcfs,f1r2,stats -> tuple( samplename,
-        f1r2.toSorted{ it -> (it.name =~ /${samplename}_(.*?).f1r2.tar.gz/)[0][1].toInteger() } 
-        )}
-        learnreadorientationmodel_tonly(mut2tout_lor)
+    mutect2_t_tonly.out.groupTuple()
+        | multiMap { tumor,vcfs,f1r2,stats -> 
+        mut2tout_lor: tuple(tumor,
+                f1r2.toSorted{ it -> (it.name =~ /${tumor}_(.*?).f1r2.tar.gz/)[0][1].toInteger() } )
+        mut2tonly_mstats:  tuple( tumor,
+                stats.toSorted{ it -> (it.name =~ /${tumor}_(.*?).tonly.mut2.vcf.gz.stats/)[0][1].toInteger() })
+        allmut2tonly: tuple(tumor,
+                vcfs.toSorted{ it -> (it.name =~ /${tumor}_(.*?).tonly.mut2.vcf.gz/)[0][1].toInteger() } )
+        } 
+    | set{mut2tonlyout}
 
-    //Stats
-    mut2tonly_mstats=mutect2_t_tonly.out.groupTuple()
-    .map { samplename,vcfs,f1r2,stats -> tuple( samplename,
-    stats.toSorted{ it -> (it.name =~ /${samplename}_(.*?).tonly.mut2.vcf.gz.stats/)[0][1].toInteger() } 
-    )}
-    mergemut2stats_tonly(mut2tonly_mstats)
+  
 
-    //Contamination
+    learnreadorientationmodel_tonly(mut2tonlyout.mut2tout_lor)
+    mergemut2stats_tonly(mut2tonlyout.mut2tonly_mstats)
     contamination_tumoronly(pileup_paired_tout)
 
-    //Final TUMOR ONLY FILTER
-    allmut2tonly=mutect2_t_tonly.out.groupTuple()
-    .map { samplename,vcfs,f1r2,stats -> tuple( samplename,
-    vcfs.toSorted{ it -> (it.name =~ /${samplename}_(.*?).tonly.mut2.vcf.gz/)[0][1].toInteger() } 
-    )}
     
-    mut2tonly_filter=allmut2tonly
+    mut2tonly_filter=mut2tonlyout.allmut2tonly
     .join(mergemut2stats_tonly.out)
     .join(learnreadorientationmodel_tonly.out)
     .join(contamination_tumoronly.out)
@@ -210,9 +204,6 @@ workflow VC_TONLY {
     emit:
         somaticcall_input=combineVariants_octopus.out
 
-
-    emit:
-        somaticcall_input=combineVariants_octopus.out
 
 }
 
