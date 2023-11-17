@@ -1,10 +1,15 @@
+from cffconvert.cli.create_citation import create_citation
+from cffconvert.cli.validate_or_write_output import validate_or_write_output
 from time import localtime, strftime
+
 import click
 import collections.abc
 import os
+import pprint
 import shutil
 import stat
 import subprocess
+import sys
 import yaml
 
 
@@ -19,10 +24,11 @@ def get_version():
     return version
 
 
-def print_citation():
-    with open(nek_base("CITATION.cff"), "r") as f:
-        for line in f:
-            click.echo(line, nl=False, err=True)
+def print_citation(context, param, value):
+    citation = create_citation(nek_base("CITATION.cff"), None)
+    # click.echo(citation._implementation.cffobj['message'])
+    validate_or_write_output(None, "bibtex", False, citation)
+    context.exit()
 
 
 def msg(err_message):
@@ -47,7 +53,7 @@ def append_config_block(nf_config="nextflow.config", scope=None, **kwargs):
 
 
 def copy_config(config_paths, overwrite=True):
-    msg("Copying default config files to current working directory")
+    msg(f"Copying default config files to current working directory")
     for local_config in config_paths:
         system_config = nek_base(local_config)
         if os.path.isfile(system_config):
@@ -97,11 +103,12 @@ def chmod_bins_exec():
     bin_dir = nek_base("bin/")
     for filename in os.listdir(bin_dir):
         bin_path = os.path.join(bin_dir, filename)
-        file_stat = os.stat(bin_path)
-        # below is equivalent to `chmod +x`
-        os.chmod(
-            bin_path, file_stat.st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH
-        )
+        if os.path.isfile(bin_path):
+            file_stat = os.stat(bin_path)
+            # below is equivalent to `chmod +x`
+            os.chmod(
+                bin_path, file_stat.st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH
+            )
 
 
 class OrderedCommands(click.Group):
@@ -174,8 +181,7 @@ def run_nextflow(
         profiles.add("slurm")
     if hpc:
         profiles.add(hpc_options[hpc]["profile"])
-    if profiles:
-        args_dict["-profile"] = ",".join(sorted(profiles))
+    args_dict["-profile"] = ",".join(sorted(profiles))
     nextflow_command += list(f"{k} {v}" for k, v in args_dict.items())
 
     # Print nextflow command
