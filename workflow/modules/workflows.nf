@@ -22,8 +22,8 @@ include {mutect2; mutect2filter; pileup_paired_t; pileup_paired_n;
     octopus_tn; bcftools_index_octopus; bcftools_index_octopus as bcftools_index_octopus_tonly;
     combineVariants as combineVariants_vardict; combineVariants as combineVariants_vardict_tonly; 
     combineVariants as combineVariants_varscan; combineVariants as combineVariants_varscan_tonly;
-    combineVariants as combineVariants_lofreq; combineVariants as combineVariants_muse;
-    combineVariants_octopus; combineVariants_octopus as combineVariants_octopus_tonly;
+    combineVariants_alternative as combineVariants_lofreq; combineVariants as combineVariants_muse;
+    combineVariants_alternative as combineVariants_octopus; combineVariants_alternative as combineVariants_octopus_tonly;
     annotvep_tn as annotvep_tn_mut2; annotvep_tn as annotvep_tn_strelka; 
     annotvep_tn as annotvep_tn_varscan; annotvep_tn as annotvep_tn_vardict; annotvep_tn as annotvep_tn_octopus;
     annotvep_tn as annotvep_tn_lofreq; annotvep_tn as annotvep_tn_muse;
@@ -231,7 +231,7 @@ workflow VC {
         | join(contamination_tumoronly.out) 
     | mutect2filter_tonly
     | join(sample_sheet)
-    | map{tumor,markedvcf,markedindex,normvcf,normindex, stats,normal -> tuple(tumor,"mutect2",normvcf,normindex)} 
+    | map{tumor,markedvcf,markedindex,normvcf,normindex,stats,normal -> tuple(tumor,"mutect2",normvcf,normindex)} 
     annotvep_tonly_mut2(mutect2_in_tonly)
     
     //Strelka TN 
@@ -280,7 +280,7 @@ workflow VC {
     
     //Lofreq TN
     lofreq_in=lofreq_tn(bambyinterval) | groupTuple(by:[0,1]) 
-        | map{tu,no,snv,dbsnv,indel,dbindel,vcf-> tuple("${tu}_vs_${no}",vcf.toSorted{it -> (it.name =~ /${tu}_vs_${no}_(.*?)_lofreq.vcf.gz/)[0][1].toInteger()},"lofreq")} 
+        | map{tu,no,snv,dbsnv,indel,dbindel,vcf,vcfindex-> tuple("${tu}_vs_${no}",vcf.toSorted{it -> (it.name =~ /${tu}_vs_${no}_(.*?)_lofreq.vcf.gz/)[0][1].toInteger()},vcfindex,"lofreq")} 
         | combineVariants_lofreq | join(sample_sheet_paired)
         | map{sample,marked,markedindex,normvcf,normindex,tumor,normal->tuple(tumor,normal,"lofreq",normvcf,normindex)} 
     annotvep_tn_lofreq(lofreq_in)
@@ -319,7 +319,7 @@ workflow VC {
         | annotvep_tn_combined
 
     mutect2_in_tonly|concat(octopus_in_tonly)
-        | concat(vardict_in_tonly)|concat(varscan_in_tonly)
+        | concat(vardict_in_tonly)|concat(varscan_in_tonly) | groupTuple() 
         | somaticcombine_tonly 
         | map{tumor,vcf,index ->tuple(tumor,"combined_tonly",vcf,index)} 
         | annotvep_tonly_combined
@@ -512,9 +512,9 @@ workflow QC_GL {
     samtools_flagstats_out=samtools_flagstats.out.collect()
     bcftools_stats_out= bcftools_stats.out.collect()
     gatk_varianteval_out= gatk_varianteval.out.collect()
-    snpeff_out=snpeff.out.collect()//map{vcf,csv,html->vcf,csv,html}.collect()
+    snpeff_out=snpeff.out.collect()
     vcftools_out=vcftools.out
-    collectvariantcallmetrics_out=collectvariantcallmetrics.out//.map{details,summary->details,summary}
+    collectvariantcallmetrics_out=collectvariantcallmetrics.out
 
     conall=fclane_out.concat(fqs_out,kraken_out,qualimap_out,samtools_flagstats_out,bcftools_stats_out,
     gatk_varianteval_out,snpeff_out,vcftools_out,collectvariantcallmetrics_out,somalier_analysis_out).flatten().toList()

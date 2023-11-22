@@ -1,4 +1,5 @@
 GENOMEREF=file(params.genomes[params.genome].genome)
+GENOMEFAI=file(params.genomes[params.genome].genomefai)
 GENOMEDICT=file(params.genomes[params.genome].genomedict)
 KGPGERMLINE=params.genomes[params.genome].kgp 
 DBSNP=file(params.genomes[params.genome].dbsnp) 
@@ -9,6 +10,7 @@ VEPSPECIES=params.genomes[params.genome].vepspecies
 VEPBUILD=params.genomes[params.genome].vepbuild
 SOMATIC_FOREST=params.genomes[params.genome].octopus_sforest
 GERMLINE_FOREST=params.genomes[params.genome].octopus_gforest
+LOFREQ_CONVERT=params.lofreq_convert
 
 //Output
 outdir=file(params.output)
@@ -242,8 +244,7 @@ process mutect2filter {
     mut2in = mutvcfs.join(" -I ")
 
     """
-    gatk GatherVcfs -I ${mut2in} -O ${tumor}_vs_${normal}.concat.vcf.gz 
-    gatk IndexFeatureFile -I ${tumor}_vs_${normal}.concat.vcf.gz 
+    gatk SortVcf -I ${mut2in} -O ${tumor}_vs_${normal}.concat.vcf.gz --CREATE_INDEX
     gatk FilterMutectCalls \
         -R $GENOMEREF \
         -V ${tumor}_vs_${normal}.concat.vcf.gz \
@@ -251,8 +252,6 @@ process mutect2filter {
         --contamination-table ${tumorcontamination} \
         --stats ${stats} \
         -O ${tumor}_vs_${normal}.mut2.marked.vcf.gz
-
-
     gatk SelectVariants \
         -R $GENOMEREF \
         --variant ${tumor}_vs_${normal}.mut2.marked.vcf.gz \
@@ -262,8 +261,7 @@ process mutect2filter {
     bcftools sort ${tumor}_vs_${normal}.mut2.final.vcf.gz |\
     bcftools norm --threads $task.cpus --check-ref s -f $GENOMEREF -O v |\
         awk '{{gsub(/\\y[W|K|Y|R|S|M]\\y/,"N",\$4); OFS = "\\t"; print}}' |\
-        sed '/^\$/d' > ${tumor}_vs_${normal}.mut2.norm.vcf |\
-    bcftools view - -Oz -o ${tumor}_vs_${normal}.mut2.norm.vcf.gz
+        sed '/^\$/d' | bcftools view - -Oz -o ${tumor}_vs_${normal}.mut2.norm.vcf.gz
     bcftools index -t ${tumor}_vs_${normal}.mut2.norm.vcf.gz
     """
 
@@ -377,23 +375,36 @@ process varscan_tn {
         path(tumor_con_table), path(normal_con_table)
     
     output:
-        tuple val(tumorname),val(normalname),
+        tuple val(tumorname), val(normalname),
         path("${tumor.simpleName}_vs_${normal.simpleName}_${bed.simpleName}.varscan.vcf")
     
     shell:
-
     '''
     tumor_purity=$( echo "1-$(printf '%.6f' $(tail -n -1 !{tumor_con_table} | cut -f2 ))" | bc -l)
     normal_purity=$( echo "1-$(printf '%.6f' $(tail -n -1 !{normal_con_table} | cut -f2 ))" | bc -l)
+    dual_pileup="samtools mpileup -d 10000 -q 15 -Q 15 -f !{GENOMEREF} -l !{bed} !{normal} !{tumor}"
     varscan_opts="--strand-filter 1 --min-var-freq 0.01 --min-avg-qual 30 --somatic-p-value 0.05 --output-vcf 1 --normal-purity $normal_purity --tumor-purity $tumor_purity"
-    varscan somatic < samtools mpileup -d 10000 -q 15 -Q 15 -f !GENOME -l !{bed.simpleName} !{normal} !{tumor} !{tumor.simpleName}_vs_!{normal.simpleName}_{bed.simpleName}.varscan.vcf $varscan_opts --mpileup 1 
+    varscan_cmd="varscan somatic <($dual_pileup) !{tumor.simpleName}_vs_!{normal.simpleName}_!{bed.simpleName}.varscan.vcf $varscan_opts --mpileup 1"
+    eval "$varscan_cmd"
+
+    awk '{{gsub(/\\y[W|K|Y|R|S|M]\\y/,"N",$4); OFS = "\\t"; print}}' !{tumor.simpleName}_vs_!{normal.simpleName}_!{bed.simpleName}.varscan.vcf.indel \
+        | sed '/^$/d' > !{tumor.simpleName}_vs_!{normal.simpleName}_!{bed.simpleName}.varscan.vcf.indel_temp
+    awk '{{gsub(/\\y[W|K|Y|R|S|M]\\y/,"N",$4); OFS = "\\t"; print}}' !{tumor.simpleName}_vs_!{normal.simpleName}_!{bed.simpleName}.varscan.vcf.snp \
+        | sed '/^$/d' > !{tumor.simpleName}_vs_!{normal.simpleName}_!{bed.simpleName}.varscan.vcf.snp_temp
+
+    java -jar $DISCVRSeq_JAR MergeVcfsAndGenotypes \
+        -R !{GENOMEREF} \
+        --assumeIdenticalSamples \
+        --filteredrecordsmergetype KEEP_UNCONDITIONAL \
+        --variant !{tumor.simpleName}_vs_!{normal.simpleName}_!{bed.simpleName}.varscan.vcf.snp_temp \
+        --variant!{tumor.simpleName}_vs_!{normal.simpleName}_!{bed.simpleName}.varscan.vcf.indel_temp \
+        -O !{tumor.simpleName}_vs_!{normal.simpleName}_!{bed.simpleName}.varscan.vcf
+
     '''
 
     stub:
-    
     """
     touch ${tumor.simpleName}_vs_${normal.simpleName}_${bed.simpleName}.varscan.vcf
-    
     """
 
 }
@@ -420,6 +431,7 @@ process octopus_tn {
     --threads $task.cpus \
     $GERMLINE_FOREST \
     $SOMATIC_FOREST \
+    --target-working-memory 64Gb \
     -o ${tumorname}_vs_${normalname}_${bed.simpleName}.octopus.vcf.gz
     """
 
@@ -447,7 +459,8 @@ process lofreq_tn {
         path("${tumorname}_vs_${normalname}_${bed.simpleName}_somatic_final_minus-dbsnp.snvs.vcf.gz"),
         path("${tumorname}_vs_${normalname}_${bed.simpleName}_somatic_final.indels.vcf.gz"),
         path("${tumorname}_vs_${normalname}_${bed.simpleName}_somatic_final_minus-dbsnp.indels.vcf.gz"),
-        path("${tumorname}_vs_${normalname}_${bed.simpleName}_lofreq.vcf.gz")
+        path("${tumorname}_vs_${normalname}_${bed.simpleName}_lofreq.vcf.gz"),
+        path("${tumorname}_vs_${normalname}_${bed.simpleName}_lofreq.vcf.gz.tbi")
     
     script:
 
@@ -461,8 +474,11 @@ process lofreq_tn {
     
     bcftools concat ${tumorname}_vs_${normalname}_${bed.simpleName}_somatic_final_minus-dbsnp.snvs.vcf.gz \
         ${tumorname}_vs_${normalname}_${bed.simpleName}_somatic_final_minus-dbsnp.indels.vcf.gz --threads $task.cpus -Oz -o \
-        ${tumorname}_vs_${normalname}_${bed.simpleName}_lofreq.vcf.gz
+        ${tumorname}_vs_${normalname}_${bed.simpleName}_temp_lofreq.vcf.gz
 
+    $LOFREQ_CONVERT ${tumorname}_vs_${normalname}_${bed.simpleName}_temp_lofreq.vcf.gz ${tumorname} \
+        | bcftools view -Oz -o ${tumorname}_vs_${normalname}_${bed.simpleName}_lofreq.vcf.gz
+    bcftools index -t ${tumorname}_vs_${normalname}_${bed.simpleName}_lofreq.vcf.gz
 
     """
 
@@ -473,7 +489,7 @@ process lofreq_tn {
     touch "${tumorname}_vs_${normalname}_${bed.simpleName}_somatic_final_minus-dbsnp.snvs.vcf.gz"
     touch "${tumorname}_vs_${normalname}_${bed.simpleName}_somatic_final.indels.vcf.gz"
     touch "${tumorname}_vs_${normalname}_${bed.simpleName}_somatic_final_minus-dbsnp.indels.vcf.gz"
-    touch "${tumorname}_vs_${normalname}_${bed.simpleName}_lofreq.vcf.gz"
+    touch "${tumorname}_vs_${normalname}_${bed.simpleName}_lofreq.vcf.gz" "${tumorname}_vs_${normalname}_${bed.simpleName}_lofreq.vcf.gz.tbi"
     
     """
 } 
@@ -496,8 +512,9 @@ process muse_tn {
     """
     MuSE call -f $GENOMEREF -O ${tumorname}_vs_${normalname} -n $task.cpus $tumor $normal
     MuSE sump -I ${tumorname}_vs_${normalname}.MuSE.txt \
-        -O ${tumorname}_vs_${normalname} -n $task.cpus -D $DBSNP -G
-        
+        -O ${tumorname}_vs_${normalname}.vcf -n $task.cpus -D $DBSNP -G
+    
+    bcftools view ${tumorname}_vs_${normalname}.vcf -Oz -o ${tumorname}_vs_${normalname}.vcf.gz
     """
 
     stub:
@@ -528,11 +545,10 @@ process combineVariants {
     
     """
     mkdir ${vc}
-    gatk --java-options "-Xmx48g" MergeVcfs \
-        -O ${sample}.${vc}.temp.vcf.gz \
-        -D $GENOMEDICT \
+    gatk --java-options "-Xmx48g" SortVcf \
+        -O ${sample}.${vc}.marked.vcf.gz \
+        -SD $GENOMEDICT \
         -I $vcfin
-    bcftools sort ${sample}.${vc}.temp.vcf.gz -Oz -o ${sample}.${vc}.marked.vcf.gz
     bcftools norm ${sample}.${vc}.marked.vcf.gz -m- --threads $task.cpus --check-ref s -f $GENOMEREF -O v |\
         awk '{{gsub(/\\y[W|K|Y|R|S|M]\\y/,"N",\$4); OFS = "\\t"; print}}' |\
         sed '/^\$/d' > ${sample}.${vc}.temp.vcf
@@ -540,8 +556,8 @@ process combineVariants {
     bcftools view ${sample}.${vc}.temp.vcf -f PASS -Oz -o ${vc}/${sample}.${vc}.norm.vcf.gz
 
     mv ${sample}.${vc}.marked.vcf.gz ${vc}
-    
-    bcftools index ${vc}/${sample}.${vc}.marked.vcf.gz -t
+    mv ${sample}.${vc}.marked.vcf.gz.tbi ${vc}
+
     bcftools index ${vc}/${sample}.${vc}.norm.vcf.gz -t
     """
 
@@ -560,7 +576,7 @@ process combineVariants {
 
 
 
-process combineVariants_octopus {
+process combineVariants_alternative {
     label 'process_highmem'
     publishDir(path: "${outdir}/vcfs/", mode: 'copy')
 
@@ -579,7 +595,8 @@ process combineVariants_octopus {
     
     """
     mkdir ${vc}
-    bcftools concat $vcfin -a -Oz -o ${sample}.${vc}.temp.vcf.gz
+    bcftools concat $vcfin -a -Oz -o ${sample}.${vc}.temp1.vcf.gz
+    bcftools reheader -f $GENOMEFAI ${sample}.${vc}.temp1.vcf.gz -o ${sample}.${vc}.temp.vcf.gz
     bcftools sort ${sample}.${vc}.temp.vcf.gz -Oz -o ${sample}.${vc}.marked.vcf.gz
     bcftools norm ${sample}.${vc}.marked.vcf.gz -m- --threads $task.cpus --check-ref s -f $GENOMEREF -O v |\
         awk '{{gsub(/\\y[W|K|Y|R|S|M]\\y/,"N",\$4); OFS = "\\t"; print}}' |\
@@ -699,11 +716,11 @@ process somaticcombine {
         vcfin2="-V:" + vcfin1.join(" -V:")
 
     """
-    java -jar DISCVRSeq-1.3.61.jar MergeVcfsAndGenotypes \
+    java -jar \$DISCVRSeq_JAR MergeVcfsAndGenotypes \
         -R $GENOMEREF \
         --genotypeMergeOption PRIORITIZE \
         --priority_list mutect2,strelka,octopus,muse,lofreq,vardict,varscan \
-        --filteredRecordsMergeType KEEP_IF_ANY_UNFILTERED
+        --filteredRecordsMergeType KEEP_IF_ANY_UNFILTERED \
         -O ${tumorsample}_vs_${normal}_combined.vcf.gz \
         $vcfin2
     """
@@ -725,7 +742,7 @@ process annotvep_tn {
 
     input:
         tuple val(tumorsample), val(normalsample), 
-        val(vc), path(tumorvcf),path(vcfindex) 
+        val(vc), path(tumorvcf), path(vcfindex) 
 
     output:
         path("paired/${vc}/${tumorsample}_vs_${normalsample}.maf")
