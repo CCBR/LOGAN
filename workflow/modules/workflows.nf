@@ -22,8 +22,8 @@ include {mutect2; mutect2filter; pileup_paired_t; pileup_paired_n;
     octopus_tn; bcftools_index_octopus; bcftools_index_octopus as bcftools_index_octopus_tonly;
     combineVariants as combineVariants_vardict; combineVariants as combineVariants_vardict_tonly; 
     combineVariants as combineVariants_varscan; combineVariants as combineVariants_varscan_tonly;
-    combineVariants as combineVariants_lofreq; combineVariants as combineVariants_muse;
-    combineVariants_octopus; combineVariants_octopus as combineVariants_octopus_tonly;
+    combineVariants_alternative as combineVariants_lofreq; combineVariants as combineVariants_muse;
+    combineVariants_alternative as combineVariants_octopus; combineVariants_alternative as combineVariants_octopus_tonly;
     annotvep_tn as annotvep_tn_mut2; annotvep_tn as annotvep_tn_strelka; 
     annotvep_tn as annotvep_tn_varscan; annotvep_tn as annotvep_tn_vardict; annotvep_tn as annotvep_tn_octopus;
     annotvep_tn as annotvep_tn_lofreq; annotvep_tn as annotvep_tn_muse;
@@ -111,9 +111,7 @@ workflow ALIGN {
 
     tobqsr=bwamem2.out.combine(gatherbqsr.out,by:0)
     applybqsr(tobqsr) 
-    //samtoolsindex(applybqsr.out)
-    
-    //samtoolsindex.out.view()
+
     //sample_sheet.view()
     bamwithsample=applybqsr.out.combine(sample_sheet,by:0).map{it.swap(3,0)}.combine(applybqsr.out,by:0).map{it.swap(3,0)}
 
@@ -158,6 +156,9 @@ workflow VC {
         sample_sheet
         
     main: 
+    //Create Pairing for TN (in case of dups)
+    sample_sheet_paired=sample_sheet|map{tu,no -> tuple ("${tu}_vs_${no}",tu, no)}
+
     bambyinterval=bamwithsample.combine(splitout.flatten())
 
     //Paired Mutect2    
@@ -176,142 +177,133 @@ workflow VC {
 
 
     pileup_paired_all=pileup_paired_tout.join(pileup_paired_nout)
-    contamination_paired(pileup_paired_all)
+    contamination_paired(pileup_paired_all) 
 
-    mut2out_lor=mutect2.out.groupTuple()
-    .map { samplename,vcfs,f1r2,stats -> tuple( samplename,
-    f1r2.toSorted{ it -> (it.name =~ /${samplename}_(.*?).f1r2.tar.gz/)[0][1].toInteger() } 
-    )}
 
-    learnreadorientationmodel(mut2out_lor)
-
-    mut2out_mstats=mutect2.out.groupTuple()
-    .map { samplename,vcfs,f1r2,stats -> tuple( samplename,
-    stats.toSorted{ it -> (it.name =~ /${samplename}_(.*?).mut2.vcf.gz.stats/)[0][1].toInteger() } 
-    )}
-
-    mergemut2stats(mut2out_mstats)
-
-    allmut2tn=mutect2.out.groupTuple()
-    .map { samplename,vcfs,f1r2,stats -> tuple( samplename,
-    vcfs.toSorted{ it -> (it.name =~ /${samplename}_(.*?).mut2.vcf.gz/)[0][1].toInteger() } 
-    )}
+    mutect2.out.groupTuple(by:[0,1])
+        | multiMap { tumor,normal,vcfs,f1r2,stats -> 
+        mut2out_lor: tuple("${tumor}_vs_${normal}",
+                f1r2.toSorted{ it -> (it.name =~ /${tumor}_vs_${normal}_(.*?).f1r2.tar.gz/)[0][1].toInteger() } )
+        mut2out_mstats:  tuple( "${tumor}_vs_${normal}",
+                stats.toSorted{ it -> (it.name =~ /${tumor}_vs_${normal}_(.*?).mut2.vcf.gz.stats/)[0][1].toInteger() })
+        allmut2tn: tuple( "${tumor}_vs_${normal}",
+                vcfs.toSorted{ it -> (it.name =~ /${tumor}_vs_${normal}_(.*?).mut2.vcf.gz/)[0][1].toInteger() } )
+        } 
+    | set{mut2out}
     
-    mut2tn_filter=allmut2tn
-    .join(mergemut2stats.out)
-    .join(learnreadorientationmodel.out)
-    .join(contamination_paired.out)
+    learnreadorientationmodel(mut2out.mut2out_lor)
+    mergemut2stats(mut2out.mut2out_mstats)
+   
+    mutect2_in=mut2out.allmut2tn
+        | join(mergemut2stats.out)
+        | join(learnreadorientationmodel.out) 
+        | map{t,vcf,stats,ro -> tuple(t.split('_vs_')[0],t.split('_vs_')[1],vcf,stats,ro)} 
+        | join(contamination_paired.out) 
+        | mutect2filter
+        | join(sample_sheet_paired) 
+        | map{sample,markedvcf,markedindex,normvcf,normindex,stats,tumor,normal -> tuple(tumor,normal,"mutect2",normvcf,normindex)}  
+
+    annotvep_tn_mut2(mutect2_in)
 
     //Tumor Only Calling
     bambyinterval_t=bambyinterval.map{tumorname,tumor,tumorbai,normalname,normalbam,normalbai,bed ->tuple(tumorname,tumor,tumorbai,bed)}
-    mutect2_t_tonly(bambyinterval_t)    
+    mutect2_t_tonly(bambyinterval_t)  
+        
+    mutect2_t_tonly.out.groupTuple()
+        | multiMap { tumor,vcfs,f1r2,stats -> 
+        mut2tout_lor: tuple(tumor,
+                f1r2.toSorted{ it -> (it.name =~ /${tumor}_(.*?).f1r2.tar.gz/)[0][1].toInteger() } )
+        mut2tonly_mstats:  tuple( tumor,
+                stats.toSorted{ it -> (it.name =~ /${tumor}_(.*?).tonly.mut2.vcf.gz.stats/)[0][1].toInteger() })
+        allmut2tonly: tuple(tumor,
+                vcfs.toSorted{ it -> (it.name =~ /${tumor}_(.*?).tonly.mut2.vcf.gz/)[0][1].toInteger() } )
+        } 
+    | set{mut2tonlyout}
+
     
-    //LOR     
-    mut2tout_lor=mutect2_t_tonly.out.groupTuple()
-    .map { samplename,vcfs,f1r2,stats -> tuple( samplename,
-    f1r2.toSorted{ it -> (it.name =~ /${samplename}_(.*?).f1r2.tar.gz/)[0][1].toInteger() } 
-    )}
-    learnreadorientationmodel_tonly(mut2tout_lor)
-
-    //Stats
-    mut2tonly_mstats=mutect2_t_tonly.out.groupTuple()
-    .map { samplename,vcfs,f1r2,stats -> tuple( samplename,
-    stats.toSorted{ it -> (it.name =~ /${samplename}_(.*?).tonly.mut2.vcf.gz.stats/)[0][1].toInteger() } 
-    )}
-    mergemut2stats_tonly(mut2tonly_mstats)
-
-
-    //Contamination
+    learnreadorientationmodel_tonly(mut2tonlyout.mut2tout_lor)
+    mergemut2stats_tonly(mut2tonlyout.mut2tonly_mstats)
     contamination_tumoronly(pileup_paired_tout)
     
-    //Final TUMOR ONLY FILTER
-    allmut2tonly=mutect2_t_tonly.out.groupTuple()
-    .map { samplename,vcfs,f1r2,stats -> tuple( samplename,
-    vcfs.toSorted{ it -> (it.name =~ /${samplename}_(.*?).tonly.mut2.vcf.gz/)[0][1].toInteger() } 
-    )}
-    
-    mut2tonly_filter=allmut2tonly
-    .join(mergemut2stats_tonly.out)
-    .join(learnreadorientationmodel_tonly.out)
-    .join(contamination_tumoronly.out)
-
-    
-    //Annotation)
-    mutect2_in=mutect2filter(mut2tn_filter)
+    mutect2_in_tonly=mut2tonlyout.allmut2tonly
+        | join(mergemut2stats_tonly.out)
+        | join(learnreadorientationmodel_tonly.out)
+        | join(contamination_tumoronly.out) 
+    | mutect2filter_tonly
     | join(sample_sheet)
-    | map{tumor,markedvcf,markedindex,normvcf,normindex,stats,normal -> tuple(tumor,normal,"mutect2",normvcf,normindex)}  
-    annotvep_tn_mut2(mutect2_in)
-
-    
-    mutect2_in_tonly=mutect2filter_tonly(mut2tonly_filter)
-    | join(sample_sheet)
-    | map{tumor,markedvcf,markedindex,normvcf,normindex, stats,normal -> tuple(tumor,"mutect2",normvcf,normindex)} 
+    | map{tumor,markedvcf,markedindex,normvcf,normindex,stats,normal -> tuple(tumor,"mutect2",normvcf,normindex)} 
     annotvep_tonly_mut2(mutect2_in_tonly)
     
     //Strelka TN 
-    strelka_tn(bambyinterval)
-    strelkaout=strelka_tn.out.groupTuple()
-    .map { samplename,vcfs,indels -> tuple( samplename,
-    vcfs.toSorted{ it -> (it.name =~ /${samplename}_(.*?).somatic.snvs.vcf.gz/)[0][1].toInteger() },
-    indels.toSorted{ it -> (it.name =~ /${samplename}_(.*?).somatic.indels.vcf.gz/)[0][1].toInteger() }  
-    )}
-    strelka_in=combineVariants_strelka(strelkaout) | join(sample_sheet)
-    | map{tumor,markedvcf,markedindex,finalvcf,finalindex,normal -> tuple(tumor,normal,"strelka",finalvcf,finalindex)} 
+    strelka_in=strelka_tn(bambyinterval) | groupTuple(by:[0,1])
+        | map { tumor,normal,vcfs,vcfindex,indels,indelindex -> tuple("${tumor}_vs_${normal}",
+            vcfs.toSorted{ it -> (it.name =~ /${tumor}_vs_${normal}_(.*?).somatic.snvs.vcf.gz/)[0][1].toInteger() },vcfindex,
+            indels.toSorted{ it -> (it.name =~ /${tumor}_vs_${normal}_(.*?).somatic.indels.vcf.gz/)[0][1].toInteger() } ,indelindex)} 
+        | combineVariants_strelka |  join(sample_sheet_paired)
+        | map{sample,markedvcf,markedindex,finalvcf,finalindex,tumor,normal -> tuple(tumor,normal,"strelka",finalvcf,finalindex)} 
     annotvep_tn_strelka(strelka_in)
 
     //Vardict
-    vardict_comb=vardict_tn(bambyinterval).groupTuple().map{tumor,vcf-> tuple(tumor,vcf,"vardict")} | combineVariants_vardict
-    vardict_in=vardict_comb.join(sample_sheet)
-     .map{tumor,marked,markedindex,normvcf,normindex,normal ->tuple(tumor,normal,"vardict",normvcf,normindex)}  
+    vardict_in=vardict_tn(bambyinterval) | groupTuple(by:[0,1])
+        | map{tumor,normal,vcf-> tuple("${tumor}_vs_${normal}",vcf.toSorted{it -> (it.name =~ /${tumor}_vs_${normal}_(.*?).vardict.vcf/)[0][1].toInteger()},"vardict")} 
+        | combineVariants_vardict | join(sample_sheet_paired)
+        | map{sample,marked,markedindex,normvcf,normindex,tumor,normal ->tuple(tumor,normal,"vardict",normvcf,normindex)}  
     annotvep_tn_vardict(vardict_in)
 
     //VarDict_tonly
-    vardict_tonly_comb=bambyinterval.map{tumorname,tumorbam,tumorbai,normname,normbam,normbai,bed ->
-        tuple(tumorname,tumorbam,tumorbai,bed)} 
-    vardict_tonly(vardict_tonly_comb).groupTuple().map{tumor,vcf-> tuple(tumor,vcf,"vardict_tonly")} | combineVariants_vardict_tonly
-    
-    vardict_in_tonly=combineVariants_vardict_tonly.out.join(sample_sheet)
-    .map{tumor,marked,markedindex,normvcf,normindex,normal ->tuple(tumor,"vardict_tonly",normvcf,normindex)} 
+    vardict_in_tonly=bambyinterval 
+        | map{tumorname,tumorbam,tumorbai,normname,normbam,normbai,bed ->
+            tuple(tumorname,tumorbam,tumorbai,bed)} 
+        | vardict_tonly | groupTuple()
+        | map{tumor,vcf-> tuple(tumor,vcf.toSorted{it -> (it.name =~ /${tumor}_(.*?).tonly.vardict.vcf/)[0][1].toInteger()},"vardict_tonly")}
+        | combineVariants_vardict_tonly | join(sample_sheet)
+        | map{tumor,marked,markedindex,normvcf,normindex,normal ->tuple(tumor,"vardict_tonly",normvcf,normindex)} 
     annotvep_tonly_vardict(vardict_in_tonly)
     
     //VarScan TN
-    varscan_in=bambyinterval.join(contamination_paired.out) 
-    | varscan_tn | groupTuple() |map{tumor,vcf-> tuple(tumor,vcf,"varscan")} | combineVariants_varscan
-    | join(sample_sheet)
-    | map{tumor,marked,markedindex,normvcf,normindex,normal ->tuple(tumor,normal,"varscan",normvcf,normindex)} 
+    varscan_in=bambyinterval.combine(contamination_paired.out) 
+        | varscan_tn | groupTuple(by:[0,1]) 
+        | map{tumor,normal,vcf-> tuple("${tumor}_vs_${normal}",vcf.toSorted{it -> (it.name =~ /${tumor}_vs_${normal}_(.*?).varscan.vcf/)[0][1].toInteger()},"varscan")} 
+        | combineVariants_varscan | join(sample_sheet_paired)
+        | map{sample,marked,markedindex,normvcf,normindex,tumor,normal ->tuple(tumor,normal,"varscan",normvcf,normindex)} 
     annotvep_tn_varscan(varscan_in)
     
     //VarScan_TOnly
-    varscan_in_tonly=bambyinterval.join(contamination_paired.out)
-    | map{tumor,bam,bai,normal,nbam,nbai,bed,tpile,npile,tumorc,normalc ->
-            tuple(tumor,bam,bai,bed,tpile,tumorc)} | varscan_tonly  
-    | groupTuple() | map{tumor,vcf-> tuple(tumor,vcf,"varscan_tonly")} | combineVariants_varscan_tonly
+    varscan_in_tonly=bambyinterval.combine(contamination_paired.out) 
+    | map{tumor,bam,bai,normal,nbam,nbai,bed,tumorname2,tpile,npile,tumorc,normalc ->
+            tuple(tumor,bam,bai,bed,tpile,tumorc)} | varscan_tonly  | groupTuple() 
+    | map{tumor,vcf-> tuple(tumor,vcf.toSorted{it -> (it.name =~ /${tumor}_(.*?).tonly.varscan.vcf/)[0][1].toInteger()},"varscan_tonly")}
+    | combineVariants_varscan_tonly
     | join(sample_sheet)
     | map{tumor,marked,markedindex,normvcf,normindex,normal ->tuple(tumor,"varscan_tonly",normvcf,normindex)} 
     annotvep_tonly_varscan(varscan_in_tonly)
-        
+    
     //Lofreq TN
-    lofreq_in=lofreq_tn(bambyinterval).groupTuple().map{tumor,snv,dbsnv,indel,dbindel,vcf-> tuple(tumor,vcf,"lofreq")} 
-        | combineVariants_lofreq | join(sample_sheet)
-        | map{tumor,marked,markedindex,normvcf,normindex,normal->tuple(tumor,normal,"lofreq",normvcf,normindex)} 
+    lofreq_in=lofreq_tn(bambyinterval) | groupTuple(by:[0,1]) 
+        | map{tu,no,snv,dbsnv,indel,dbindel,vcf,vcfindex-> tuple("${tu}_vs_${no}",vcf.toSorted{it -> (it.name =~ /${tu}_vs_${no}_(.*?)_lofreq.vcf.gz/)[0][1].toInteger()},vcfindex,"lofreq")} 
+        | combineVariants_lofreq | join(sample_sheet_paired)
+        | map{sample,marked,markedindex,normvcf,normindex,tumor,normal->tuple(tumor,normal,"lofreq",normvcf,normindex)} 
     annotvep_tn_lofreq(lofreq_in)
 
     //MuSE TN
-    muse_in=muse_tn(bamwithsample).groupTuple().map{tumor,vcf-> tuple(tumor,vcf,"muse")} 
-        | combineVariants_muse | join(sample_sheet)
-        | map{tumor,marked,markedindex,normvcf,normindex,normal ->tuple(tumor,normal,"muse",normvcf,normindex)} 
+    muse_in=muse_tn(bamwithsample) 
+        | map{tumor,normal,vcf-> tuple("${tumor}_vs_${normal}",vcf,"muse")} 
+        | combineVariants_muse | join(sample_sheet_paired)
+        | map{sample,marked,markedindex,normvcf,normindex,tumor,normal ->tuple(tumor,normal,"muse",normvcf,normindex)} 
     annotvep_tn_muse(muse_in)
 
     //Octopus_TN
     octopus_in=octopus_tn(bambyinterval) | bcftools_index_octopus 
-        | groupTuple() | map{samplename,vcf,vcfindex-> tuple(samplename,vcf.toSorted{it->(it.name =~ /${samplename}_(.*).octopus.vcf.gz/)[0][1].toInteger()},vcfindex,"octopus")}
-        | combineVariants_octopus | map{samplename,marked,markedindex,normvcf,normindex -> 
+        | groupTuple() 
+        | map{samplename,vcf,vcfindex-> tuple(samplename,vcf.toSorted{it->(it.name =~ /${samplename}_(.*).octopus.vcf.gz/)[0][1].toInteger()},vcfindex,"octopus")}
+        | combineVariants_octopus 
+        | map{samplename,marked,markedindex,normvcf,normindex -> 
             tuple(samplename.split('_vs_')[0],samplename.split('_vs_')[1],"octopus",normvcf,normindex)}
     annotvep_tn_octopus(octopus_in) 
 
     //Octopus_TOnly
     octopus_in_tonly=bambyinterval.map{tumor,bam,bai,normal,nbam,nbai,bed->
-    tuple(tumor,bam,bai,bed)} | octopus_tonly | bcftools_index_octopus_tonly
+    tuple(tumor,bam,bai,bed)} | octopus_tonly | bcftools_index_octopus_tonly 
     | groupTuple() 
         | map{samplename,vcf,vcfindex->tuple(samplename,vcf.toSorted{it->(it.name =~ /${samplename}_(.*).tonly.octopus.vcf.gz/)[0][1].toInteger()},vcfindex,"octopus_tonly")}
         | combineVariants_octopus_tonly 
@@ -321,13 +313,13 @@ workflow VC {
 
     //Combine All Variants Using VCF and Then Reannotate
     mutect2_in|concat(strelka_in)|concat(octopus_in)|concat(muse_in)|concat(lofreq_in)
-        | concat(vardict_in) |concat(varscan_in)|groupTuple()
+        | concat(vardict_in) |concat(varscan_in) | groupTuple(by:[0,1])
         | somaticcombine 
         | map{tumor,normal,vcf,index ->tuple(tumor,normal,"combined",vcf,index)} 
         | annotvep_tn_combined
 
     mutect2_in_tonly|concat(octopus_in_tonly)
-        | concat(vardict_in_tonly)|concat(varscan_in_tonly)
+        | concat(vardict_in_tonly)|concat(varscan_in_tonly) | groupTuple() 
         | somaticcombine_tonly 
         | map{tumor,vcf,index ->tuple(tumor,"combined_tonly",vcf,index)} 
         | annotvep_tonly_combined
@@ -337,7 +329,8 @@ workflow VC {
 
     emit:
         somaticcall_input=octopus_in
-    
+
+
 }
 
 
@@ -405,7 +398,7 @@ workflow CNVhuman {
         bamwithsample | cobalt_tn
         purplein=amber_tn.out.join(cobalt_tn.out)
         purplein.join(somaticcall_input)| 
-        map{t1,amber,cobalt,n1,vc,vcf -> tuple(t1,amber,cobalt,vcf)}  
+        map{t1,amber,cobalt,n1,vc,vcf,vcfindex -> tuple(t1,amber,cobalt,vcf,vcfindex)}  
             | purple
         
 }         
@@ -519,9 +512,9 @@ workflow QC_GL {
     samtools_flagstats_out=samtools_flagstats.out.collect()
     bcftools_stats_out= bcftools_stats.out.collect()
     gatk_varianteval_out= gatk_varianteval.out.collect()
-    snpeff_out=snpeff.out.collect()//map{vcf,csv,html->vcf,csv,html}.collect()
+    snpeff_out=snpeff.out.collect()
     vcftools_out=vcftools.out
-    collectvariantcallmetrics_out=collectvariantcallmetrics.out//.map{details,summary->details,summary}
+    collectvariantcallmetrics_out=collectvariantcallmetrics.out
 
     conall=fclane_out.concat(fqs_out,kraken_out,qualimap_out,samtools_flagstats_out,bcftools_stats_out,
     gatk_varianteval_out,snpeff_out,vcftools_out,collectvariantcallmetrics_out,somalier_analysis_out).flatten().toList()

@@ -20,7 +20,7 @@ include {mutect2; mutect2filter; pileup_paired_t; pileup_paired_n;
     contamination_paired; learnreadorientationmodel; mergemut2stats;
     combineVariants as combineVariants_vardict; combineVariants as combineVariants_varscan; 
     combineVariants as combineVariants_vardict_tonly; combineVariants as combineVariants_varscan_tonly;
-    combineVariants_octopus ; 
+    combineVariants_alternative ; 
     annotvep_tn as annotvep_tn_mut2; annotvep_tn as annotvep_tn_strelka; annotvep_tn as annotvep_tn_varscan; annotvep_tn as annotvep_tn_vardict;
     combinemafs_tn} from './variant_calling.nf'
 
@@ -139,46 +139,40 @@ workflow VC_TONLY {
 
     mutect2_t_tonly(bambyinterval)    
     
-    
-    //LOR     
-    mut2tout_lor=mutect2_t_tonly.out.groupTuple()
-        .map { samplename,vcfs,f1r2,stats -> tuple( samplename,
-        f1r2.toSorted{ it -> (it.name =~ /${samplename}_(.*?).f1r2.tar.gz/)[0][1].toInteger() } 
-        )}
-        learnreadorientationmodel_tonly(mut2tout_lor)
+    mutect2_t_tonly.out.groupTuple()
+        | multiMap { tumor,vcfs,f1r2,stats -> 
+        mut2tout_lor: tuple(tumor,
+                f1r2.toSorted{ it -> (it.name =~ /${tumor}_(.*?).f1r2.tar.gz/)[0][1].toInteger() } )
+        mut2tonly_mstats:  tuple( tumor,
+                stats.toSorted{ it -> (it.name =~ /${tumor}_(.*?).tonly.mut2.vcf.gz.stats/)[0][1].toInteger() })
+        allmut2tonly: tuple(tumor,
+                vcfs.toSorted{ it -> (it.name =~ /${tumor}_(.*?).tonly.mut2.vcf.gz/)[0][1].toInteger() } )
+        } 
+    | set{mut2tonlyout}
 
-    //Stats
-    mut2tonly_mstats=mutect2_t_tonly.out.groupTuple()
-    .map { samplename,vcfs,f1r2,stats -> tuple( samplename,
-    stats.toSorted{ it -> (it.name =~ /${samplename}_(.*?).tonly.mut2.vcf.gz.stats/)[0][1].toInteger() } 
-    )}
-    mergemut2stats_tonly(mut2tonly_mstats)
+  
 
-    //Contamination
+    learnreadorientationmodel_tonly(mut2tonlyout.mut2tout_lor)
+    mergemut2stats_tonly(mut2tonlyout.mut2tonly_mstats)
     contamination_tumoronly(pileup_paired_tout)
 
-    //Final TUMOR ONLY FILTER
-    allmut2tonly=mutect2_t_tonly.out.groupTuple()
-    .map { samplename,vcfs,f1r2,stats -> tuple( samplename,
-    vcfs.toSorted{ it -> (it.name =~ /${samplename}_(.*?).tonly.mut2.vcf.gz/)[0][1].toInteger() } 
-    )}
     
-    mut2tonly_filter=allmut2tonly
+    mut2tonly_filter=mut2tonlyout.allmut2tonly
     .join(mergemut2stats_tonly.out)
     .join(learnreadorientationmodel_tonly.out)
     .join(contamination_tumoronly.out)
 
     mutect2_tonly_in=mutect2filter_tonly(mut2tonly_filter) 
-    | join(sample_sheet)
-    | map{tumor,markedvcf,markedindex,finalvcf,finalindex,stats -> tuple(tumor,"mutect2",finalvcf,finalindex)} 
+        | join(sample_sheet)
+        | map{tumor,markedvcf,markedindex,finalvcf,finalindex,stats -> tuple(tumor,"mutect2",finalvcf,finalindex)} 
     annotvep_tonly_mut2(mutect2_tonly_in)
 
 
     //VarDict
     vardict_in_tonly=vardict_tonly(bambyinterval) | groupTuple()| map{tumor,vcf -> tuple(tumor,vcf,"vardict_tonly")} 
-    | combineVariants_vardict_tonly
-    | join(sample_sheet)
-    | map{tumor,marked,markedindex,normvcf,normindex ->tuple(tumor,"vardict_tonly",normvcf,normindex)}
+        | combineVariants_vardict_tonly
+        | join(sample_sheet)
+        | map{tumor,marked,markedindex,normvcf,normindex ->tuple(tumor,"vardict_tonly",normvcf,normindex)}
     annotvep_tonly_vardict(vardict_in_tonly)
 
     //VarScan_tonly
@@ -191,11 +185,11 @@ workflow VC_TONLY {
 
     //Octopus_tonly
     octopus_in_tonly=bambyinterval | octopus_tonly | bcftools_index_octopus
-    | groupTuple()
-    | map{tumor,vcf,vcfindex -> tuple(tumor,vcf.toSorted{it -> it.name}
-            ,vcfindex, "octopus_tonly")} 
-    | combineVariants_octopus | join(sample_sheet)
-    | map{tumor,marked,markedindex,normvcf,normindex ->tuple(tumor,"octopus_tonly",normvcf,normindex)} 
+        | groupTuple()
+        | map{tumor,vcf,vcfindex -> tuple(tumor,vcf.toSorted{it -> it.name}
+                ,vcfindex, "octopus_tonly")} 
+        | combineVariants_alternative | join(sample_sheet)
+        | map{tumor,marked,markedindex,normvcf,normindex ->tuple(tumor,"octopus_tonly",normvcf,normindex)} 
     annotvep_tonly_octopus(octopus_in_tonly)
 
 
@@ -210,9 +204,6 @@ workflow VC_TONLY {
     emit:
         somaticcall_input=combineVariants_octopus.out
 
-
-    emit:
-        somaticcall_input=combineVariants_octopus.out
 
 }
 
@@ -238,7 +229,7 @@ workflow SV_TONLY {
 
         //Survivor
         gunzip(manta_out).concat(svaba_out).groupTuple()
-       | survivor_sv | annotsv_survivor_tonly.out.ifEmpty("Empty SV input--No SV annotated")
+       | survivor_sv | annotsv_survivor_tonly | ifEmpty("Empty SV input--No SV annotated")
 }
 
 
@@ -266,8 +257,9 @@ workflow CNVhuman_tonly {
         bamwithsample | cobalt_tonly
         purplein=amber_tonly.out.join(cobalt_tonly.out)
         purplein.join(somaticcall_input)| 
-        map{t1,amber,cobalt,vc,vcf -> tuple(t1,amber,cobalt,vcf)}  
+        map{t1,amber,cobalt,vc,vcf,index -> tuple(t1,amber,cobalt,vcf,index)}  
             | purple
+
         
 }
 

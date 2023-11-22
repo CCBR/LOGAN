@@ -17,10 +17,12 @@ WORKDIR /opt2
 # This section installs system packages required for your project
 # If you need extra system packages add them here.
 # python/3.8.0 and python/2.7.16 (strelka and manta)
+# JDK 17 for DISCVRSeq
 RUN apt-get update \
  && apt-get -y upgrade \
  && DEBIAN_FRONTEND=noninteractive apt-get install -y \
-      bc    
+      bc \
+      openjdk-17-jdk   
 
 # Common bioinformatics tools 
 # bwa/0.7.17-4  bowtie/1.2.3  bowtie2/2.3.5.1 
@@ -157,15 +159,6 @@ RUN wget https://github.com/AstraZeneca-NGS/VarDictJava/releases/download/v1.8.3
     && tar -xvf /opt2/VarDict-1.8.3.tar \
     && rm /opt2/VarDict-1.8.3.tar
 ENV PATH="/opt2/VarDict-1.8.3/bin:$PATH"
-
-# Install Octopus/v0.7.4
-#RUN wget https://github.com/luntergroup/octopus/archive/refs/tags/v0.7.4.tar.gz \ 
-#    && tar -xvzf /opt2/v0.7.4.tar.gz \
-#    && rm /opt2/v0.7.4.tar.gz \
-#    && cd /opt2/octopus-0.7.4 \
-#    && cmake .
-#ENV PATH="/opt2/octopus-0.7.4/bin:$PATH"
-
 
 # Fastp From Opengene github
 RUN wget http://opengene.org/fastp/fastp.0.23.2 \

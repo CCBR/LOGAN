@@ -21,8 +21,6 @@ ENSEMBLCACHE='/data/SCLC-BRAINMETS/cn/common/ensembl_data'
 DRIVERS='/data/SCLC-BRAINMETS/cn/common/DriverGenePanel.38.tsv'
 HOTSPOTS='/data/SCLC-BRAINMETS/cn/variants/KnownHotspots.somatic.38.vcf.gz'
 
-
-
 //DBSNP_INDEL=file(params.genomes[params.genome].KNOWNINDELS) 
 //ascatR=
 
@@ -370,7 +368,8 @@ process purple {
         tuple val(tumorname),
         path(cobaltin), 
         path(amberin),
-        path(somaticvcf)
+        path(somaticvcf),
+        path(somaticvcfindex)
 
     output:
         tuple val(tumorname), path("${tumorname}")
@@ -378,7 +377,6 @@ process purple {
     script:
 
     """
-
     java -jar purple.jar \
     -tumor ${tumorname} \
     -amber ${amberin} \
@@ -391,7 +389,6 @@ process purple {
     -driver_gene_panel $DRIVERS \
     -somatic_hotspots $HOTSPOTS \
     -output_dir ${tumorname}
-
     """
 
     stub:

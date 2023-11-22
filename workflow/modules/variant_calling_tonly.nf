@@ -1,4 +1,5 @@
 GENOMEREF=file(params.genomes[params.genome].genome)
+GENOMEFAI=file(params.genomes[params.genome].genomefai)
 GENOMEDICT=file(params.genomes[params.genome].genomedict)
 KGPGERMLINE=params.genomes[params.genome].kgp //1000G_phase1.snps.high_confidence.hg38.vcf.gz"
 DBSNP=file(params.genomes[params.genome].dbsnp) //dbsnp_138.hg38.vcf.gz"
@@ -249,9 +250,7 @@ process varscan_tonly {
     pileup_cmd="samtools mpileup -d 100000 -q 15 -Q 15 -f !{GENOMEREF} !{tumor}"
     varscan_cmd="varscan mpileup2cns <($pileup_cmd) $varscan_opts"
 
-
-    eval "$varscan_cmd > !{tumor.simpleName}_!{bed.simpleName}.tonly.varscan.vcf.gz"
-    eval "bcftools view -U !{tumor.simpleName}_!{bed.simpleName}.tonly.varscan.vcf.gz > !{tumor.simpleName}_!{bed.simpleName}.tonly.varscan.vcf"
+    eval "$varscan_cmd > !{tumor.simpleName}_!{bed.simpleName}.tonly.varscan.vcf"
     '''
 
     stub:
@@ -318,7 +317,9 @@ process octopus_tonly {
 
     """
     octopus -R $GENOMEREF -C cancer -I ${tumor} \
-    --annotations AC AD DP -t ${bed} \
+    --annotations AC AD DP \
+    --target-working-memory 64Gb \
+    -t ${bed} \
     $SOMATIC_FOREST \
     -o ${tumorname}_${bed.simpleName}.tonly.octopus.vcf.gz --threads $task.cpus
 
@@ -331,6 +332,7 @@ process octopus_tonly {
     touch ${tumorname}_${bed.simpleName}.tonly.octopus.vcf.gz
     """
 }
+
 
 
 process somaticcombine_tonly {
@@ -350,14 +352,13 @@ process somaticcombine_tonly {
     script:
         vcfin1=[callers, vcfs].transpose().collect { a, b -> a + " " + b }
         vcfin2="-V:" + vcfin1.join(" -V:")
-        println vcfin2
 
     """
-    java -jar DISCVRSeq-1.3.61.jar MergeVcfsAndGenotypes \
+    java -jar \$DISCVRSeq_JAR MergeVcfsAndGenotypes \
         -R $GENOMEREF \
         --genotypeMergeOption PRIORITIZE \
         --priority_list mutect2,octopus,vardict,varscan \
-        --filteredRecordsMergeType KEEP_IF_ANY_UNFILTERED
+        --filteredRecordsMergeType KEEP_IF_ANY_UNFILTERED \
         -O ${tumorsample}_combined.vcf.gz \
         $vcfin2
     """
