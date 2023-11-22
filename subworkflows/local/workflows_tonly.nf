@@ -1,5 +1,5 @@
 //All Worksflows in One Place
-// TODO split subworklfows out into one per file  
+// TODO split subworkflows out into one per file  
 
 // TODO: this line should be moved to within a subworkflow or the main workflow
 intervalbedin = Channel.fromPath(params.intervals,checkIfExists: true,type: 'file')
