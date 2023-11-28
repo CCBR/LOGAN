@@ -36,6 +36,14 @@ log.info """\
          """
          .stripIndent()
 
+workflow.onComplete {
+    if (!workflow.stubRun && !workflow.commandLine.contains('-preview')) {
+        def message = Utils.spooker(workflow)
+        if (message) {
+            println message
+        }
+    }
+}
 
 //Final Workflow
 workflow {
