@@ -5,8 +5,10 @@
 #docker buildx build --platform linux/amd64 -f Dockerfile -t dnousome/ccbr_logan_base:v0.3.0 -t dnousome/ccbr_logan_base:latest --push .
 
 docker build --platform linux/amd64 --tag ccbr_logan_base:v0.3.3 -f Dockerfile . 
+
 docker tag ccbr_logan_base:v0.3.3 dnousome/ccbr_logan_base:v0.3.3
 docker tag ccbr_logan_base:v0.3.3 dnousome/ccbr_logan_base
+
 
 docker push dnousome/ccbr_logan_base:v0.3.3
 docker push dnousome/ccbr_logan_base:latest

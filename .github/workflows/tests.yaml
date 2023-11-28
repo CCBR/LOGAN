@@ -22,7 +22,7 @@ jobs:
         python /opt2/logan --fastq "/opt2/.tests/*R{1,2}.fastq.gz" \
         --vc --sv --cnv \
         --output /opt2/output_tn_fqs \
-        --paired --sample_sheet "/opt2/.tests/pairs.tsv" --stub
+        --sample_sheet "/opt2/.tests/pairs.tsv" --stub
     - name: Tumor-only FastQ Stub Run
       run: |
         docker run -v $PWD:/opt2 nextflow/nextflow:22.10.8 \
