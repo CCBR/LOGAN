@@ -241,7 +241,7 @@ process varscan_tonly {
     
     output:
         tuple val(tumorname),
-        path("${tumor.simpleName}_${bed.simpleName}.tonly.varscan.vcf")
+        path("${tumor.simpleName}_${bed.simpleName}.tonly.varscan.vcf.gz")
     
     shell:
 
@@ -251,13 +251,17 @@ process varscan_tonly {
     varscan_cmd="varscan mpileup2cns <($pileup_cmd) $varscan_opts"
 
     eval "$varscan_cmd > !{tumor.simpleName}_!{bed.simpleName}.tonly.varscan.vcf"
+
+    printf "TUMOR\t!{tumorname}\n" > sampname 
+    
+    bcftools reheader -s sampname !{tumor.simpleName}_!{bed.simpleName}.tonly.varscan.vcf \
+        | bcftools view -Oz -o !{tumor.simpleName}_!{bed.simpleName}.tonly.varscan.vcf.gz
+
     '''
 
     stub:
-    
     """
-    touch ${tumor.simpleName}_${bed.simpleName}.tonly.varscan.vcf
-    
+    touch ${tumor.simpleName}_${bed.simpleName}.tonly.varscan.vcf.gz
     """
 
 }
@@ -270,19 +274,20 @@ process vardict_tonly {
     
     output:
         tuple val(tumorname),
-        path("${tumor.simpleName}_${bed.simpleName}.tonly.vardict.vcf")
+        path("${tumor.simpleName}_${bed.simpleName}.tonly.vardict.vcf.gz")
     
     script:
 
     """
     bedtools makewindows -b ${bed} -w 50150 -s 50000 > temp_${bed}
+
     VarDict -G $GENOMEREF \
-        -f 0.05 \
+        -f 0.01 \
         -x 500 \
         --nosv \
         -b ${tumor} --fisher \
         -t -Q 20 -c 1 -S 2 -E 3 --th $task.cpus \
-        -R temp_${bed} | var2vcf_valid.pl \
+        temp_${bed} | var2vcf_valid.pl \
             -N ${tumor} \
             -Q 20 \
             -d 10 \
@@ -291,12 +296,17 @@ process vardict_tonly {
             -E \
             -f 0.05 >  ${tumor.simpleName}_${bed.simpleName}.tonly.vardict.vcf
 
+    printf "${tumor.Name}\t${tumorname}\n" > sampname 
+    
+    bcftools reheader -s sampname ${tumor.simpleName}_${bed.simpleName}.tonly.vardict.vcf \
+        | bcftools view -Oz -o ${tumor.simpleName}_${bed.simpleName}.tonly.vardict.vcf.gz
+
     """
 
     stub:
     
     """
-    touch ${tumor.simpleName}_${bed.simpleName}.tonly.vardict.vcf
+    touch ${tumor.simpleName}_${bed.simpleName}.tonly.vardict.vcf.gz
 
     """
 
@@ -357,9 +367,9 @@ process somaticcombine_tonly {
     java -jar \$DISCVRSeq_JAR MergeVcfsAndGenotypes \
         -R $GENOMEREF \
         --genotypeMergeOption PRIORITIZE \
-        --priority_list mutect2,octopus,vardict,varscan \
+        --priority_list mutect2_tonly,octopus_tonly,vardict_tonly,varscan_tonly \
         --filteredRecordsMergeType KEEP_IF_ANY_UNFILTERED \
-        -O ${tumorsample}_combined.vcf.gz \
+        -O ${tumorsample}_combined_tonly.vcf.gz \
         $vcfin2
     """
 

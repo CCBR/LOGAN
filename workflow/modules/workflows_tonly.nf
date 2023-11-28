@@ -164,7 +164,7 @@ workflow VC_TONLY {
 
     mutect2_tonly_in=mutect2filter_tonly(mut2tonly_filter) 
         | join(sample_sheet)
-        | map{tumor,markedvcf,markedindex,finalvcf,finalindex,stats -> tuple(tumor,"mutect2",finalvcf,finalindex)} 
+        | map{tumor,markedvcf,markedindex,finalvcf,finalindex,stats -> tuple(tumor,"mutect2_tonly",finalvcf,finalindex)} 
     annotvep_tonly_mut2(mutect2_tonly_in)
 
 
