@@ -20,7 +20,8 @@ WORKDIR /opt2
 RUN apt-get update \
  && apt-get -y upgrade \
  && DEBIAN_FRONTEND=noninteractive apt-get install -y \
-      bc
+      bc \
+      openjdk-17-jdk   
 
 # Common bioinformatics tools 
 # bwa/0.7.17-4  bowtie/1.2.3  bowtie2/2.3.5.1 
@@ -44,23 +45,9 @@ RUN wget https://github.com/biod/sambamba/releases/download/v0.8.1/sambamba-0.8.
     && mv /opt2/sambamba-0.8.1-linux-amd64-static /opt2/sambamba \
     && chmod a+rx /opt2/sambamba
 
-# Install GATK4 (GATK/4.3.0.0)
-# Requires Java8 or 1.8
-RUN wget https://github.com/broadinstitute/gatk/releases/download/4.3.0.0/gatk-4.3.0.0.zip \
-    && unzip /opt2/gatk-4.3.0.0.zip \
-    && rm /opt2/gatk-4.3.0.0.zip \
-    && /opt2/gatk-4.3.0.0/gatk --list
-ENV PATH="/opt2/gatk-4.3.0.0:$PATH"
-
-# Install last release of GATK3 (GATK/3.8-1)
-# Only being used for the CombineVariants
-# command that is not available in GATK4
-# Available via env variable: $GATK_JAR
-# Requires Java8 or 1.8
-RUN wget https://storage.googleapis.com/gatk-software/package-archive/gatk/GenomeAnalysisTK-3.8-1-0-gf15c1c3ef.tar.bz2 \
-    && tar -xvjf /opt2/GenomeAnalysisTK-3.8-1-0-gf15c1c3ef.tar.bz2 \
-    && rm /opt2/GenomeAnalysisTK-3.8-1-0-gf15c1c3ef.tar.bz2
-ENV GATK_JAR="/opt2/GenomeAnalysisTK-3.8-1-0-gf15c1c3ef/GenomeAnalysisTK.jar"
+# Use DISCVRSeq For CombineVariants Replacement
+RUN wget https://github.com/BimberLab/DISCVRSeq/releases/download/1.3.61/DISCVRSeq-1.3.62.jar 
+ENV DISCVRSeq_JAR="/opt2/DISCVRSeq-1.3.62.jar"
 
 # Install dependencies needed to add a new repository over HTTPS
 RUN DEBIAN_FRONTEND=noninteractive apt-get install -y \

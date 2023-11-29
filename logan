@@ -159,19 +159,18 @@ def main():
                 in1="--file_input "+args.file_input
     if (args.stub and args.profile is None): 
         profile="-profile localstub"
+        splitreg="4"
     elif args.profile=="local":
         profile="-profile local"
+        splitreg=str(args.splitregions)
     elif (args.profile=="biowulf" or args.profile is None):
         profile="-profile biowulf"
+        splitreg=str(args.splitregions)
     if args.resume:
         resume="-resume"
     else:
         resume=""
     ###COMBINE ALL COMMANDS (PIPE ALIGN)
-    if args.stub:
-        splitreg="4"
-    else:
-        splitreg=str(args.splitregions)
     commandbase=["nextflow run",dirname + '/main.nf',"-c "+ dirname +"/nextflow.config",
         in1,profile,resume,sample_path,"--genome",args.genome,
         "--output '" +args.output+"'"+" --split_regions " + splitreg]
