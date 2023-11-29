@@ -17,12 +17,10 @@ WORKDIR /opt2
 # This section installs system packages required for your project
 # If you need extra system packages add them here.
 # python/3.8.0 and python/2.7.16 (strelka and manta)
-# JDK 17 for DISCVRSeq
 RUN apt-get update \
  && apt-get -y upgrade \
  && DEBIAN_FRONTEND=noninteractive apt-get install -y \
-      bc \
-      openjdk-17-jdk   
+      bc
 
 # Common bioinformatics tools 
 # bwa/0.7.17-4  bowtie/1.2.3  bowtie2/2.3.5.1 
@@ -54,9 +52,15 @@ RUN wget https://github.com/broadinstitute/gatk/releases/download/4.3.0.0/gatk-4
     && /opt2/gatk-4.3.0.0/gatk --list
 ENV PATH="/opt2/gatk-4.3.0.0:$PATH"
 
-# Use DISCVRSeq For CombineVariants Replacement
-RUN wget https://github.com/BimberLab/DISCVRSeq/releases/download/1.3.61/DISCVRSeq-1.3.61.jar 
-ENV DISCVRSeq_JAR="/opt2/DISCVRSeq-1.3.61.jar"
+# Install last release of GATK3 (GATK/3.8-1)
+# Only being used for the CombineVariants
+# command that is not available in GATK4
+# Available via env variable: $GATK_JAR
+# Requires Java8 or 1.8
+RUN wget https://storage.googleapis.com/gatk-software/package-archive/gatk/GenomeAnalysisTK-3.8-1-0-gf15c1c3ef.tar.bz2 \
+    && tar -xvjf /opt2/GenomeAnalysisTK-3.8-1-0-gf15c1c3ef.tar.bz2 \
+    && rm /opt2/GenomeAnalysisTK-3.8-1-0-gf15c1c3ef.tar.bz2
+ENV GATK_JAR="/opt2/GenomeAnalysisTK-3.8-1-0-gf15c1c3ef/GenomeAnalysisTK.jar"
 
 # Install dependencies needed to add a new repository over HTTPS
 RUN DEBIAN_FRONTEND=noninteractive apt-get install -y \

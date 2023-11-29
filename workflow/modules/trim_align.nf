@@ -63,7 +63,7 @@ process bwamem2 {
         ${GENOMEREF} \
         ${samplename}.R1.trimmed.fastq.gz ${samplename}.R2.trimmed.fastq.gz | \
     samblaster -M | \
-    samtools sort -@$task.cpus -m 4G - -o ${samplename}.bam
+    samtools sort -@ $task.cpus -m 4G - -o ${samplename}.bam
 
     samtools index -@ $task.cpus ${samplename}.bam ${samplename}.bai
 

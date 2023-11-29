@@ -179,7 +179,7 @@ workflow VC {
     pileup_paired_all=pileup_paired_tout.join(pileup_paired_nout)
     contamination_paired(pileup_paired_all) 
 
-
+    //Mutect2 TN
     mutect2.out.groupTuple(by:[0,1])
         | multiMap { tumor,normal,vcfs,f1r2,stats -> 
         mut2out_lor: tuple("${tumor}_vs_${normal}",
@@ -205,7 +205,7 @@ workflow VC {
 
     annotvep_tn_mut2(mutect2_in)
 
-    //Tumor Only Calling
+    //Mutect2 Tumor Only
     bambyinterval_t=bambyinterval.map{tumorname,tumor,tumorbai,normalname,normalbam,normalbai,bed ->tuple(tumorname,tumor,tumorbai,bed)}
     mutect2_t_tonly(bambyinterval_t)  
         
@@ -231,7 +231,7 @@ workflow VC {
         | join(contamination_tumoronly.out) 
     | mutect2filter_tonly
     | join(sample_sheet)
-    | map{tumor,markedvcf,markedindex,normvcf,normindex,stats,normal -> tuple(tumor,"mutect2",normvcf,normindex)} 
+    | map{tumor,markedvcf,markedindex,normvcf,normindex,stats,normal -> tuple(tumor,"mutect2_tonly",normvcf,normindex)} 
     annotvep_tonly_mut2(mutect2_in_tonly)
     
     //Strelka TN 
@@ -243,14 +243,14 @@ workflow VC {
         | map{sample,markedvcf,markedindex,finalvcf,finalindex,tumor,normal -> tuple(tumor,normal,"strelka",finalvcf,finalindex)} 
     annotvep_tn_strelka(strelka_in)
 
-    //Vardict
+    //Vardict TN
     vardict_in=vardict_tn(bambyinterval) | groupTuple(by:[0,1])
         | map{tumor,normal,vcf-> tuple("${tumor}_vs_${normal}",vcf.toSorted{it -> (it.name =~ /${tumor}_vs_${normal}_(.*?).vardict.vcf/)[0][1].toInteger()},"vardict")} 
         | combineVariants_vardict | join(sample_sheet_paired)
         | map{sample,marked,markedindex,normvcf,normindex,tumor,normal ->tuple(tumor,normal,"vardict",normvcf,normindex)}  
     annotvep_tn_vardict(vardict_in)
 
-    //VarDict_tonly
+    //VarDict TOnly
     vardict_in_tonly=bambyinterval 
         | map{tumorname,tumorbam,tumorbai,normname,normbam,normbai,bed ->
             tuple(tumorname,tumorbam,tumorbai,bed)} 
@@ -263,12 +263,12 @@ workflow VC {
     //VarScan TN
     varscan_in=bambyinterval.combine(contamination_paired.out) 
         | varscan_tn | groupTuple(by:[0,1]) 
-        | map{tumor,normal,vcf-> tuple("${tumor}_vs_${normal}",vcf.toSorted{it -> (it.name =~ /${tumor}_vs_${normal}_(.*?).varscan.vcf/)[0][1].toInteger()},"varscan")} 
+        | map{tumor,normal,vcf-> tuple("${tumor}_vs_${normal}",vcf.toSorted{it -> (it.name =~ /${tumor}_vs_${normal}_(.*?).varscan.vcf.gz/)[0][1].toInteger()},"varscan")} 
         | combineVariants_varscan | join(sample_sheet_paired)
         | map{sample,marked,markedindex,normvcf,normindex,tumor,normal ->tuple(tumor,normal,"varscan",normvcf,normindex)} 
     annotvep_tn_varscan(varscan_in)
     
-    //VarScan_TOnly
+    //VarScan TOnly
     varscan_in_tonly=bambyinterval.combine(contamination_paired.out) 
     | map{tumor,bam,bai,normal,nbam,nbai,bed,tumorname2,tpile,npile,tumorc,normalc ->
             tuple(tumor,bam,bai,bed,tpile,tumorc)} | varscan_tonly  | groupTuple() 
@@ -292,7 +292,7 @@ workflow VC {
         | map{sample,marked,markedindex,normvcf,normindex,tumor,normal ->tuple(tumor,normal,"muse",normvcf,normindex)} 
     annotvep_tn_muse(muse_in)
 
-    //Octopus_TN
+    //Octopus TN
     octopus_in=octopus_tn(bambyinterval) | bcftools_index_octopus 
         | groupTuple() 
         | map{samplename,vcf,vcfindex-> tuple(samplename,vcf.toSorted{it->(it.name =~ /${samplename}_(.*).octopus.vcf.gz/)[0][1].toInteger()},vcfindex,"octopus")}
@@ -301,7 +301,7 @@ workflow VC {
             tuple(samplename.split('_vs_')[0],samplename.split('_vs_')[1],"octopus",normvcf,normindex)}
     annotvep_tn_octopus(octopus_in) 
 
-    //Octopus_TOnly
+    //Octopus TOnly
     octopus_in_tonly=bambyinterval.map{tumor,bam,bai,normal,nbam,nbai,bed->
     tuple(tumor,bam,bai,bed)} | octopus_tonly | bcftools_index_octopus_tonly 
     | groupTuple() 
@@ -324,7 +324,6 @@ workflow VC {
         | map{tumor,vcf,index ->tuple(tumor,"combined_tonly",vcf,index)} 
         | annotvep_tonly_combined
     
-
     //Implement PCGR Annotator/CivIC Next
 
     emit:
@@ -467,8 +466,8 @@ workflow QC_GL {
         fastqin
         fastpout
         applybqsr
-        glnexusout //GLnexus germline output
-        bcfout //DV germline output
+        glnexusout 
+        bcfout 
 
     main:
     //QC Steps
