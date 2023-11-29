@@ -744,13 +744,13 @@ process somaticcombine {
     script:
         vcfin1=[callers, vcfs].transpose().collect { a, b -> a + " " + b }
         vcfin2="-V:" + vcfin1.join(" -V:")
-
-    """    
-    java  -jar \$GATK_JAR -T CombineVariants \
-        -nt $task.cpus \
-        --filteredrecordsmergetype KEEP_IF_ANY_UNFILTERED \
-        --genotypemergeoption PRIORITIZE \
-        --rod_priority_list mutect2,strelka,muse,lofreq,vardict,varscan \
+    
+    """
+    java -jar \$DISCVRSeq_JAR MergeVcfsAndGenotypes \
+        -R $GENOMEREF \
+        --genotypeMergeOption PRIORITIZE \
+        --priority_list mutect2,strelka,octopus,muse,lofreq,vardict,varscan \
+        --filteredRecordsMergeType KEEP_IF_ANY_UNFILTERED \
         -O ${tumorsample}_vs_${normal}_combined.vcf.gz \
         $vcfin2
     """
