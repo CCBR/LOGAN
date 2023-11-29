@@ -20,6 +20,7 @@ jobs:
       run: |
         docker run -v $PWD:/opt2 nextflow/nextflow:22.10.8 \
         python /opt2/logan --fastq "/opt2/.tests/*R{1,2}.fastq.gz" \
+        --genome hg38 \
         --vc --sv --cnv \
         --output /opt2/output_tn_fqs \
         --sample_sheet "/opt2/.tests/pairs.tsv" --stub
@@ -27,5 +28,6 @@ jobs:
       run: |
         docker run -v $PWD:/opt2 nextflow/nextflow:22.10.8 \
         python /opt2/logan --fastq "/opt2/.tests/*R{1,2}.fastq.gz" \
-        --vc \
+        --genome hg38 \
+        --vc --sv --cnv \
         --output /opt2/output_tonly_fqs --stub
