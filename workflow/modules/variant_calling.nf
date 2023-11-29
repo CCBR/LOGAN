@@ -360,7 +360,7 @@ process vardict_tn {
             -S \
             -f 0.05 >  ${tumor.simpleName}_vs_${normal.simpleName}_${bed.simpleName}.vardict.vcf
 
-    printf "${normal.Name}\t${normalname}\t${tumor.Name}\t${tumorname}\n" > sampname 
+    printf "${normal.Name}\t${normalname}\n${tumor.Name}\t${tumorname}\n" > sampname 
     
     bcftools reheader -s sampname ${tumor.simpleName}_vs_${normal.simpleName}_${bed.simpleName}.vardict.vcf \
         | bcftools view -Oz -o ${tumor.simpleName}_vs_${normal.simpleName}_${bed.simpleName}.vardict.vcf.gz
@@ -493,8 +493,15 @@ process lofreq_tn {
         ${tumorname}_vs_${normalname}_${bed.simpleName}_somatic_final_minus-dbsnp.indels.vcf.gz --threads $task.cpus -Oz -o \
         ${tumorname}_vs_${normalname}_${bed.simpleName}_temp_lofreq.vcf.gz
 
-    $LOFREQ_CONVERT ${tumorname}_vs_${normalname}_${bed.simpleName}_temp_lofreq.vcf.gz ${tumorname} \
-        | bcftools view -Oz -o ${tumorname}_vs_${normalname}_${bed.simpleName}_lofreq.vcf.gz
+    $LOFREQ_CONVERT -i ${tumorname}_vs_${normalname}_${bed.simpleName}_temp_lofreq.vcf.gz -g 1/0 \
+        -n ${tumorname} -o ${tumorname}_vs_${normalname}_${bed.simpleName}_temp1_lofreq.vcf.gz
+    
+    bcftools view -h ${tumorname}_vs_${normalname}_${bed.simpleName}_temp1_lofreq.vcf.gz >temphead
+    
+    sed 's/^##FORMAT=<ID=DP4,Number=4,Type=Integer,Description="Counts for ref-forward bases, ref-reverse, alt-forward and alt-reverse bases">/##FORMAT=<ID=DP4,Number=1,Type=String,Description="Strand read counts: ref\\/fwd, ref\\/rev, var\\/fwd, var\\/rev">/' temphead > temphead1
+    bcftools reheader ${tumorname}_vs_${normalname}_${bed.simpleName}_temp1_lofreq.vcf.gz -h temphead1 |\
+        bcftools view -Oz -o ${tumorname}_vs_${normalname}_${bed.simpleName}_lofreq.vcf.gz
+
     bcftools index -t ${tumorname}_vs_${normalname}_${bed.simpleName}_lofreq.vcf.gz
 
     """
@@ -738,12 +745,12 @@ process somaticcombine {
         vcfin1=[callers, vcfs].transpose().collect { a, b -> a + " " + b }
         vcfin2="-V:" + vcfin1.join(" -V:")
 
-    """
-    java -jar \$DISCVRSeq_JAR MergeVcfsAndGenotypes \
-        -R $GENOMEREF \
-        --genotypeMergeOption PRIORITIZE \
-        --priority_list mutect2,strelka,octopus,muse,lofreq,vardict,varscan \
-        --filteredRecordsMergeType KEEP_IF_ANY_UNFILTERED \
+    """    
+    java  -jar \$GATK_JAR -T CombineVariants \
+        -nt $task.cpus \
+        --filteredrecordsmergetype KEEP_IF_ANY_UNFILTERED \
+        --genotypemergeoption PRIORITIZE \
+        --rod_priority_list mutect2,strelka,muse,lofreq,vardict,varscan \
         -O ${tumorsample}_vs_${normal}_combined.vcf.gz \
         $vcfin2
     """

@@ -364,8 +364,8 @@ process somaticcombine_tonly {
         vcfin2="-V:" + vcfin1.join(" -V:")
 
     """
-    java -jar \$DISCVRSeq_JAR MergeVcfsAndGenotypes \
-        -R $GENOMEREF \
+    java -jar \$GATK_JAR -T CombineVariants \
+        -nt $task.cpus \
         --genotypeMergeOption PRIORITIZE \
         --priority_list mutect2_tonly,octopus_tonly,vardict_tonly,varscan_tonly \
         --filteredRecordsMergeType KEEP_IF_ANY_UNFILTERED \
