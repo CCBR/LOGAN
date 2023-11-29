@@ -46,7 +46,7 @@ RUN wget https://github.com/biod/sambamba/releases/download/v0.8.1/sambamba-0.8.
     && chmod a+rx /opt2/sambamba
 
 # Use DISCVRSeq For CombineVariants Replacement
-RUN wget https://github.com/BimberLab/DISCVRSeq/releases/download/1.3.61/DISCVRSeq-1.3.62.jar 
+RUN wget https://github.com/BimberLab/DISCVRSeq/releases/download/1.3.62/DISCVRSeq-1.3.62.jar 
 ENV DISCVRSeq_JAR="/opt2/DISCVRSeq-1.3.62.jar"
 
 # Install dependencies needed to add a new repository over HTTPS
