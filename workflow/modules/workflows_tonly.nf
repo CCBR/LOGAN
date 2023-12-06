@@ -202,7 +202,7 @@ workflow VC_TONLY {
 
 
     emit:
-        somaticcall_input=combineVariants_octopus.out
+        somaticcall_input=octopus_in_tonly
 
 
 }
@@ -320,10 +320,10 @@ workflow INPUT_TONLY_BAM {
     main:
     //Either BAM Input or File sheet input 
     if(params.bam_input){
-        bambai=params.bam_input +".bai"
+        bambai = params.bam_input +".bai"
         baionly = bambai.replace(".bam", "")
-        bamcheck1=file(bambai)
-        bamcheck2=file(baionly)
+        bamcheck1 = file(bambai)
+        bamcheck2 = file(baionly)
 
         if (bamcheck1.size()>0){
             baminputonly=Channel.fromPath(params.bam_input)

@@ -45,6 +45,14 @@ RUN wget https://github.com/biod/sambamba/releases/download/v0.8.1/sambamba-0.8.
     && mv /opt2/sambamba-0.8.1-linux-amd64-static /opt2/sambamba \
     && chmod a+rx /opt2/sambamba
 
+# Install GATK4 (GATK/4.4.0.0)
+# Requires Java17 
+RUN wget https://github.com/broadinstitute/gatk/releases/download/4.4.0.0/gatk-4.4.0.0.zip \
+    && unzip /opt2/gatk-4.4.0.0.zip \
+    && rm /opt2/gatk-4.4.0.0.zip \
+    && /opt2/gatk-4.4.0.0/gatk --list
+ENV PATH="/opt2/gatk-4.4.0.0:$PATH"
+
 # Use DISCVRSeq For CombineVariants Replacement
 RUN wget https://github.com/BimberLab/DISCVRSeq/releases/download/1.3.62/DISCVRSeq-1.3.62.jar 
 ENV DISCVRSeq_JAR="/opt2/DISCVRSeq-1.3.62.jar"
