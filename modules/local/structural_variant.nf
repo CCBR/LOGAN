@@ -1,23 +1,18 @@
-GENOME=file(params.genome)
-GENOMEDICT=file(params.genomedict)
-WGSREGION=file(params.wgsregion) 
-MILLSINDEL=file(params.millsindel) //Mills_and_1000G_gold_standard.indels.hg38.vcf.gz
-SHAPEITINDEL=file(params.shapeitindel) //ALL.wgs.1000G_phase3.GRCh38.ncbi_remapper.20150424.shapeit2_indels.vcf.gz
-KGP=file(params.kgp) //1000G_phase1.snps.high_confidence.hg38.vcf.gz"
-DBSNP=file(params.dbsnp) //dbsnp_138.hg38.vcf.gz"
-DBSNP_INDEL=file(params.dbsnp_indel) //dbsnp_138.hg38.vcf.gz"
-BWAGENOME=file(params.bwagenome)
-GNOMAD=file(params.gnomad) //somatic-hg38-af-only-gnomad.hg38.vcf.gz
-PON=file(params.pon) 
+GENOMEREF=file(params.genomes[params.genome].genome)
+GENOME=params.genome
+BWAGENOME=file(params.genomes[params.genome].bwagenome)
+DBSNP_INDEL=file(params.genomes[params.genome].KNOWNINDELS) 
 
 outdir=file(params.output)
 
 
 process svaba_somatic {
+    label 'process_highcpu'
+
     publishDir(path: "${outdir}/SV/svaba", mode: 'copy') 
 
     input:
-        tuple val(tumorname), path(tumor), path(tumorbai),val(normalname), path(normal), path(normalbai)
+        tuple val(tumorname), path(tumor), path(tumorbai), val(normalname), path(normal), path(normalbai)
     
     output:
         tuple val(tumorname),
@@ -46,14 +41,26 @@ process svaba_somatic {
     """
     touch "${tumor.simpleName}.bps.txt.gz"
     touch "${tumor.simpleName}.contigs.bam"
-    touch "${tumor.simpleName}.discordants.txt.gz"
+    touch "${tumor.simpleName}.discordant.txt.gz"
     touch "${tumor.simpleName}.alignments.txt.gz"
+    touch "${tumor.simpleName}.svaba.germline.indel.vcf"
+    touch "${tumor.simpleName}.svaba.germline.sv.vcf"
+    touch "${tumor.simpleName}.svaba.somatic.indel.vcf"
+    touch "${tumor.simpleName}.svaba.somatic.sv.vcf"
+    touch "${tumor.simpleName}.svaba.unfiltered.germline.indel.vcf"
+    touch "${tumor.simpleName}.svaba.unfiltered.germline.sv.vcf"
+    touch "${tumor.simpleName}.svaba.unfiltered.somatic.indel.vcf"
+    touch "${tumor.simpleName}.svaba.unfiltered.somatic.sv.vcf"
+    touch "${tumor.simpleName}.log"
+
     """
 }
 
 
+
 process manta_somatic {
-    //https://github.com/illumina/manta
+
+    label 'process_highcpu'
     publishDir(path: "${outdir}/SV/manta", mode: 'copy') 
 
     input:
@@ -71,10 +78,10 @@ process manta_somatic {
     mkdir -p wd
 
     configManta.py \
-    --normalBam=${normal} \
-    --tumorBam=${tumor} \
-    --referenceFasta=$GENOME \
-    --runDir=wd
+        --normalBam=${normal} \
+        --tumorBam=${tumor} \
+        --referenceFasta=$GENOMEREF \
+        --runDir=wd
 
     wd/runWorkflow.py -m local -j 10 -g 10
     
@@ -96,30 +103,215 @@ process manta_somatic {
 }
 
 
-process annotsv_tn{
+process annotsv_tn {
      //AnnotSV for Manta/Svaba works with either vcf.gz or .vcf files
      //Requires bedtools,bcftools
 
+    module = ['annotsv/3.3.1']
     publishDir(path: "${outdir}/SV/annotated", mode: 'copy') 
 
     input:
-        tuple val(tumorname), path(somaticvcf)
+        tuple val(tumorname), path(somaticvcf), val(sv)
 
     output:
         tuple val(tumorname),
-        path("${tumor.simpleName}.tsv"),
-        path("${tumor.simpleName}.unannotated.tsv"),
+        path("${sv}/${tumorname}.tsv"),
+        path("${sv}/${tumorname}.unannotated.tsv")
 
 
     script:
     """
-    AnnotSV -SVinputFile ${tumor}.vcf.gz -SVinputInfo 1 -outputFile ${tumor.simpleName} -outputDir .
+    mkdir ${sv}
+
+    AnnotSV -SVinputFile ${somaticvcf} \
+    -genomeBuild $GENOME \
+    -SVinputInfo 1 -outputFile ${tumorname} \
+    -outputDir ${sv}
+
     """
 
     stub:
     """
-    touch "${tumor.simpleName}.tsv"
-    touch "${tumor.simpleName}.unannotated.tsv"
+    mkdir ${sv}
+
+    touch "${sv}/${tumorname}.tsv"
+    touch "${sv}/${tumorname}.unannotated.tsv"
     """
 }
 
+
+process manta_tonly {
+    label 'process_highcpu'
+    publishDir(path: "${outdir}/SV/manta_tonly", mode: 'copy') 
+
+    input:
+        tuple val(tumorname), path(tumor), path(tumorbai)
+    
+    output:
+        tuple val(tumorname),
+        path("${tumor.simpleName}.candidateSV.vcf.gz"),
+        path("${tumor.simpleName}.candidateSmallIndels.vcf.gz"),
+        path("${tumor.simpleName}.tumorSV.vcf.gz")
+
+
+    script:
+    """
+    mkdir -p wd
+
+    configManta.py \
+        --tumorBam=${tumor} \
+        --referenceFasta=$GENOMEREF \
+        --runDir=wd
+
+    wd/runWorkflow.py -m local -j 10 -g 10
+    
+    mv wd/results/variants/candidateSV.vcf.gz ${tumor.simpleName}.candidateSV.vcf.gz
+    mv wd/results/variants/candidateSmallIndels.vcf.gz ${tumor.simpleName}.candidateSmallIndels.vcf.gz
+    mv wd/results/variants/tumorSV.vcf.gz ${tumor.simpleName}.tumorSV.vcf.gz
+
+    """
+
+    stub:
+    
+    """
+    touch ${tumor.simpleName}.candidateSV.vcf.gz
+    touch ${tumor.simpleName}.candidateSmallIndels.vcf.gz
+    touch ${tumor.simpleName}.tumorSV.vcf.gz
+
+    """
+}
+
+
+
+process svaba_tonly {
+    label 'process_highcpu'
+    publishDir(path: "${outdir}/SV/svaba_tonly", mode: 'copy') 
+
+    input:
+        tuple val(tumorname), path(tumor), path(tumorbai)
+    
+    output:
+        tuple val(tumorname),
+        path("${tumor.simpleName}.bps.txt.gz"),
+        path("${tumor.simpleName}.contigs.bam"),
+        path("${tumor.simpleName}.discordant.txt.gz"),
+        path("${tumor.simpleName}.alignments.txt.gz"),
+        path("${tumor.simpleName}.svaba.indel.vcf"),
+        path("${tumor.simpleName}.svaba.sv.vcf"),
+        path("${tumor.simpleName}.svaba.unfiltered.indel.vcf"),
+        path("${tumor.simpleName}.svaba.unfiltered.sv.vcf"),
+        path("${tumor.simpleName}.log")
+
+
+    script:
+    """
+    svaba run -t ${tumor} -p $task.cpus -D $DBSNP_INDEL -a ${tumor.simpleName} -G $BWAGENOME
+    """
+
+    stub:
+    
+    """
+    touch "${tumor.simpleName}.bps.txt.gz"
+    touch "${tumor.simpleName}.contigs.bam"
+    touch "${tumor.simpleName}.discordant.txt.gz"
+    touch "${tumor.simpleName}.alignments.txt.gz"
+    touch "${tumor.simpleName}.svaba.indel.vcf"
+    touch "${tumor.simpleName}.svaba.sv.vcf"
+    touch "${tumor.simpleName}.svaba.unfiltered.indel.vcf"
+    touch "${tumor.simpleName}.svaba.unfiltered.sv.vcf"
+    touch "${tumor.simpleName}.log"
+
+    """
+}
+
+
+process gunzip {
+
+    input:
+        tuple val(tumorname), 
+        path(vcf), val(sv)
+
+    output:
+        tuple val(tumorname), 
+        path("${tumorname}.tumorSV.vcf"), val(sv)
+
+    script:
+    """
+    gunzip ${vcf} > ${tumorname}.tumorSV.vcf
+    """
+
+    stub:
+
+    """
+    touch ${tumorname}.tumorSV.vcf
+    """
+
+}
+
+
+process survivor_sv {
+    module = ['survivor']
+    publishDir(path: "${outdir}/SV/survivor", mode: 'copy') 
+
+    input:
+        tuple val(tumorname), 
+        path(vcfs),val(svs)
+
+    output:
+        tuple val(tumorname),
+        path("${tumorname}_merged.vcf"),
+        val("survivor")
+
+
+    script:
+    strin = vcfs.join("\\n")
+
+    """
+    echo -e '$strin' > filelistin
+    SURVIVOR merge filelistin 1000 2 1 1 1 30 ${tumorname}_merged.vcf
+    """
+
+    stub:
+    strin = vcfs.join("\\n")
+    """
+    echo -e '$strin' > filelistin
+    touch "${tumorname}_merged.vcf"
+    """
+}
+
+
+process annotsv_tonly {
+     //AnnotSV for Manta/Svaba works with either vcf.gz or .vcf files
+     //Requires bedtools,bcftools
+
+    module = ['annotsv/3.3.1']
+    publishDir(path: "${outdir}/SV/annotated_tonly", mode: 'copy') 
+
+    input:
+        tuple val(tumorname), path(somaticvcf), val(sv)
+
+    output:
+        tuple val(tumorname),
+        path("${sv}/${tumorname}.tsv"),
+        path("${sv}/${tumorname}.unannotated.tsv")
+
+
+    script:
+    """
+    mkdir ${sv}
+
+    AnnotSV -SVinputFile ${somaticvcf} \
+    -genomeBuild $GENOME \
+    -SVinputInfo 1 -outputFile ${tumorname} \
+    -outputDir ${sv}
+
+    """
+
+    stub:
+    """
+    mkdir ${sv}
+
+    touch "${sv}/${tumorname}.tsv"
+    touch "${sv}/${tumorname}.unannotated.tsv"
+    """
+}

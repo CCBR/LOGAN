@@ -2,36 +2,53 @@
 // TODO split subworkflows out into one per file  
 
 // TODO: this line should be moved to within a subworkflow or the main workflow
-intervalbedin = Channel.fromPath(params.intervals,checkIfExists: true,type: 'file')
+intervalbedin = Channel.fromPath(params.genomes[params.genome].intervals,checkIfExists: true,type: 'file')
+
 
 
 include {fc_lane; fastq_screen;kraken;qualimap_bamqc;
     samtools_flagstats;vcftools;collectvariantcallmetrics;
     bcftools_stats;gatk_varianteval;
     snpeff;fastqc;
-    somalier_extract;somalier_analysis;multiqc} from  '../../modules/local/qc.nf'
+    somalier_extract;somalier_analysis_human;somalier_analysis_mouse;
+    multiqc} from  '../../modules/local/qc.nf'
+
 include {deepvariant_step1;deepvariant_step2;deepvariant_step3;
     deepvariant_combined;glnexus} from '../../modules/local/germline.nf'
+
 include {fastp; bwamem2; 
     bqsr; gatherbqsr; applybqsr; samtoolsindex} from '../../modules/local/trim_align.nf'
+    
 include {mutect2; mutect2filter; pileup_paired_t; pileup_paired_n; 
-    contamination_paired; learnreadorientationmodel;mergemut2stats;
+    bcftools_index_octopus;
+    contamination_paired; learnreadorientationmodel; mergemut2stats;
     combineVariants as combineVariants_vardict; combineVariants as combineVariants_varscan; 
-    combineVariants as combineVariants_vardict_tonly; combineVariants as combineVariants_varscan_tonly
+    combineVariants as combineVariants_vardict_tonly; combineVariants as combineVariants_varscan_tonly;
+    combineVariants_alternative ; 
     annotvep_tn as annotvep_tn_mut2; annotvep_tn as annotvep_tn_strelka; annotvep_tn as annotvep_tn_varscan; annotvep_tn as annotvep_tn_vardict;
     combinemafs_tn} from '../../modules/local/variant_calling.nf'
-include {mutect2_t_tonly; mutect2filter_tonly; 
+
+include {mutect2_t_tonly; mutect2filter_tonly; pileup_paired_tonly; 
     varscan_tonly; vardict_tonly; 
+    octopus_tonly; 
     contamination_tumoronly;
     learnreadorientationmodel_tonly; 
     mergemut2stats_tonly;
-    annotvep_tonly as annotvep_tonly_varscan; annotvep_tonly as annotvep_tonly_vardict; annotvep_tonly as annotvep_tonly_mut2;
-    combinemafs_tonly} from '../../modules/local/variant_calling_tonly.nf'
-include {splitinterval} from "../../modules/local/splitbed.nf"
+    annotvep_tonly as annotvep_tonly_varscan; annotvep_tonly as annotvep_tonly_vardict; 
+    annotvep_tonly as annotvep_tonly_mut2; annotvep_tonly as annotvep_tonly_octopus;
+    annotvep_tonly as annotvep_tonly_combined;
+    combinemafs_tonly; somaticcombine_tonly} from '../../modules/local/variant_calling_tonly.nf'
+
+include {manta_tonly; svaba_tonly; survivor_sv; gunzip;
+annotsv_tonly as annotsv_manta_tonly; annotsv_tonly as annotsv_svaba_tonly;
+annotsv_tonly as annotsv_survivor_tonly} from './structural_variant.nf'
+
+include {freec; amber_tonly; cobalt_tonly; purple  } from './copynumber.nf'
+
+include {splitinterval} from '../../modules/local/splitbed.nf'
 
 
-
-workflow INPUT_TONLY_PIPE {
+workflow INPUT_TONLY {
     if(params.fastq_input){
         fastqinput=Channel.fromFilePairs(params.fastq_input)
 
@@ -66,7 +83,7 @@ workflow INPUT_TONLY_PIPE {
 
 }
 
-workflow TRIM_ALIGN_TONLY_PIPE {
+workflow ALIGN_TONLY {
     take:
         fastqinput
         sample_sheet
@@ -90,9 +107,7 @@ workflow TRIM_ALIGN_TONLY_PIPE {
 
     tobqsr=bwamem2.out.combine(gatherbqsr.out,by:0)
     applybqsr(tobqsr) 
-    //samtoolsindex(applybqsr.out)
-    //samtoolsindex.out.view()
-    //bamwithsample=samtoolsindex.out.join(sample_sheet).map{it.swap(3,0)}.join(samtoolsindex.out).map{it.swap(3,0)}
+    
     bamwithsample=applybqsr.out.join(sample_sheet)
     .map{samplename,tumor,tumorbai -> tuple( samplename,tumor,tumorbai)
         }
@@ -104,14 +119,13 @@ workflow TRIM_ALIGN_TONLY_PIPE {
         fastpout=fastp.out
         fastqin=fastqinput
         splitout=splitinterval.out
-        //indelbambyinterval
         bqsrbambyinterval
         sample_sheet
         bqsrout=applybqsr.out
 
 }
 
-workflow VARIANT_TONLY_PIPE {
+workflow VC_TONLY {
     take:
     //Input is the BAMby interval
         bamwithsample
@@ -129,67 +143,131 @@ workflow VARIANT_TONLY_PIPE {
 
     mutect2_t_tonly(bambyinterval)    
     
-    //LOR     
-    mut2tout_lor=mutect2_t_tonly.out.groupTuple()
-    .map { samplename,vcfs,f1r2,stats -> tuple( samplename,
-    f1r2.toSorted{ it -> (it.name =~ /${samplename}_(.*?).f1r2.tar.gz/)[0][1].toInteger() } 
-    )}
-    learnreadorientationmodel_tonly(mut2tout_lor)
+    mutect2_t_tonly.out.groupTuple()
+        | multiMap { tumor,vcfs,f1r2,stats -> 
+        mut2tout_lor: tuple(tumor,
+                f1r2.toSorted{ it -> (it.name =~ /${tumor}_(.*?).f1r2.tar.gz/)[0][1].toInteger() } )
+        mut2tonly_mstats:  tuple( tumor,
+                stats.toSorted{ it -> (it.name =~ /${tumor}_(.*?).tonly.mut2.vcf.gz.stats/)[0][1].toInteger() })
+        allmut2tonly: tuple(tumor,
+                vcfs.toSorted{ it -> (it.name =~ /${tumor}_(.*?).tonly.mut2.vcf.gz/)[0][1].toInteger() } )
+        } 
+    | set{mut2tonlyout}
 
+  
 
-    //Stats
-    mut2tonly_mstats=mutect2_t_tonly.out.groupTuple()
-    .map { samplename,vcfs,f1r2,stats -> tuple( samplename,
-    stats.toSorted{ it -> (it.name =~ /${samplename}_(.*?).tonly.mut2.vcf.gz.stats/)[0][1].toInteger() } 
-    )}
-    mergemut2stats_tonly(mut2tonly_mstats)
-
-
-    //Contamination
+    learnreadorientationmodel_tonly(mut2tonlyout.mut2tout_lor)
+    mergemut2stats_tonly(mut2tonlyout.mut2tonly_mstats)
     contamination_tumoronly(pileup_paired_tout)
 
     
-    //Final TUMOR ONLY FILTER
-    allmut2tonly=mutect2_t_tonly.out.groupTuple()
-    .map { samplename,vcfs,f1r2,stats -> tuple( samplename,
-    vcfs.toSorted{ it -> (it.name =~ /${samplename}_(.*?).tonly.mut2.vcf.gz/)[0][1].toInteger() } 
-    )}
-    
-    mut2tonly_filter=allmut2tonly
+    mut2tonly_filter=mut2tonlyout.allmut2tonly
     .join(mergemut2stats_tonly.out)
     .join(learnreadorientationmodel_tonly.out)
     .join(contamination_tumoronly.out)
 
-    mutect2filter_tonly(mut2tonly_filter)
-    
-    
-    //##VCF2MAF TO
+    mutect2_tonly_in=mutect2filter_tonly(mut2tonly_filter) 
+        | join(sample_sheet)
+        | map{tumor,markedvcf,markedindex,finalvcf,finalindex,stats -> tuple(tumor,"mutect2_tonly",finalvcf,finalindex)} 
+    annotvep_tonly_mut2(mutect2_tonly_in)
 
-    mutect2filter_tonly.out
-    .join(sample_sheet)
-    .map{tumor,markedvcf,finalvcf,stats -> tuple(tumor,"mutect2",finalvcf)} | annotvep_tonly_mut2
 
-    //VarDict_tonly
-    vardict_tonly_comb=bambyinterval.map{tumorname,tumorbam,tumorbai,normname,normbam,normbai,bed ->
-        tuple(tumorname,tumorbam,tumorbai,bed)} 
-    vardict_tonly(vardict_tonly_comb).groupTuple().map{tumor,vcf-> tuple(tumor,vcf,"vardict_tonly")} |combineVariants_vardict_tonly
-    combineVariants_vardict_tonly.out.join(sample_sheet)
-    .map{tumor,marked,normvcf ->tuple(tumor,"vardict_tonly",normvcf)} | annotvep_tonly_vardict
+    //VarDict
+    vardict_in_tonly=vardict_tonly(bambyinterval) | groupTuple()| map{tumor,vcf -> tuple(tumor,vcf,"vardict_tonly")} 
+        | combineVariants_vardict_tonly
+        | join(sample_sheet)
+        | map{tumor,marked,markedindex,normvcf,normindex ->tuple(tumor,"vardict_tonly",normvcf,normindex)}
+    annotvep_tonly_vardict(vardict_in_tonly)
 
     //VarScan_tonly
-    varscan_tonly_comb=varscan_in.map{tumor,bam,bai,normal,nbam,nbai,bed,tpile,npile,tumorc,normalc ->
-    tuple(tumor,bam,bai,bed,tpile,tumorc)} | varscan_tonly 
-    varscan_tonly_comb1=varscan_tonly_comb.groupTuple().map{tumor,vcf-> tuple(tumor,vcf,"varscan_tonly")} | combineVariants_varscan_tonly
-    
-    varscan_tonly_comb1.join(sample_sheet)
-    .map{tumor,marked,normvcf,normal ->tuple(tumor,"varscan_tonly",normvcf)} | annotvep_tonly_varscan
+    varscan_in_tonly=bambyinterval.join(contamination_tumoronly.out)
+        | varscan_tonly | groupTuple() | map{tumor,vcf-> tuple(tumor,vcf,"varscan")} 
+        | combineVariants_varscan_tonly 
+        | join(sample_sheet)
+        | map{tumor,marked,markedindex,normvcf,normindex ->tuple(tumor,"varscan_tonly",normvcf,normindex)} 
+    annotvep_tonly_varscan(varscan_in_tonly)
 
-    annotvep_tonly_mut2.out.concat(annotvep_tonly_vardict.out).concat(annotvep_tonly_varscan.out) | combinemafs_tonly
+    //Octopus_tonly
+    octopus_in_tonly=bambyinterval | octopus_tonly | bcftools_index_octopus
+        | groupTuple()
+        | map{tumor,vcf,vcfindex -> tuple(tumor,vcf.toSorted{it -> it.name}
+                ,vcfindex, "octopus_tonly")} 
+        | combineVariants_alternative | join(sample_sheet)
+        | map{tumor,marked,markedindex,normvcf,normindex ->tuple(tumor,"octopus_tonly",normvcf,normindex)} 
+    annotvep_tonly_octopus(octopus_in_tonly)
+
+
+    mutect2_tonly_in|concat(octopus_in_tonly)
+        | concat(vardict_in_tonly)|concat(varscan_in_tonly)
+        | somaticcombine_tonly 
+        | map{tumor,vcf,index ->tuple(tumor,"combined_tonly",vcf,index)} 
+        | annotvep_tonly_combined
+
+
+
+    emit:
+        somaticcall_input=octopus_in_tonly
+
 
 }
 
 
-workflow QC_TONLY_PIPE {
+workflow SV_TONLY {
+    take:
+        bamwithsample
+        
+    main: 
+        //Svaba
+        svaba_out=svaba_tonly(bamwithsample)
+        .map{ tumor,bps,contigs,discord,alignments,so_indel,so_sv,unfil_so_indel,unfil_sv,log ->
+            tuple(tumor,so_sv,"svaba_tonly")} 
+        annotsv_svaba_tonly(svaba_out).ifEmpty("Empty SV input--No SV annotated")
+
+        //Manta
+        manta_out=manta_tonly(bamwithsample)
+            .map{tumor, sv, indel, tumorsv -> 
+            tuple(tumor,tumorsv,"manta_tonly")} 
+        annotsv_manta_tonly(manta_out).ifEmpty("Empty SV input--No SV annotated")
+
+        //Delly-WIP
+
+        //Survivor
+        gunzip(manta_out).concat(svaba_out).groupTuple()
+       | survivor_sv | annotsv_survivor_tonly | ifEmpty("Empty SV input--No SV annotated")
+}
+
+
+
+workflow CNVmouse_tonly {
+    take:
+        bamwithsample
+        
+    main: 
+        freec(bamwithsample)
+}
+
+
+workflow CNVhuman_tonly {
+    take:
+        bamwithsample
+        somaticcall_input
+
+    main: 
+        //FREEC-Unpaired onlypu
+        bamwithsample | freec 
+        
+        //Purple
+        bamwithsample | amber_tonly
+        bamwithsample | cobalt_tonly
+        purplein=amber_tonly.out.join(cobalt_tonly.out)
+        purplein.join(somaticcall_input)| 
+        map{t1,amber,cobalt,vc,vcf,index -> tuple(t1,amber,cobalt,vcf,index)}  
+            | purple
+
+        
+}
+
+workflow QC_TONLY {
     take:
         fastqin
         fastpout
@@ -206,11 +284,16 @@ workflow QC_TONLY_PIPE {
     samtools_flagstats(bqsrout)
     qualimap_bamqc(bqsrout)
 
-
     somalier_extract(bqsrout) 
     som_in=somalier_extract.out.collect()
-    somalier_analysis(som_in)
-    
+    if(params.genome=="hg38"){ 
+        somalier_analysis_human(som_in)
+        somalier_analysis_out=somalier_analysis_human.out.collect()
+    }
+    else if(params.genome=="mm10"){ 
+        somalier_analysis_mouse(som_in)
+        somalier_analysis_out=somalier_analysis_mouse.out.collect()
+    }
     
     //Prep for MultiQC input
     fclane_out=fc_lane.out.map{samplename,info->info}.collect()
@@ -221,7 +304,8 @@ workflow QC_TONLY_PIPE {
     fastqc_out=fastqc.out.map{samplename,html,zip->tuple(html,zip)}.collect()
 
     samtools_flagstats_out=samtools_flagstats.out.collect()
-    somalier_analysis_out=somalier_analysis.out.collect()
+
+
 
     conall=fclane_out.concat(fqs_out,kraken_out,qualimap_out,fastqc_out,
     samtools_flagstats_out,
@@ -233,26 +317,41 @@ workflow QC_TONLY_PIPE {
 
 
 
+
+
 //Variant Calling from BAM only
-workflow INPUT_TONLY_BAMVC_PIPE {
+workflow INPUT_TONLY_BAM {
     main:
-  
     //Either BAM Input or File sheet input 
     if(params.bam_input){
-        baminputonly=Channel.fromPath(params.bam_input)
+        bambai = params.bam_input +".bai"
+        baionly = bambai.replace(".bam", "")
+        bamcheck1 = file(bambai)
+        bamcheck2 = file(baionly)
+
+        if (bamcheck1.size()>0){
+            baminputonly=Channel.fromPath(params.bam_input)
            .map{it-> tuple(it.simpleName,it,file("${it}.bai"))}
+        }
+        if (bamcheck2.size()>0){
+            bai=Channel.from(bamcheck2).map{it -> tuple(it.simpleName,it)}.view()
+            baminputonly=Channel.fromPath(params.bam_input)
+           .map{it-> tuple(it.simpleName,it)}
+           .join(bai)
+        }
 
         sample_sheet=baminputonly.map{samplename,bam,bai -> tuple (
-             samplename)}.view()
+             samplename)}
+
     }else if(params.file_input) {
         baminputonly=Channel.fromPath(params.file_input)
                         .splitCsv(header: false, sep: "\t", strip:true)
-                        .map{ sample,bam -> 
-                        tuple(sample, file(bam),file("${bam}.bai"))
+                        .map{ sample,bam,bai  -> 
+                        tuple(sample, file(bam),file(bai))
                                   }
+
         sample_sheet=baminputonly.map{samplename,bam,bai -> tuple (
-             samplename)}.view()
-        
+             samplename)}
     }
 
     splitinterval(intervalbedin)
@@ -262,8 +361,7 @@ workflow INPUT_TONLY_BAMVC_PIPE {
     emit:
         bamwithsample
         splitout=splitinterval.out
-       sample_sheet
+        sample_sheet
     
-
 }
 

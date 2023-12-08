@@ -22,8 +22,9 @@ include {INPUT_PIPE;TRIM_ALIGN_PIPE;
     GERMLINE_PIPE;VARIANTCALL_PIPE;INPUT_BAMVC_PIPE;SV_PIPE;
     QC_PIPE} from "./subworkflows/local/workflows.nf"
 
-include {INPUT_TONLY_PIPE;TRIM_ALIGN_TONLY_PIPE;
-    VARIANT_TONLY_PIPE;INPUT_TONLY_BAMVC_PIPE;QC_TONLY_PIPE} from "./subworkflows/local/workflows_tonly.nf"
+include {INPUT_TONLY; INPUT_TONLY_BAM;
+    ALIGN_TONLY;
+    VC_TONLY; SV_TONLY; CNVhuman_tonly; CNVmouse_tonly; QC_TONLY } from "./subworkflows/local/workflows_tonly.nf"
 
 
 log.info """\
