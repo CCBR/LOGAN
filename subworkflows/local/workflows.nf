@@ -1,4 +1,7 @@
-//All Worksflows in One Place         
+//All Worksflows in One Place        
+// TODO split subworkflows out into one per file  
+
+// TODO: this line should be moved to within a subworkflow or the main workflow 
 intervalbedin = Channel.fromPath(params.intervals,checkIfExists: true,type: 'file')
 
 
@@ -6,11 +9,11 @@ include {fc_lane; fastq_screen;kraken;qualimap_bamqc;fastqc;
     samtools_flagstats;vcftools;collectvariantcallmetrics;
     bcftools_stats;gatk_varianteval;
     snpeff;
-    somalier_extract;somalier_analysis;multiqc} from  './qc.nf'
+    somalier_extract;somalier_analysis;multiqc} from  '../../modules/local/qc.nf'
 include {deepvariant_step1;deepvariant_step2;deepvariant_step3;
-    deepvariant_combined;glnexus} from './germline.nf'
+    deepvariant_combined;glnexus} from '../../modules/local/germline.nf'
 include {fastp; bwamem2; //indelrealign; 
-    bqsr; gatherbqsr; applybqsr; samtoolsindex} from './trim_align.nf'
+    bqsr; gatherbqsr; applybqsr; samtoolsindex} from '../../modules/local/trim_align.nf'
 include {mutect2; mutect2filter; pileup_paired_t; pileup_paired_n; 
     contamination_paired; learnreadorientationmodel;mergemut2stats;
     strelka_tn; combineVariants_strelka; 
@@ -18,16 +21,16 @@ include {mutect2; mutect2filter; pileup_paired_t; pileup_paired_n;
     combineVariants as combineVariants_vardict; combineVariants as combineVariants_varscan; 
     combineVariants as combineVariants_vardict_tonly; combineVariants as combineVariants_varscan_tonly
     annotvep_tn as annotvep_tn_mut2; annotvep_tn as annotvep_tn_strelka; annotvep_tn as annotvep_tn_varscan; annotvep_tn as annotvep_tn_vardict;
-    combinemafs_tn} from './variant_calling.nf'
+    combinemafs_tn} from '../../modules/local/variant_calling.nf'
 include {mutect2_t_tonly; mutect2filter_tonly; 
     varscan_tonly; vardict_tonly; 
     contamination_tumoronly;
     learnreadorientationmodel_tonly; 
     mergemut2stats_tonly;
     annotvep_tonly as annotvep_tonly_varscan; annotvep_tonly as annotvep_tonly_vardict; annotvep_tonly as annotvep_tonly_mut2;
-    combinemafs_tonly} from './variant_calling_tonly.nf'
-include {svaba_somatic} from './structural_variant.nf'
-include {splitinterval} from "./splitbed.nf"
+    combinemafs_tonly} from '../../modules/local/variant_calling_tonly.nf'
+include {svaba_somatic} from '../../modules/local/structural_variant.nf'
+include {splitinterval} from "../../modules/local/splitbed.nf"
 
 
 
