@@ -41,9 +41,9 @@ include {mutect2_t_tonly; mutect2filter_tonly; pileup_paired_tonly;
 
 include {manta_tonly; svaba_tonly; survivor_sv; gunzip;
 annotsv_tonly as annotsv_manta_tonly; annotsv_tonly as annotsv_svaba_tonly;
-annotsv_tonly as annotsv_survivor_tonly} from './structural_variant.nf'
+annotsv_tonly as annotsv_survivor_tonly} from '../../modules/local/structural_variant.nf'
 
-include {freec; amber_tonly; cobalt_tonly; purple  } from './copynumber.nf'
+include {freec; amber_tonly; cobalt_tonly; purple  } from '../../modules/local/copynumber.nf'
 
 include {splitinterval} from '../../modules/local/splitbed.nf'
 
