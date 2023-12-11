@@ -1,17 +1,12 @@
-GENOME=file(params.genome)
-GENOMEDICT=file(params.genomedict)
-WGSREGION=file(params.wgsregion) 
-MILLSINDEL=file(params.millsindel) //Mills_and_1000G_gold_standard.indels.hg38.vcf.gz
-SHAPEITINDEL=file(params.shapeitindel) //ALL.wgs.1000G_phase3.GRCh38.ncbi_remapper.20150424.shapeit2_indels.vcf.gz
-KGP=file(params.kgp) //1000G_phase1.snps.high_confidence.hg38.vcf.gz"
-DBSNP=file(params.dbsnp) //dbsnp_138.hg38.vcf.gz"
-GNOMAD=file(params.gnomad) //somatic-hg38-af-only-gnomad.hg38.vcf.gz
-PON=file(params.pon) 
+GENOMEREF=file(params.genomes[params.genome].genome)
+KNOWNRECAL = params.genomes[params.genome].KNOWNRECAL
 outdir=file(params.output)
 
 
-process fastp{
+process fastp {
+    label 'process_mid'
     tag { name }
+    publishDir(path: "${outdir}/QC/fastp", mode: 'copy', pattern: '{*fastp.json,*fastp.html}') 
 
     input:
     tuple val(samplename), path(fqs)
@@ -25,7 +20,7 @@ process fastp{
 
     script:
     """
-    fastp -w 4 \
+    fastp -w $task.cpus \
         --detect_adapter_for_pe \
         --in1 ${fqs[0]} \
         --in2 ${fqs[1]} \
@@ -48,6 +43,7 @@ process fastp{
 
 process bwamem2 {
     tag { name }
+    
     input:
         tuple val(samplename), 
         path("${samplename}.R1.trimmed.fastq.gz"),
@@ -59,18 +55,17 @@ process bwamem2 {
         tuple val(samplename), path("${samplename}.bam"), path("${samplename}.bai")
 
     script:
-    //BWAmem2/samblaster/samtools sort for marking duplicates;
     """
 
      bwa-mem2 mem -M \
         -R '@RG\\tID:${samplename}\\tSM:${samplename}\\tPL:illumina\\tLB:${samplename}\\tPU:${samplename}\\tCN:hgsc\\tDS:wgs' \
-        -t 16 \
-        ${GENOME} \
+        -t $task.cpus \
+        ${GENOMEREF} \
         ${samplename}.R1.trimmed.fastq.gz ${samplename}.R2.trimmed.fastq.gz | \
     samblaster -M | \
-    samtools sort -@12 -m 4G - -o ${samplename}.bam
+    samtools sort -@ $task.cpus -m 4G - -o ${samplename}.bam
 
-    samtools index -@ 8 ${samplename}.bam ${samplename}.bai
+    samtools index -@ $task.cpus ${samplename}.bam ${samplename}.bai
 
     """
 
@@ -80,66 +75,26 @@ process bwamem2 {
     """
 }
 
-process indelrealign {
-    /*
-    Briefly, RealignerTargetCreator runs faster with increasing -nt threads, 
-    while IndelRealigner shows diminishing returns for increasing scatter
-    */
-    tag { name }
-    
-    input:
-    tuple val(samplename), path("${samplename}.bam"), path("${samplename}.bai")
-
-    output:
-    tuple val(samplename), path("${samplename}.ir.bam")
-
-    script: 
-    
-    """
-    /usr/bin/java -Xmx32g -jar \${GATK_JAR} -T RealignerTargetCreator \
-        -I ${samplename}.bam \
-        -R ${GENOME} \
-        -o ${samplename}.intervals \
-        -nt 16 \
-        -known ${MILLSINDEL} -known ${SHAPEITINDEL} 
-    
-    /usr/bin/java -Xmx32g -jar \${GATK_JAR} -T IndelRealigner \
-        -R ${GENOME} \
-        -I ${samplename}.bam \
-        -known ${MILLSINDEL} -known ${SHAPEITINDEL} \
-        --use_jdk_inflater \
-        --use_jdk_deflater \
-        -targetIntervals ${samplename}.intervals \
-        -o  ${samplename}.ir.bam
-    """
-    
-
-    stub:
-    """
-    touch ${samplename}.ir.bam 
-    """
-
-}
-
 
 
 process bqsr {
     /*
     Base quality recalibration for all samples 
     */    
+
+    label 'process_low'
     input:
         tuple val(samplename), path("${samplename}.bam"), path("${samplename}.bai"), path(bed)
 
     output:
-        tuple val(samplename),path("${samplename}_${bed.simpleName}.recal_data.grp"),emit: bqsrby
-        //path("${bam.simpleName}_${bed.simpleName}.recal_data.grp"), emit: bqsrby
+        tuple val(samplename),path("${samplename}_${bed.simpleName}.recal_data.grp"), emit: bqsrby
 
     script:
     """
-    gatk --java-options '-Xmx32g' BaseRecalibrator \
+    gatk --java-options '-Xmx16g' BaseRecalibrator \
     --input ${samplename}.bam \
-    --reference ${GENOME} \
-    --known-sites ${MILLSINDEL} --known-sites ${SHAPEITINDEL} \
+    --reference ${GENOMEREF} \
+    ${KNOWNRECAL} \
     --output ${samplename}_${bed.simpleName}.recal_data.grp \
     --intervals ${bed}
     """
@@ -152,7 +107,7 @@ process bqsr {
 }
 
 process gatherbqsr {
-
+    label 'process_low'
     input: 
         tuple val(samplename), path(recalgroups)
     output:
@@ -169,6 +124,7 @@ process gatherbqsr {
     """
 
     stub:
+
     """
     touch ${samplename}.recal_data.grp
     """
@@ -179,6 +135,7 @@ process applybqsr {
     /*
     Base quality recalibration for all samples to 
     */   
+    label 'process_low'
     publishDir(path: "${outdir}/bams/BQSR", mode: 'copy') 
 
     input:
@@ -188,19 +145,19 @@ process applybqsr {
         tuple val(samplename), path("${samplename}.bqsr.bam"),  path("${samplename}.bqsr.bai")
 
     script:
-    """
 
+    """
     gatk --java-options '-Xmx32g' ApplyBQSR \
-        --reference ${GENOME} \
+        --reference ${GENOMEREF} \
         --input ${samplename}.bam \
         --bqsr-recal-file ${samplename}.recal_data.grp \
         --output ${samplename}.bqsr.bam \
         --use-jdk-inflater \
         --use-jdk-deflater
-
     """
 
     stub:
+    
     """
     touch ${samplename}.bqsr.bam ${samplename}.bqsr.bai
     """
@@ -210,6 +167,7 @@ process applybqsr {
 
 
 process samtoolsindex {
+    label 'process_mid'
     publishDir(path: "${outdir}/bams/BQSR", mode: 'copy') 
     
     input:
@@ -220,7 +178,7 @@ process samtoolsindex {
 
     script:
     """
-    samtools index -@ 4 ${bam} ${bam}.bai
+    samtools index -@ $task.cpus ${bam} ${bam}.bai
     """
 
     stub:
@@ -230,8 +188,9 @@ process samtoolsindex {
 
 }
 
-//Save to CRAM for output and publish
-process bamtocram_tonly{
+//Save to CRAM for output
+process bamtocram_tonly {
+    label 'process_mid'
     
     input: 
         tuple val(tumorname), path(tumor), path(tumorbai)
@@ -241,6 +200,49 @@ process bamtocram_tonly{
 
     script:
     """
-        samtools view -@ 4 -C -T $GENOME -o ${sample}.cram {$tumor}.bam
+        samtools view -@ $task.cpus -C -T $GENOMEREF -o ${sample}.cram {$tumor}.bam
     """
 }
+
+
+/*
+process indelrealign {
+    //Briefly, RealignerTargetCreator runs faster with increasing -nt threads, 
+    //while IndelRealigner shows diminishing returns for increasing scatter
+    
+    tag { name }
+    
+    input:
+    tuple val(samplename), path("${samplename}.bam"), path("${samplename}.bai")
+
+    output:
+    tuple val(samplename), path("${samplename}.ir.bam")
+
+    script: 
+    
+    """
+    /usr/bin/java -Xmx32g -jar \${GATK_JAR} -T RealignerTargetCreator \
+        -I ${samplename}.bam \
+        -R ${GENOMEREF} \
+        -o ${samplename}.intervals \
+        -nt 16 \
+        -known ${MILLSINDEL} -known ${SHAPEITINDEL} 
+    
+    /usr/bin/java -Xmx32g -jar \${GATK_JAR} -T IndelRealigner \
+        -R ${GENOMEREF} \
+        -I ${samplename}.bam \
+        -known ${MILLSINDEL} -known ${SHAPEITINDEL} \
+        --use_jdk_inflater \
+        --use_jdk_deflater \
+        -targetIntervals ${samplename}.intervals \
+        -o  ${samplename}.ir.bam
+    """
+    
+
+    stub:
+    """
+    touch ${samplename}.ir.bam 
+    """
+
+}
+*/

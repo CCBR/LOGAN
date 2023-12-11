@@ -1,22 +1,15 @@
 ///References to assign
-GENOME=file(params.genome)
-GENOMEDICT=file(params.genomedict)
-WGSREGION=file(params.wgsregion) 
-MILLSINDEL=file(params.millsindel) //Mills_and_1000G_gold_standard.indels.hg38.vcf.gz
-SHAPEITINDEL=file(params.shapeitindel) //ALL.wgs.1000G_phase3.GRCh38.ncbi_remapper.20150424.shapeit2_indels.vcf.gz
-KGP=file(params.kgp) //1000G_phase1.snps.high_confidence.hg38.vcf.gz"
-DBSNP=file(params.dbsnp) //dbsnp_138.hg38.vcf.gz"
-GNOMAD=file(params.gnomad) //somatic-hg38-af-only-gnomad.hg38.vcf.gz
-PON=file(params.pon) 
+GENOMEREF=file(params.genomes[params.genome].genome)
+DBSNP=file(params.genomes[params.genome].dbsnp) //dbsnp_138.hg38.vcf.gz"
 FASTQ_SCREEN_CONF=file(params.fastq_screen_conf)
-BACDB=file(params.KRAKENBACDB)
-SNPEFF_GENOME = params.snpeff_genome
-SNPEFF_CONFIG = file(params.snpeff_config)
-SNPEFF_BUNDLE = file(params.snpeff_bundle)
+BACDB=file(params.genomes[params.genome].KRAKENBACDB)
+SNPEFF_GENOME = params.genomes[params.genome].snpeff_genome
+SNPEFF_CONFIG = file(params.genomes[params.genome].snpeff_config)
+SNPEFF_BUNDLE = file(params.genomes[params.genome].snpeff_bundle)
 
 //SOMALIER
-SITES_VCF= file(params.sites_vcf)
-ANCESTRY_DB=file(params.somalier_ancestrydb)
+SITES_VCF= file(params.genomes[params.genome].sites_vcf)
+ANCESTRY_DB=file(params.genomes[params.genome].somalier_ancestrydb)
 SCRIPT_PATH_GENDER = file(params.script_genderPrediction)
 SCRIPT_PATH_SAMPLES = file(params.script_combineSamples)
 SCRIPT_PATH_PCA = file(params.script_ancestry)
@@ -26,7 +19,7 @@ SCRIPT_PATH_PCA = file(params.script_ancestry)
 outdir=file(params.output)
 
 process fc_lane {
-
+    label 'process_low'
     publishDir("${outdir}/QC/fc_lane/", mode:'copy')
 
     input:
@@ -57,7 +50,6 @@ process fastq_screen {
 
     publishDir(path: "${outdir}/QC/fastq_screen/", mode:'copy')
 
-    //module=['fastq_screen/0.15.2','bowtie/2-2.5.1']
     input:
     tuple val(samplename),
         path("${samplename}.R1.trimmed.fastq.gz"),
@@ -107,11 +99,6 @@ process kraken {
         Kraken logfile and interative krona report
     */
     publishDir(path: "${outdir}/QC/kraken/", mode: 'copy')
-
-    //module=['kraken/2.1.2', 'kronatools/2.8']
-    scratch '/lscratch/$SLURM_JOB_ID'
-    //scratch '/data/CCBR/rawdata/nousome/small_truth_set' //CHANGE AFTER to LSCRATCH
-
     
     input:
         tuple val(samplename), 
@@ -208,7 +195,7 @@ process qualimap_bamqc {
     //module: config['images']['qualimap']
     
     input:
-        tuple val(samplename), path("${samplename}.bqsr.bam"), path("${samplename}.bqsr.bai")
+        tuple val(samplename), path(bam), path(bai)
 
     output: 
         tuple path("${samplename}_genome_results.txt"), path("${samplename}_qualimapReport.html")
@@ -216,7 +203,7 @@ process qualimap_bamqc {
     script: 
     """
     unset DISPLAY
-    qualimap bamqc -bam ${samplename}.bqsr.bam \
+    qualimap bamqc -bam ${bam} \
         --java-mem-size=112G \
         -c -ip \
         -outdir ${samplename} \
@@ -247,23 +234,66 @@ process samtools_flagstats {
     @Output:
         Text file containing alignment statistics
     */
-    publishDir("${outdir}/QC/flagstats/", mode: "copy")
-    //module=['samtools/1.16.1']
+    label 'process_mid'
 
+    publishDir("${outdir}/QC/flagstats/", mode: "copy")
+    
     input:
-        tuple val(samplename), path("${samplename}.bqsr.bam"), path("${samplename}.bqsr.bai")
+        tuple val(samplename), path(bam), path(bai)
     
     output:
         path("${samplename}.samtools_flagstat.txt")
 
     script: 
     """
-    samtools flagstat ${samplename}.bqsr.bam > ${samplename}.samtools_flagstat.txt
+    samtools flagstat ${bam} > ${samplename}.samtools_flagstat.txt
     """
 
     stub:
     """
     touch ${samplename}.samtools_flagstat.txt    
+    """
+}
+
+
+process mosdepth {
+    /*
+    Quality-control step to assess depth
+    @Input:
+        Recalibrated BAM file (scatter)
+    @Output:
+        `{prefix}.mosdepth.global.dist.txt`
+        `{prefix}.mosdepth.summary.txt`
+        `{prefix}.mosdepth.region.dist.txt` (if --by is specified)
+        `{prefix}.per-base.bed.gz|per-base.d4` (unless -n/--no-per-base is specified)
+        `{prefix}.regions.bed.gz` (if --by is specified)
+        `{prefix}.quantized.bed.gz` (if --quantize is specified)
+        `{prefix}.thresholds.bed.gz` (if --thresholds is specified)
+    */
+
+    publishDir("${outdir}/QC/mosdepth/", mode: "copy")
+
+    input:
+        tuple val(samplename), path(bam), path(bai)
+    
+    output:
+        path("${samplename}.mosdepth.region.dist.txt"),
+        path("${samplename}.mosdepth.summary.txt"),
+        path("${samplename}.regions.bed.gz"),
+        path("${samplename}.regions.bed.gz.csi")
+
+
+    script: 
+    """
+    mosdepth -n --fast-mode --by 500  ${samplename} ${bam} -t $task.cpus
+    """
+
+    stub:
+    """
+    touch "${samplename}.mosdepth.region.dist.txt"
+    touch "${samplename}.mosdepth.summary.txt"
+    touch "${samplename}.regions.bed.gz"
+    touch "${samplename}.regions.bed.gz.csi"
     """
 }
 
@@ -279,8 +309,9 @@ process vcftools {
     @Output:
         Text file containing a measure of heterozygosity
     */
+    label 'process_mid'
+
     publishDir(path:"${outdir}/QC/vcftools", mode: 'copy')
-    //module=['vcftools/0.1.16']
     
     input: 
         tuple path(germlinevcf),path(germlinetbi)
@@ -311,9 +342,7 @@ process collectvariantcallmetrics {
         Text file containing a collection of metrics relating to snps and indels 
     */
     publishDir("${outdir}/QC/variantmetrics", mode: 'copy')
-    //module=['picard/2.20.8']
-    //container: config['images']['picard']
-
+    
     input: 
         tuple path(germlinevcf),path(germlinetbi)
     
@@ -321,9 +350,6 @@ process collectvariantcallmetrics {
         tuple path("raw_variants.variant_calling_detail_metrics"),
         path("raw_variants.variant_calling_summary_metrics")
 
-    //params: 
-     //   dbsnp=config['references']['DBSNP'],
-      //  prefix = os.path.join(output_qcdir,"raw_variants"),
        
     script:
     """
@@ -356,6 +382,7 @@ process bcftools_stats {
         Text file containing a collection of summary statistics
     */
 
+    label 'process_mid'
     publishDir("${outdir}/QC/bcftoolsstat", mode: 'copy')
 
     input:
@@ -388,8 +415,9 @@ process gatk_varianteval {
     @Output:
         Evaluation table containing a collection of summary statistics
     */
+    label 'process_mid'
+
     publishDir("${outdir}/QC/gatk_varianteval", mode: 'copy')
-    //module=['GATK/4.2.0.0']
 
     input: 
         tuple val(samplename), path("${samplename}.gvcf.gz") ,path("${samplename}.gvcf.gz.tbi")
@@ -406,7 +434,7 @@ process gatk_varianteval {
     script: 
     """
     gatk --java-options '-Xmx12g -XX:ParallelGCThreads=16' VariantEval \
-        -R $GENOME \
+        -R $GENOMEREF \
         -O ${samplename}.germline.eval.grp \
         --dbsnp $DBSNP \
         --eval ${samplename}.gvcf.gz
@@ -431,12 +459,7 @@ process snpeff {
     @Output:
         Evaluation table containing a collection of summary statistics
     */
-
-        //genome = config['references']['SNPEFF_GENOME'],
-        //config = config['references']['SNPEFF_CONFIG'],
-        //bundle = config['references']['SNPEFF_BUNDLE'],
-            //envmodules: 'snpEff/4.3t'
-            //container: config['images']['wes_base']
+    label 'process_mid'
     publishDir("${outdir}/QC/snpeff", mode: 'copy')
 
     input:  
@@ -473,6 +496,7 @@ process somalier_extract {
     @Output:
         Exracted sites in (binary) somalier format
     */
+    label 'process_low'
     publishDir("${outdir}/QC/somalier", mode: 'copy')
 
     input:
@@ -490,7 +514,7 @@ process somalier_extract {
     somalier extract \
         -d output \
         --sites $SITES_VCF \
-        -f $GENOME \
+        -f $GENOMEREF \
         ${samplename}.bam
     """
 
@@ -501,7 +525,7 @@ process somalier_extract {
     """
 }
 
-process somalier_analysis {
+process somalier_analysis_human {
     /*
     To estimate relatedness, Somalier uses extracted site information to
     compare across all samples. This step also runs the ancestry estimation
@@ -511,13 +535,9 @@ process somalier_analysis {
     @Output:
         Separate tab-separated value (TSV) files with relatedness and ancestry outputs
 
-    ancestry_db = config['references']['SOMALIER']['ANCESTRY_DB'],
-    sites_vcf = config['references']['SOMALIER']['SITES_VCF'],
-    genomeFasta = config['references']['GENOME'],
-    script_path_gender = config['scripts']['genderPrediction'],
-    script_path_samples = config['scripts']['combineSamples'],
-    script_path_pca = config['scripts']['ancestry'],
     */
+    label 'process_low'
+
     publishDir("${outdir}/QC/somalier", mode: 'copy')
 
     input:
@@ -570,6 +590,57 @@ process somalier_analysis {
     """
 }
 
+process somalier_analysis_mouse {
+    /*
+    To estimate relatedness, Somalier uses extracted site information to
+    compare across all samples. This step also runs the ancestry estimation
+    function in Somalier.
+    @Input:
+        Exracted sites in (binary) somalier format for ALL samples in the cohort
+    @Output:
+        Separate tab-separated value (TSV) files with relatedness and ancestry outputs
+
+    */
+    label 'process_low'
+
+    publishDir("${outdir}/QC/somalier", mode: 'copy')
+
+    input:
+        path(somalierin)
+    
+    output:
+        tuple path("relatedness.pairs.tsv"), 
+        path("relatedness.samples.tsv"),
+        path("predicted.genders.tsv"),
+        path("predicted.pairs.tsv")
+    
+    script:
+    """ 
+    echo "Estimating relatedness"
+    somalier relate \
+        -o "relatedness" \
+        $somalierin
+    
+    Rscript $SCRIPT_PATH_GENDER \
+        relatedness.samples.tsv \
+        predicted.genders.tsv    
+    
+    Rscript $SCRIPT_PATH_SAMPLES \
+        relatedness.pairs.tsv \
+        predicted.pairs.tsv
+    
+    """
+    
+    stub:
+
+    """
+    touch relatedness.pairs.tsv
+    touch relatedness.samples.tsv
+    touch predicted.genders.tsv
+    touch predicted.pairs.tsv
+    
+    """
+}
 
 process multiqc {
 
