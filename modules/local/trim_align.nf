@@ -5,7 +5,6 @@ KNOWNRECAL = params.genomes[params.genome].KNOWNRECAL
 process fastp {
     label 'process_mid'
     tag { name }
-    publishDir(path: "${outdir}/QC/fastp", mode: 'copy', pattern: '{*fastp.json,*fastp.html}') 
 
     input:
     tuple val(samplename), path(fqs)
@@ -135,8 +134,7 @@ process applybqsr {
     Base quality recalibration for all samples to 
     */   
     label 'process_low'
-    publishDir(path: "${outdir}/bams/BQSR", mode: 'copy') 
-
+    
     input:
         tuple val(samplename), path("${samplename}.bam"), path("${samplename}.bai"), path("${samplename}.recal_data.grp")
 

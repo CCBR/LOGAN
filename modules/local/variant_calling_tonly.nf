@@ -44,7 +44,6 @@ process pileup_paired_tonly {
 
 process contamination_tumoronly {
     label 'process_highmem'
-    publishDir(path: "${outdir}/vcfs/mutect2/", mode: 'copy')
 
     input:
         tuple val(tumorname),
@@ -83,7 +82,6 @@ process contamination_tumoronly {
 
 process learnreadorientationmodel_tonly {
     label 'process_highmem'
-    publishDir(path: "${outdir}/vcfs/mutect2", mode: 'copy')
 
     input:
         tuple val(sample), path(f1r2)
@@ -112,7 +110,6 @@ process learnreadorientationmodel_tonly {
 
 process mergemut2stats_tonly {
     label 'process_low'
-    publishDir(path: "${outdir}/vcfs/mutect2", mode: 'copy')
 
     input:
         tuple val(sample), path(stats)
@@ -178,7 +175,6 @@ process mutect2_t_tonly {
 
 process mutect2filter_tonly {
     label 'process_mid'
-    publishDir(path: "${outdir}/vcfs/mutect2_tonly", mode: 'copy')
 
     input:
         tuple val(sample), path(mutvcfs), path(stats), path(obs), path(pileups),path(tumorcontamination)
@@ -441,7 +437,6 @@ process annotvep_tonly {
 
 process combinemafs_tonly {
     label 'process_low'
-    publishDir(path: "${outdir}/mafs/tumor_only", mode: 'copy')
 
     input: 
         path(allmafs)

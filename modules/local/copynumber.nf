@@ -58,7 +58,6 @@ process seqz_sequenza_bychr {
 
 process sequenza {
     label 'process_highcpu'
-    publishDir("${outdir}/cnv/sequenza", mode: 'copy')
 
     input:
         tuple val(pairid), path(seqz)
@@ -124,7 +123,6 @@ process sequenza {
 
 process freec_paired {
     label 'process_highcpu'
-    publishDir("${outdir}/cnv/freec", mode: 'copy')
 
     input:
         tuple val(tumorname), path(tumor), path(tumorbai), val(normalname), path(normal), path(normalbai)
@@ -171,7 +169,6 @@ process freec_paired {
 
 process freec {
     label 'process_mid'
-    publishDir("${outdir}/cnv/freec", mode: 'copy')
 
     input:
         tuple val(tumorname), path(tumor), path(tumorbai)
@@ -217,7 +214,6 @@ process freec {
 
 process amber_tonly {
     label 'process_mid'
-    publishDir("${outdir}/cnv/amber", mode: 'copy')
 
     input:
         tuple val(tumorname), path(tumor), path(tumorbai)
@@ -253,7 +249,6 @@ process amber_tonly {
 
 process amber_tn {
     label 'process_mid'
-    publishDir("${outdir}/cnv/amber", mode: 'copy')
     
     input:
         tuple val(tumorname), path(tumor), path(tumorbai),
@@ -290,7 +285,6 @@ process amber_tn {
 
 process cobalt_tonly {
     label "process_mid"
-    publishDir("${outdir}/cnv/cobalt", mode: 'copy')
 
     input:
         tuple val(tumorname), path(tumor), path(tumorbai)
@@ -324,7 +318,6 @@ process cobalt_tonly {
 
 process cobalt_tn {
     label "process_mid"
-    publishDir("${outdir}/cnv/cobalt", mode: 'copy')
 
     input:
         tuple val(tumorname), path(tumor), path(tumorbai),

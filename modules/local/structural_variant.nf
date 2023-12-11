@@ -8,8 +8,6 @@ DBSNP_INDEL=file(params.genomes[params.genome].KNOWNINDELS)
 process svaba_somatic {
     label 'process_highcpu'
 
-    publishDir(path: "${outdir}/SV/svaba", mode: 'copy') 
-
     input:
         tuple val(tumorname), path(tumor), path(tumorbai), val(normalname), path(normal), path(normalbai)
     
@@ -60,7 +58,6 @@ process svaba_somatic {
 process manta_somatic {
 
     label 'process_highcpu'
-    publishDir(path: "${outdir}/SV/manta", mode: 'copy') 
 
     input:
         tuple val(tumorname), path(tumor), path(tumorbai),val(normalname), path(normal), path(normalbai)
@@ -107,7 +104,6 @@ process annotsv_tn {
      //Requires bedtools,bcftools
 
     module = ['annotsv/3.3.1']
-    publishDir(path: "${outdir}/SV/annotated", mode: 'copy') 
 
     input:
         tuple val(tumorname), path(somaticvcf), val(sv)
@@ -141,7 +137,6 @@ process annotsv_tn {
 
 process manta_tonly {
     label 'process_highcpu'
-    publishDir(path: "${outdir}/SV/manta_tonly", mode: 'copy') 
 
     input:
         tuple val(tumorname), path(tumor), path(tumorbai)
@@ -184,7 +179,6 @@ process manta_tonly {
 
 process svaba_tonly {
     label 'process_highcpu'
-    publishDir(path: "${outdir}/SV/svaba_tonly", mode: 'copy') 
 
     input:
         tuple val(tumorname), path(tumor), path(tumorbai)
@@ -250,7 +244,6 @@ process gunzip {
 
 process survivor_sv {
     module = ['survivor']
-    publishDir(path: "${outdir}/SV/survivor", mode: 'copy') 
 
     input:
         tuple val(tumorname), 

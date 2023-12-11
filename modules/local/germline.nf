@@ -5,7 +5,6 @@ MODEL="/opt/models/wgs/model.ckpt"
 //Processes
 //Deep Variant
 process deepvariant_step1 {
-    module=['deepvariant/1.4.0']
     
     input:
         tuple val(samplename), path("${samplename}.bam"), path("${samplename}.bai"), path(bed)
@@ -41,7 +40,6 @@ process deepvariant_step1 {
 //Step 2 requires GPU
 process deepvariant_step2 {
     
-    module=['deepvariant/1.4.0']
     
     input:
         tuple val(samplename), path(tfrecords), path(tfgvcf)
@@ -70,9 +68,7 @@ process deepvariant_step2 {
 
 //Step 3 DV
 process deepvariant_step3 {
-    publishDir("${outdir}/deepvariant", mode: 'copy')
 
-    module=['deepvariant/1.4.0']
     
     input:
         tuple val(samplename), path(tfrecords), path("${samplename}_call_variants_output.tfrecord.gz"),
@@ -104,9 +100,7 @@ process deepvariant_step3 {
 
 //Combined DeepVariant
 process deepvariant_combined {
-    module=['deepvariant/1.4.0']
 
-    publishDir("${outdir}/deepvariant", mode: 'copy')
 
     input:
         tuple val(samplename), path("${samplename}.bam"), path("${samplename}.bai")
@@ -140,9 +134,7 @@ process deepvariant_combined {
 
 process glnexus {
 
-    module=['glnexus','bcftools']
-
-    publishDir("${outdir}/deepvariant", mode: 'copy')    
+ 
     input:
         path(gvcfs)
     

@@ -115,8 +115,6 @@ process pileup_paired_n {
 process contamination_paired {
     label 'process_highmem'
 
-    publishDir(path: "${outdir}/vcfs/mutect2", mode: 'copy')
-
     input:
         tuple val(tumorname),
         path(tumor_pileups),
@@ -170,8 +168,6 @@ process contamination_paired {
 process learnreadorientationmodel {
     label 'process_highmem'
 
-    publishDir(path: "${outdir}/vcfs/mutect2", mode: 'copy')
-
     input:
         tuple val(sample), path(f1r2)
       
@@ -196,8 +192,6 @@ process learnreadorientationmodel {
 
 process mergemut2stats {
     label 'process_low'
-
-    publishDir(path: "${outdir}/vcfs/mutect2", mode: 'copy')
 
     input:
         tuple val(sample), path(stats)
@@ -225,8 +219,6 @@ process mergemut2stats {
 process mutect2filter {
     label 'process_mid'
         
-    publishDir(path: "${outdir}/vcfs/mutect2", mode: 'copy')
-
     input:
         tuple val(tumor), val(normal),path(mutvcfs), path(stats), path(obs), 
         path(pileups), path(normal_pileups),path(tumorcontamination),path(normalcontamination)
@@ -556,7 +548,6 @@ process muse_tn {
 
 process combineVariants {
     label 'process_highmem'
-    publishDir(path: "${outdir}/vcfs/", mode: 'copy')
 
     input:
         tuple val(sample), path(inputvcf), val(vc)
@@ -606,7 +597,6 @@ process combineVariants {
 
 process combineVariants_alternative {
     label 'process_highmem'
-    publishDir(path: "${outdir}/vcfs/", mode: 'copy')
 
     input:
         tuple val(sample), path(vcfs), path(vcfsindex), val(vc)
@@ -681,7 +671,6 @@ process bcftools_index_octopus {
 process combineVariants_strelka {
     //Concat all somatic snvs/indels across all files, strelka separates snv/indels
     label 'process_mid'
-    publishDir(path: "${outdir}/vcfs/strelka", mode: 'copy')
 
     input:
         tuple val(sample), 
@@ -727,7 +716,6 @@ process combineVariants_strelka {
 
 process somaticcombine {
     label 'process_mid'
-    publishDir(path: "${outdir}/vcfs/combined", mode: 'copy')
 
     input: 
         tuple val(tumorsample), val(normal),
@@ -766,7 +754,6 @@ process somaticcombine {
 
 
 process annotvep_tn {    
-    publishDir(path: "${outdir}/mafs/", mode: 'copy')
 
     input:
         tuple val(tumorsample), val(normalsample), 
