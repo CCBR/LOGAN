@@ -1,6 +1,5 @@
 GENOMEREF=file(params.genomes[params.genome].genome)
 KNOWNRECAL = params.genomes[params.genome].KNOWNRECAL
-outdir=file(params.output)
 
 
 process fastp {

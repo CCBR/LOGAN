@@ -3,7 +3,6 @@ GENOME=params.genome
 BWAGENOME=file(params.genomes[params.genome].bwagenome)
 DBSNP_INDEL=file(params.genomes[params.genome].KNOWNINDELS) 
 
-outdir=file(params.output)
 
 
 process svaba_somatic {

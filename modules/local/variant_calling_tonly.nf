@@ -11,10 +11,6 @@ VEPBUILD=params.genomes[params.genome].vepbuild
 SOMATIC_FOREST=params.genomes[params.genome].octopus_sforest
 GERMLINE_FOREST=params.genomes[params.genome].octopus_gforest
 
-//Output
-outdir=file(params.output)
-
-
 
 process pileup_paired_tonly {
     label 'process_highmem'

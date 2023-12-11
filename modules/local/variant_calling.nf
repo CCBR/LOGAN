@@ -12,8 +12,6 @@ SOMATIC_FOREST=params.genomes[params.genome].octopus_sforest
 GERMLINE_FOREST=params.genomes[params.genome].octopus_gforest
 LOFREQ_CONVERT=params.lofreq_convert
 
-//Output
-outdir=file(params.output)
 
 
 process mutect2 {

@@ -16,8 +16,6 @@ SCRIPT_PATH_PCA = file(params.script_ancestry)
     
 
 //OUTPUT DIRECTORY 
-outdir=file(params.output)
-
 process fc_lane {
     label 'process_low'
     publishDir("${outdir}/QC/fc_lane/", mode:'copy')

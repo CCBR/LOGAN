@@ -24,7 +24,6 @@ HOTSPOTS='/data/SCLC-BRAINMETS/cn/variants/KnownHotspots.somatic.38.vcf.gz'
 //DBSNP_INDEL=file(params.genomes[params.genome].KNOWNINDELS) 
 //ascatR=
 
-outdir=file(params.output)
 
 //mm10 Paired-Sequenza, FREEC-tumor only 
 process seqz_sequenza_bychr {

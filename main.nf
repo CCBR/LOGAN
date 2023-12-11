@@ -31,7 +31,7 @@ log.info """\
          W G S S E E K   P I P E L I N E    
          =============================
          genome: ${params.genome}
-         outdir: ${params.output}
+         outdir: ${params.outdir}
          Samplesheet: ${params.sample_sheet}
          Samples: ${params.fastq_input} ${params.file_input} ${params.bam_input}
          """
