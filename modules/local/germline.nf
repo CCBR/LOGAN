@@ -1,8 +1,6 @@
 GENOMEREF=file(params.genomes[params.genome].genome)
 MODEL="/opt/models/wgs/model.ckpt"
 
-//Output Directory
-outdir=file(params.output)
 
 //Processes
 //Deep Variant
