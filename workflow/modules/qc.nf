@@ -1,5 +1,5 @@
 ///References to assign
-GENOME=file(params.genomes[params.genome].genome)
+GENOMEREF=file(params.genomes[params.genome].genome)
 DBSNP=file(params.genomes[params.genome].dbsnp) //dbsnp_138.hg38.vcf.gz"
 FASTQ_SCREEN_CONF=file(params.fastq_screen_conf)
 BACDB=file(params.genomes[params.genome].KRAKENBACDB)
@@ -13,9 +13,9 @@ ANCESTRY_DB=file(params.genomes[params.genome].somalier_ancestrydb)
 SCRIPT_PATH_GENDER = file(params.script_genderPrediction)
 SCRIPT_PATH_SAMPLES = file(params.script_combineSamples)
 SCRIPT_PATH_PCA = file(params.script_ancestry)
-    
 
-//OUTPUT DIRECTORY 
+
+//OUTPUT DIRECTORY
 outdir=file(params.output)
 
 process fc_lane {
@@ -25,10 +25,10 @@ process fc_lane {
     input:
         tuple val(samplename), path(fqs)
 
-    output: 
+    output:
         tuple val(samplename),
-        path("${samplename}.fastq.info.txt")    
-    
+        path("${samplename}.fastq.info.txt")
+
     script:
     GET_FLOWCELL_LANES=file(params.get_flowcell_lanes)
 
@@ -38,7 +38,7 @@ process fc_lane {
     ${samplename} > ${samplename}.fastq.info.txt
     """
 
-    stub: 
+    stub:
     """
     touch ${samplename}.fastq.info.txt
     """
@@ -65,7 +65,7 @@ process fastq_screen {
         path("${samplename}.R2.trimmed_screen.png"),
         path("${samplename}.R2.trimmed_screen.txt")
 
-    script: 
+    script:
         FASTQ_SCREEN_CONF=file(params.fastq_screen_conf)
 
         """
@@ -79,7 +79,7 @@ process fastq_screen {
 
         """
 
-    stub: 
+    stub:
     """
     touch ${samplename}.R1.trimmed_screen.html ${samplename}.R1.trimmed_screen.png
     touch ${samplename}.R1.trimmed_screen.txt ${samplename}.R2.trimmed_screen.html
@@ -96,12 +96,12 @@ process kraken {
     @Input:
         Trimmed FastQ files (scatter)
     @Output:
-        Kraken logfile and interative krona report
+        Kraken logfile and interactive krona report
     */
     publishDir(path: "${outdir}/QC/kraken/", mode: 'copy')
-    
+
     input:
-        tuple val(samplename), 
+        tuple val(samplename),
         path(fqs)
 
     output:
@@ -109,19 +109,19 @@ process kraken {
         //path("${samplename}.trimmed.kraken_bacteria.out.txt"),
         path("${samplename}.trimmed.kraken_bacteria.taxa.txt"),
         path("${samplename}.trimmed.kraken_bacteria.krona.html")
-        
 
-    script: 
+
+    script:
     """
     #Setups temporary directory for
-    #intermediate files with built-in 
+    #intermediate files with built-in
     #mechanism for deletion on exit
-    
-    
+
+
     # Copy kraken2 db to local node storage to reduce filesystem strain
     cp -rv $BACDB .
     kdb_base=\$(basename $BACDB)
-    
+
     kraken2 --db $BACDB \
         --threads 16 --report ${samplename}.trimmed.kraken_bacteria.taxa.txt \
         --output - \
@@ -132,7 +132,7 @@ process kraken {
         ktImportTaxonomy - -o ${samplename}.trimmed.kraken_bacteria.krona.html
     """
 
-    stub: 
+    stub:
     """
     touch  ${samplename}.trimmed.kraken_bacteria.taxa.txt ${samplename}.trimmed.kraken_bacteria.krona.html
     """
@@ -161,18 +161,18 @@ process fastqc {
     //threads: 8
     //module=['fastqc/0.11.9']
 
-    script: 
+    script:
     """
     mkdir -p fastqc
     fastqc -t 8 \
         -f bam \
         -o fastqc \
-        ${samplename}.bqsr.bam 
+        ${samplename}.bqsr.bam
     mv fastqc/${samplename}.bqsr_fastqc.html ${samplename}_fastqc.html
     mv fastqc/${samplename}.bqsr_fastqc.zip ${samplename}_fastqc.zip
     """
 
-    stub: 
+    stub:
     """
     touch  ${samplename}_fastqc.html ${samplename}_fastqc.zip
     """
@@ -180,7 +180,7 @@ process fastqc {
 
 process qualimap_bamqc {
     /*
-    Quality-control step to assess various post-alignment metrics 
+    Quality-control step to assess various post-alignment metrics
     and a secondary method to calculate insert size. Please see
     QualiMap's website for more information about BAM QC:
     http://qualimap.conesalab.org/
@@ -190,17 +190,17 @@ process qualimap_bamqc {
         Report containing post-aligment quality-control metrics
     */
     publishDir("${outdir}/QC/qualimap/", mode: "copy")
-    
+
     //module=['qualimap/2.2.1','java/12.0.1']
     //module: config['images']['qualimap']
-    
+
     input:
         tuple val(samplename), path(bam), path(bai)
 
-    output: 
+    output:
         tuple path("${samplename}_genome_results.txt"), path("${samplename}_qualimapReport.html")
 
-    script: 
+    script:
     """
     unset DISPLAY
     qualimap bamqc -bam ${bam} \
@@ -225,9 +225,9 @@ process qualimap_bamqc {
 
 process samtools_flagstats {
     /*
-    Quality-control step to assess alignment quality. Flagstat provides 
-    counts for each of 13 categories based primarily on bit flags in the 
-    FLAG field. Information on the meaning of the flags is given in the 
+    Quality-control step to assess alignment quality. Flagstat provides
+    counts for each of 13 categories based primarily on bit flags in the
+    FLAG field. Information on the meaning of the flags is given in the
     SAM specification: https://samtools.github.io/hts-specs/SAMv1.pdf
     @Input:
         Recalibrated BAM file (scatter)
@@ -237,21 +237,21 @@ process samtools_flagstats {
     label 'process_mid'
 
     publishDir("${outdir}/QC/flagstats/", mode: "copy")
-    
+
     input:
         tuple val(samplename), path(bam), path(bai)
-    
+
     output:
         path("${samplename}.samtools_flagstat.txt")
 
-    script: 
+    script:
     """
     samtools flagstat ${bam} > ${samplename}.samtools_flagstat.txt
     """
 
     stub:
     """
-    touch ${samplename}.samtools_flagstat.txt    
+    touch ${samplename}.samtools_flagstat.txt
     """
 }
 
@@ -275,7 +275,7 @@ process mosdepth {
 
     input:
         tuple val(samplename), path(bam), path(bai)
-    
+
     output:
         path("${samplename}.mosdepth.region.dist.txt"),
         path("${samplename}.mosdepth.summary.txt"),
@@ -283,7 +283,7 @@ process mosdepth {
         path("${samplename}.regions.bed.gz.csi")
 
 
-    script: 
+    script:
     """
     mosdepth -n --fast-mode --by 500  ${samplename} ${bam} -t $task.cpus
     """
@@ -297,12 +297,12 @@ process mosdepth {
     """
 }
 
-process vcftools {    
+process vcftools {
     /*
-    Quality-control step to calculates a measure of heterozygosity on 
+    Quality-control step to calculates a measure of heterozygosity on
     a per-individual basis. The inbreeding coefficient, F, is estimated
     for each individual using a method of moments. Please see VCFtools
-    documentation for more information: 
+    documentation for more information:
     https://vcftools.github.io/man_latest.html
     @Input:
         Multi-sample gVCF file (indirect-gather-due-to-aggregation)
@@ -312,14 +312,14 @@ process vcftools {
     label 'process_mid'
 
     publishDir(path:"${outdir}/QC/vcftools", mode: 'copy')
-    
-    input: 
+
+    input:
         tuple path(germlinevcf),path(germlinetbi)
-    output: 
+    output:
        path("variants_raw_variants.het")
-    
-    
-    script: 
+
+
+    script:
     """
     vcftools --gzvcf ${germlinevcf} --het --out variants_raw_variants
     """
@@ -339,18 +339,18 @@ process collectvariantcallmetrics {
     @Input:
         Multi-sample gVCF file (indirect-gather-due-to-aggregation)
     @Output:
-        Text file containing a collection of metrics relating to snps and indels 
+        Text file containing a collection of metrics relating to snps and indels
     */
     publishDir("${outdir}/QC/variantmetrics", mode: 'copy')
-    
-    input: 
+
+    input:
         tuple path(germlinevcf),path(germlinetbi)
-    
-    output: 
+
+    output:
         tuple path("raw_variants.variant_calling_detail_metrics"),
         path("raw_variants.variant_calling_summary_metrics")
 
-       
+
     script:
     """
     java -Xmx24g -jar \${PICARDJARPATH}/picard.jar \
@@ -359,7 +359,7 @@ process collectvariantcallmetrics {
         OUTPUT= "raw_variants" \
         DBSNP=$DBSNP Validation_Stringency=SILENT
     """
-    
+
     stub:
     """
     touch raw_variants.variant_calling_detail_metrics raw_variants.variant_calling_summary_metrics
@@ -372,9 +372,9 @@ process bcftools_stats {
     /*
     Quality-control step to collect summary statistics from bcftools stats.
     When bcftools stats is run with one VCF file then stats by non-reference
-    allele frequency, depth distribution, stats by quality and per-sample 
-    counts, singleton statsistics are calculated. Please see bcftools' 
-    documentation for more information: 
+    allele frequency, depth distribution, stats by quality and per-sample
+    counts, singleton statsistics are calculated. Please see bcftools'
+    documentation for more information:
     http://samtools.github.io/bcftools/bcftools.html#stats
     @Input:
         Per sample gVCF file (scatter)
@@ -389,8 +389,8 @@ process bcftools_stats {
         tuple val(samplename),  path("${samplename}.gvcf.gz"),path("${samplename}.gvcf.gz.tbi")
     output:
         path("${samplename}.germline.bcftools_stats.txt")
-    
-    script: 
+
+    script:
     """
     bcftools stats ${samplename}.gvcf.gz > ${samplename}.germline.bcftools_stats.txt
     """
@@ -404,11 +404,11 @@ process bcftools_stats {
 
 process gatk_varianteval {
     /*
-    Quality-control step to calculate various quality control metrics from a 
-    variant callset. These metrics include the number of raw or filtered SNP 
+    Quality-control step to calculate various quality control metrics from a
+    variant callset. These metrics include the number of raw or filtered SNP
     counts; ratio of transition mutations to transversions; concordance of a
     particular sample's calls to a genotyping chip; number of s per sample.
-    Please see GATK's documentation for more information: 
+    Please see GATK's documentation for more information:
     https://gatk.broadinstitute.org/hc/en-us/articles/360040507171-VariantEval
     @Input:
         Per sample gVCF file (scatter)
@@ -419,9 +419,9 @@ process gatk_varianteval {
 
     publishDir("${outdir}/QC/gatk_varianteval", mode: 'copy')
 
-    input: 
+    input:
         tuple val(samplename), path("${samplename}.gvcf.gz") ,path("${samplename}.gvcf.gz.tbi")
-    output: 
+    output:
         path("${samplename}.germline.eval.grp")
     //params:
      //   rname    = "vareval",
@@ -431,10 +431,10 @@ process gatk_varianteval {
     //message: "Running GATK4 VariantEval on '{input.vcf}' input file"
     //container: config['images']['wes_base']
     //threads: 16
-    script: 
+    script:
     """
     gatk --java-options '-Xmx12g -XX:ParallelGCThreads=16' VariantEval \
-        -R $GENOME \
+        -R $GENOMEREF \
         -O ${samplename}.germline.eval.grp \
         --dbsnp $DBSNP \
         --eval ${samplename}.gvcf.gz
@@ -452,7 +452,7 @@ process snpeff {
     /*
     Data processing and quality-control step to annotate variants, predict its
     functional effects, and collect various summary statistics about variants and
-    their annotations. Please see SnpEff's documentation for more information: 
+    their annotations. Please see SnpEff's documentation for more information:
     https://pcingola.github.io/SnpEff/
     @Input:
         Per sample gVCF file (scatter)
@@ -462,14 +462,14 @@ process snpeff {
     label 'process_mid'
     publishDir("${outdir}/QC/snpeff", mode: 'copy')
 
-    input:  
+    input:
         tuple val(samplename), path("${samplename}.gvcf.gz"), path("${samplename}.gvcf.gz.tbi")
-    output: 
+    output:
         tuple path("${samplename}.germline.snpeff.ann.vcf"),
         path("${samplename}.germline.snpeff.ann.csv"),
         path("${samplename}.germline.snpeff.ann.html")
 
-    script: 
+    script:
     """
         java -Xmx12g -jar \$SNPEFF_JAR \
         -v -canon -c $SNPEFF_CONFIG \
@@ -501,27 +501,27 @@ process somalier_extract {
 
     input:
         tuple val(samplename), path("${samplename}.bam"), path("${samplename}.bai")
-    output: 
+    output:
         path("output/${samplename}.somalier")
     //params:
     //    sites_vcf = config['references']['SOMALIER']['SITES_VCF'],
     //    genomeFasta = config['references']['GENOME'],
     //    rname = 'somalier_extract'
     //container: config['images']['wes_base']
-    script: 
-    """ 
+    script:
+    """
     mkdir -p output
     somalier extract \
         -d output \
         --sites $SITES_VCF \
-        -f $GENOME \
+        -f $GENOMEREF \
         ${samplename}.bam
     """
 
     stub:
     """
     mkdir -p output
-    touch output/${samplename}.somalier 
+    touch output/${samplename}.somalier
     """
 }
 
@@ -542,21 +542,21 @@ process somalier_analysis_human {
 
     input:
         path(somalierin)
-    
+
     output:
         tuple path("relatedness.pairs.tsv"), path("relatedness.samples.tsv"),
         path("ancestry.somalier-ancestry.tsv"), path("predicted.genders.tsv"),
         path("predicted.pairs.tsv"),
         path("sampleAncestryPCAPlot.html"),
         path("predictedPairsAncestry.pdf")
-    
+
     script:
-    """ 
+    """
     echo "Estimating relatedness"
     somalier relate \
         -o "relatedness" \
         $somalierin
-    
+
     echo "Estimating ancestry"
     somalier ancestry \
         -o "ancestry" \
@@ -566,19 +566,19 @@ process somalier_analysis_human {
 
     Rscript $SCRIPT_PATH_GENDER \
         relatedness.samples.tsv \
-        predicted.genders.tsv    
-    
+        predicted.genders.tsv
+
     Rscript $SCRIPT_PATH_SAMPLES \
         relatedness.pairs.tsv \
         predicted.pairs.tsv
-    
+
     Rscript $SCRIPT_PATH_PCA \
         ancestry.somalier-ancestry.tsv \
         predicted.pairs.tsv \
         sampleAncestryPCAPlot.html \
         predictedPairsAncestry.pdf
     """
-    
+
     stub:
 
     """
@@ -607,30 +607,30 @@ process somalier_analysis_mouse {
 
     input:
         path(somalierin)
-    
+
     output:
-        tuple path("relatedness.pairs.tsv"), 
+        tuple path("relatedness.pairs.tsv"),
         path("relatedness.samples.tsv"),
         path("predicted.genders.tsv"),
         path("predicted.pairs.tsv")
-    
+
     script:
-    """ 
+    """
     echo "Estimating relatedness"
     somalier relate \
         -o "relatedness" \
         $somalierin
-    
+
     Rscript $SCRIPT_PATH_GENDER \
         relatedness.samples.tsv \
-        predicted.genders.tsv    
-    
+        predicted.genders.tsv
+
     Rscript $SCRIPT_PATH_SAMPLES \
         relatedness.pairs.tsv \
         predicted.pairs.tsv
-    
+
     """
-    
+
     stub:
 
     """
@@ -638,7 +638,7 @@ process somalier_analysis_mouse {
     touch relatedness.samples.tsv
     touch predicted.genders.tsv
     touch predicted.pairs.tsv
-    
+
     """
 }
 
@@ -646,9 +646,9 @@ process multiqc {
 
     """
     Reporting step to aggregate sample summary statistics and quality-control
-    information across all samples. This will be one of the last steps of the 
-    pipeline. The inputs listed here are to ensure that this step runs last. 
-    During runtime, MultiQC will recurively crawl through the working directory
+    information across all samples. This will be one of the last steps of the
+    pipeline. The inputs listed here are to ensure that this step runs last.
+    During runtime, MultiQC will recursively crawl through the working directory
     and parse files that it supports.
     @Input:
         List of files to ensure this step runs last (gather)
@@ -657,14 +657,14 @@ process multiqc {
     """
 
     publishDir("${outdir}/QC/multiqc", mode: 'copy')
-    
-    input:  
+
+    input:
         path(allqcin)
 
-    output: 
+    output:
         path("MultiQC_Report.html")
 
-    script: 
+    script:
 
     """
     multiqc . \
