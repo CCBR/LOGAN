@@ -46,7 +46,7 @@ include {svaba_somatic; manta_somatic;
     annotsv_tn as annotsv_svaba;annotsv_tn as annotsv_manta} from '../../modules/local/structural_variant.nf'
 
 include {amber_tn; cobalt_tn; purple;
-    sequenza; seqz_sequenza_bychr; freec; freec_paired } from './copynumber.nf'
+    sequenza; seqz_sequenza_bychr; freec; freec_paired } from '../../modules/local/copynumber.nf'
 
 include {splitinterval} from '../../modules/local/splitbed.nf'
 
