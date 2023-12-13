@@ -183,7 +183,7 @@ workflow VC_TONLY {
     //VarScan_tonly
     varscan_in_tonly=bambyinterval.combine(contamination_tumoronly.out,by: 0)
         | varscan_tonly | groupTuple() 
-        | map{tumor,vcf-> tuple(tumor,vcf.toSorted{it -> (it.name =~ /${tumor}_(.*?).tonly.varscan.vcf/)[0][1].toInteger()},"varscan_tonly")
+        | map{tumor,vcf-> tuple(tumor,vcf.toSorted{it -> (it.name =~ /${tumor}_(.*?).tonly.varscan.vcf/)[0][1].toInteger()},"varscan_tonly")}
         | combineVariants_varscan_tonly 
         | join(sample_sheet)
         | map{tumor,marked,markedindex,normvcf,normindex ->tuple(tumor,"varscan_tonly",normvcf,normindex)} 
