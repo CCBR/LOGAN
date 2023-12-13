@@ -170,15 +170,14 @@ workflow VC_TONLY {
 
     //VarDict
     vardict_in_tonly=vardict_tonly(bambyinterval) | groupTuple()
-        | map{tumor,vcf -> tuple(tumor,vcf,"vardict_tonly")}
+        | map{tumor,vcf-> tuple(tumor,vcf.toSorted{it -> (it.name =~ /${tumor}_(.*?).tonly.vardict.vcf/)[0][1].toInteger()},"vardict_tonly")}
         | combineVariants_vardict_tonly
         | join(sample_sheet)
         | map{tumor,marked,markedindex,normvcf,normindex ->tuple(tumor,"vardict_tonly",normvcf,normindex)}
     annotvep_tonly_vardict(vardict_in_tonly)
 
     //VarScan_tonly
-    varscan_in_tonly=bambyinterval.combine(contamination_tumoronly.out)
-        | map{tumor,bam,bai,bed,tumorname2,tpile,tumorc ->  tuple(tumor,bam,bai,bed,tpile,tumorc)}
+    varscan_in_tonly=bambyinterval.combine(contamination_tumoronly.out,by: 0)
         | varscan_tonly | groupTuple()
         | map{tumor,vcf-> tuple(tumor,vcf.toSorted{it -> (it.name =~ /${tumor}_(.*?).tonly.varscan.vcf/)[0][1].toInteger()},"varscan_tonly")}
         | combineVariants_varscan_tonly

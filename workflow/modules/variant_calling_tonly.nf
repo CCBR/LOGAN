@@ -381,6 +381,7 @@ process somaticcombine_tonly {
 }
 
 process annotvep_tonly {
+    errorStrategy 'ignore'
     publishDir("${outdir}/mafs", mode: "copy")
 
     input:
