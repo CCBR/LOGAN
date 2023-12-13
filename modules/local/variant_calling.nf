@@ -754,7 +754,6 @@ process somaticcombine {
 
 
 process annotvep_tn {    
-
     input:
         tuple val(tumorsample), val(normalsample), 
         val(vc), path(tumorvcf), path(vcfindex) 
