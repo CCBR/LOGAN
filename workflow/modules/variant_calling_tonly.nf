@@ -4,7 +4,7 @@ GENOMEDICT=file(params.genomes[params.genome].genomedict)
 KGPGERMLINE=params.genomes[params.genome].kgp //1000G_phase1.snps.high_confidence.hg38.vcf.gz"
 DBSNP=file(params.genomes[params.genome].dbsnp) //dbsnp_138.hg38.vcf.gz"
 GNOMADGERMLINE=params.genomes[params.genome].gnomad //somatic-hg38-af-only-gnomad.hg38.vcf.gz
-PON=file(params.genomes[params.genome].pon) 
+PON=file(params.genomes[params.genome].pon)
 VEPCACHEDIR=file(params.genomes[params.genome].vepcache)
 VEPSPECIES=params.genomes[params.genome].vepspecies
 VEPBUILD=params.genomes[params.genome].vepbuild
@@ -21,7 +21,7 @@ process pileup_paired_tonly {
 
     input:
         tuple val(tumorname), path(tumor), path(tumorbai), path(bed)
-    
+
     output:
         tuple val(tumorname),
         path("${tumor.simpleName}_${bed.simpleName}.tumor.pileup.table")
@@ -33,7 +33,7 @@ process pileup_paired_tonly {
         -I ${tumor} \
         -V $KGPGERMLINE \
         -L ${bed} \
-        -O ${tumor.simpleName}_${bed.simpleName}.tumor.pileup.table 
+        -O ${tumor.simpleName}_${bed.simpleName}.tumor.pileup.table
 
     """
 
@@ -68,7 +68,7 @@ process contamination_tumoronly {
     gatk GatherPileupSummaries \
     --sequence-dictionary $GENOMEDICT \
     -I ${alltumor} -O ${tumorname}_allpileups.table
-    
+
     gatk CalculateContamination \
         -I ${tumorname}_allpileups.table \
         -O ${tumorname}.contamination.table
@@ -91,11 +91,11 @@ process learnreadorientationmodel_tonly {
 
     input:
         tuple val(sample), path(f1r2)
-      
+
     output:
     tuple val(sample), path("${sample}.read-orientation-model.tar.gz")
 
-    script: 
+    script:
     f1r2in = f1r2.join(" --input ")
 
     """
@@ -120,11 +120,11 @@ process mergemut2stats_tonly {
 
     input:
         tuple val(sample), path(stats)
-      
+
     output:
         tuple val(sample), path("${sample}.final.stats")
 
-    script: 
+    script:
     statsin = stats.join(" --stats ")
 
     """
@@ -146,13 +146,13 @@ process mutect2_t_tonly {
     label 'process_somaticcaller'
     input:
         tuple val(tumorname), path(tumor), path(tumorbai), path(bed)
-    
+
     output:
         tuple val(tumorname),
         path("${tumor.simpleName}_${bed.simpleName}.tonly.mut2.vcf.gz"),
         path("${tumor.simpleName}_${bed.simpleName}.f1r2.tar.gz"),
         path("${tumor.simpleName}_${bed.simpleName}.tonly.mut2.vcf.gz.stats")
-    
+
     script:
 
     """
@@ -165,7 +165,7 @@ process mutect2_t_tonly {
     --panel-of-normals $PON \
     --output ${tumor.simpleName}_${bed.simpleName}.tonly.mut2.vcf.gz \
     --f1r2-tar-gz ${tumor.simpleName}_${bed.simpleName}.f1r2.tar.gz \
-    --independent-mates    
+    --independent-mates
     """
 
     stub:
@@ -187,9 +187,9 @@ process mutect2filter_tonly {
     input:
         tuple val(sample), path(mutvcfs), path(stats), path(obs), path(pileups),path(tumorcontamination)
     output:
-        tuple val(sample), 
-        path("${sample}.tonly.mut2.marked.vcf.gz"),path("${sample}.tonly.mut2.marked.vcf.gz.tbi"), 
-        path("${sample}.tonly.mut2.norm.vcf.gz"),path("${sample}.tonly.mut2.norm.vcf.gz.tbi"), 
+        tuple val(sample),
+        path("${sample}.tonly.mut2.marked.vcf.gz"),path("${sample}.tonly.mut2.marked.vcf.gz.tbi"),
+        path("${sample}.tonly.mut2.norm.vcf.gz"),path("${sample}.tonly.mut2.norm.vcf.gz.tbi"),
         path("${sample}.tonly.mut2.marked.vcf.gz.filteringStats.tsv")
 
     script:
@@ -198,8 +198,8 @@ process mutect2filter_tonly {
 
 
     """
-    gatk GatherVcfs -I ${mut2in} -O ${sample}.tonly.concat.vcf.gz 
-    gatk IndexFeatureFile -I ${sample}.tonly.concat.vcf.gz 
+    gatk GatherVcfs -I ${mut2in} -O ${sample}.tonly.concat.vcf.gz
+    gatk IndexFeatureFile -I ${sample}.tonly.concat.vcf.gz
     gatk FilterMutectCalls \
         -R $GENOMEREF \
         -V ${sample}.tonly.concat.vcf.gz \
@@ -235,25 +235,25 @@ process mutect2filter_tonly {
 process varscan_tonly {
     label 'process_somaticcaller'
     input:
-        tuple val(tumorname), path(tumor), path(tumorbai), 
+        tuple val(tumorname), path(tumor), path(tumorbai),
         path(bed),
         path(tumorpileup),  path(tumor_con_table)
-    
+
     output:
         tuple val(tumorname),
         path("${tumor.simpleName}_${bed.simpleName}.tonly.varscan.vcf.gz")
-    
+
     shell:
 
     '''
     varscan_opts="--strand-filter 0 --min-var-freq 0.01 --output-vcf 1 --variants 1"
-    pileup_cmd="samtools mpileup -d 100000 -q 15 -Q 15 -f !{GENOMEREF} !{tumor}"
+    pileup_cmd="samtools mpileup -d 100000 -q 15 -Q 15 -f !{GENOMEREF} -l !{bed} !{tumor}"
     varscan_cmd="varscan mpileup2cns <($pileup_cmd) $varscan_opts"
 
     eval "$varscan_cmd > !{tumor.simpleName}_!{bed.simpleName}.tonly.varscan.vcf"
 
-    printf "TUMOR\t!{tumorname}\n" > sampname 
-    
+    printf "TUMOR\t!{tumorname}\n" > sampname
+
     bcftools reheader -s sampname !{tumor.simpleName}_!{bed.simpleName}.tonly.varscan.vcf \
         | bcftools view -Oz -o !{tumor.simpleName}_!{bed.simpleName}.tonly.varscan.vcf.gz
 
@@ -271,11 +271,11 @@ process vardict_tonly {
     label 'process_highcpu'
     input:
         tuple val(tumorname), path(tumor), path(tumorbai), path(bed)
-    
+
     output:
         tuple val(tumorname),
         path("${tumor.simpleName}_${bed.simpleName}.tonly.vardict.vcf.gz")
-    
+
     script:
 
     """
@@ -296,15 +296,15 @@ process vardict_tonly {
             -E \
             -f 0.05 >  ${tumor.simpleName}_${bed.simpleName}.tonly.vardict.vcf
 
-    printf "${tumor.Name}\t${tumorname}\n" > sampname 
-    
+    printf "${tumor.Name}\t${tumorname}\n" > sampname
+
     bcftools reheader -s sampname ${tumor.simpleName}_${bed.simpleName}.tonly.vardict.vcf \
         | bcftools view -Oz -o ${tumor.simpleName}_${bed.simpleName}.tonly.vardict.vcf.gz
 
     """
 
     stub:
-    
+
     """
     touch ${tumor.simpleName}_${bed.simpleName}.tonly.vardict.vcf.gz
 
@@ -318,11 +318,11 @@ process octopus_tonly {
 
     input:
         tuple val(tumorname), path(tumor), path(tumorbai), path(bed)
-    
+
     output:
         tuple val(tumorname),
         path("${tumorname}_${bed.simpleName}.tonly.octopus.vcf.gz")
-    
+
     script:
 
     """
@@ -337,7 +337,7 @@ process octopus_tonly {
     """
 
     stub:
-    
+
     """
     touch ${tumorname}_${bed.simpleName}.tonly.octopus.vcf.gz
     """
@@ -349,8 +349,8 @@ process somaticcombine_tonly {
     label 'process_mid'
     publishDir(path: "${outdir}/vcfs/combined_tonly", mode: 'copy')
 
-    input: 
-        tuple val(tumorsample), 
+    input:
+        tuple val(tumorsample),
         val(callers),
         path(vcfs), path(vcfindex)
 
@@ -384,8 +384,8 @@ process annotvep_tonly {
     publishDir("${outdir}/mafs", mode: "copy")
 
     input:
-        tuple val(tumorsample), 
-        val(vc), path(tumorvcf), 
+        tuple val(tumorsample),
+        val(vc), path(tumorvcf),
         path(vcfindex)
 
 
@@ -402,15 +402,15 @@ process annotvep_tonly {
     NORM_VCF_ID_ARG=""
     NSAMPLES=${#VCF_SAMPLE_IDS[@]}
     if [ $NSAMPLES -gt 1 ]; then
-        # Assign tumor, normal IDs 
-        # Look through column names and 
+        # Assign tumor, normal IDs
+        # Look through column names and
         # see if they match provided IDs
         for (( i = 0; i < $NSAMPLES; i++ )); do
             echo "${VCF_SAMPLE_IDS[$i]}"
             if [ "${VCF_SAMPLE_IDS[$i]}" == !{tumorsample} ]; then
                 TID_IDX=$i
             fi
-            
+
         done
 
         if [ ! -z $NID_IDX ]; then
@@ -419,9 +419,9 @@ process annotvep_tonly {
         fi
     fi
     VCF_TID=${VCF_SAMPLE_IDS[$TID_IDX]}
-   
+
     zcat !{tumorvcf} > !{tumorvcf.baseName}
-    
+
     mkdir -p tumor_only/!{vc}
 
     vcf2maf.pl \
@@ -447,7 +447,7 @@ process combinemafs_tonly {
     label 'process_low'
     publishDir(path: "${outdir}/mafs/tumor_only", mode: 'copy')
 
-    input: 
+    input:
         path(allmafs)
 
     output:
@@ -455,7 +455,7 @@ process combinemafs_tonly {
 
     shell:
     mafin= allmafs.join(" ")
-    
+
     """
     echo "Combining MAFs..."
     head -2 ${allmafs[0]} > final_tonly.maf
@@ -467,6 +467,3 @@ process combinemafs_tonly {
     touch final_tonly.maf
     """
 }
-
-
-
