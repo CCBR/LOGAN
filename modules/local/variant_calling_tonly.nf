@@ -242,7 +242,10 @@ process varscan_tonly {
     pileup_cmd="samtools mpileup -d 100000 -q 15 -Q 15 -f !{GENOMEREF} -l !{bed} !{tumor}"
     varscan_cmd="varscan mpileup2cns <($pileup_cmd) $varscan_opts"
 
-    eval "$varscan_cmd > !{tumor.simpleName}_!{bed.simpleName}.tonly.varscan.vcf"
+    eval "$varscan_cmd > !{tumor.simpleName}_!{bed.simpleName}.tonly.varscan.vcf_temp"
+
+    awk '{{gsub(/\\y[W|K|Y|R|S|M]\\y/,"N",$4); OFS = "\\t"; print}}' !{tumor.simpleName}_!{bed.simpleName}.tonly.varscan.vcf_temp \
+        | sed '/^$/d' | bcftools view - -Oz -o !{tumor.simpleName}_!{bed.simpleName}.tonly.varscan.vcf
 
     printf "TUMOR\t!{tumorname}\n" > sampname 
     
