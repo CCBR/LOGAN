@@ -546,8 +546,8 @@ workflow INPUT_BAM {
             baminputonly=Channel.fromPath(params.bam_input)
            .map{it-> tuple(it.simpleName,it,file("${it}.bai"))}
         }
-        if (bamcheck2.size()>0){
-            bai=Channel.from(bamcheck2).map{it -> tuple(it.simpleName,it)}.view()
+              else if (bamcheck2.size()>0){
+            bai=Channel.from(bamcheck2).map{it -> tuple(it.simpleName,it)}
             baminputonly=Channel.fromPath(params.bam_input)
            .map{it-> tuple(it.simpleName,it)}
            .join(bai)
