@@ -208,7 +208,7 @@ process mutect2filter_tonly {
 
     bcftools sort ${sample}.tonly.mut2.final.vcf.gz |\
     bcftools norm --threads $task.cpus --check-ref s -f $GENOMEREF -O v |\
-        awk '{{gsub(/\\y[W|K|Y|R|S|M]\\y/,"N",\$4); OFS = "\t"; print}}' |\
+        awk '{{gsub(/\\y[W|K|Y|R|S|M|B|D|H|V]\\y/,"N",\$4); OFS = "\t"; print}}' |\
         sed '/^\$/d' |\
     bcftools view - -Oz -o  ${sample}.tonly.mut2.norm.vcf.gz
     bcftools index -t ${sample}.tonly.mut2.norm.vcf.gz
@@ -244,7 +244,7 @@ process varscan_tonly {
 
     eval "$varscan_cmd > !{tumor.simpleName}_!{bed.simpleName}.tonly.varscan.vcf_temp"
 
-    awk '{{gsub(/\\y[W|K|Y|R|S|M]\\y/,"N",$4); OFS = "\\t"; print}}' !{tumor.simpleName}_!{bed.simpleName}.tonly.varscan.vcf_temp \
+    awk '{{gsub(/\\y[W|K|Y|R|S|M|B|D|H|V]\\y/,"N",\$4); OFS = "\t"; print}}' !{tumor.simpleName}_!{bed.simpleName}.tonly.varscan.vcf_temp \
         | sed '/^$/d' | bcftools view - -Oz -o !{tumor.simpleName}_!{bed.simpleName}.tonly.varscan.vcf
 
     printf "TUMOR\t!{tumorname}\n" > sampname 

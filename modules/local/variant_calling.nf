@@ -250,7 +250,7 @@ process mutect2filter {
     
     bcftools sort ${tumor}_vs_${normal}.mut2.final.vcf.gz |\
     bcftools norm --threads $task.cpus --check-ref s -f $GENOMEREF -O v |\
-        awk '{{gsub(/\\y[W|K|Y|R|S|M]\\y/,"N",\$4); OFS = "\\t"; print}}' |\
+        awk '{{gsub(/\\y[W|K|Y|R|S|M|B|D|H|V]\\y/,"N",\$4); OFS = "\t"; print}}' |\
         sed '/^\$/d' | bcftools view - -Oz -o ${tumor}_vs_${normal}.mut2.norm.vcf.gz
     bcftools index -t ${tumor}_vs_${normal}.mut2.norm.vcf.gz
     """
@@ -392,9 +392,9 @@ process varscan_tn {
     varscan_cmd="varscan somatic <($dual_pileup) !{tumor.simpleName}_vs_!{normal.simpleName}_!{bed.simpleName}.varscan.vcf $varscan_opts --mpileup 1"
     eval "$varscan_cmd"
 
-    awk '{{gsub(/\\y[W|K|Y|R|S|M]\\y/,"N",$4); OFS = "\\t"; print}}' !{tumor.simpleName}_vs_!{normal.simpleName}_!{bed.simpleName}.varscan.vcf.indel \
+    awk '{{gsub(/\\y[W|K|Y|R|S|M|B|D|H|V]\\y/,"N",\$4); OFS = "\t"; print}}' !{tumor.simpleName}_vs_!{normal.simpleName}_!{bed.simpleName}.varscan.vcf.indel \
         | sed '/^$/d' | bcftools view - -Oz -o !{tumor.simpleName}_vs_!{normal.simpleName}_!{bed.simpleName}.varscan.indel_temp.vcf.gz
-    awk '{{gsub(/\\y[W|K|Y|R|S|M]\\y/,"N",$4); OFS = "\\t"; print}}' !{tumor.simpleName}_vs_!{normal.simpleName}_!{bed.simpleName}.varscan.vcf.snp \
+    awk '{{gsub(/\\y[W|K|Y|R|S|M|B|D|H|V]\\y/,"N",\$4); OFS = "\t"; print}}' !{tumor.simpleName}_vs_!{normal.simpleName}_!{bed.simpleName}.varscan.vcf.snp \
         | sed '/^$/d' | bcftools view - -Oz -o !{tumor.simpleName}_vs_!{normal.simpleName}_!{bed.simpleName}.varscan.snp_temp.vcf.gz
 
     gatk SortVcf -I !{tumor.simpleName}_vs_!{normal.simpleName}_!{bed.simpleName}.varscan.snp_temp.vcf.gz \
@@ -569,7 +569,7 @@ process combineVariants {
         -SD $GENOMEDICT \
         -I $vcfin
     bcftools norm ${sample}.${vc}.marked.vcf.gz -m- --threads $task.cpus --check-ref s -f $GENOMEREF -O v |\
-        awk '{{gsub(/\\y[W|K|Y|R|S|M]\\y/,"N",\$4); OFS = "\\t"; print}}' |\
+        awk '{{gsub(/\\y[W|K|Y|R|S|M|B|D|H|V]\\y/,"N",\$4); OFS = "\t"; print}}' |\
         sed '/^\$/d' > ${sample}.${vc}.temp.vcf
 
     bcftools view ${sample}.${vc}.temp.vcf -f PASS -Oz -o ${vc}/${sample}.${vc}.norm.vcf.gz
@@ -617,7 +617,7 @@ process combineVariants_alternative {
     bcftools reheader -f $GENOMEFAI ${sample}.${vc}.temp1.vcf.gz -o ${sample}.${vc}.temp.vcf
     bcftools sort ${sample}.${vc}.temp.vcf -Oz -o ${sample}.${vc}.marked.vcf.gz
     bcftools norm ${sample}.${vc}.marked.vcf.gz -m- --threads $task.cpus --check-ref s -f $GENOMEREF -O v |\
-        awk '{{gsub(/\\y[W|K|Y|R|S|M]\\y/,"N",\$4); OFS = "\\t"; print}}' |\
+        awk '{{gsub(/\\y[W|K|Y|R|S|M|B|D|H|V]\\y/,"N",\$4); OFS = "\t"; print}}' |\
         sed '/^\$/d' > ${sample}.${vc}.temp.vcf
 
     bcftools view ${sample}.${vc}.temp.vcf -f PASS -Oz -o ${vc}/${sample}.${vc}.norm.vcf.gz
@@ -692,7 +692,7 @@ process combineVariants_strelka {
     """
     bcftools concat $vcfin $indelsin --threads $task.cpus -Oz -o ${sample}.temp.strelka.vcf.gz -a 
     bcftools norm ${sample}.temp.strelka.vcf.gz -m- --threads $task.cpus --check-ref s -f $GENOMEREF -O v |\
-        awk '{{gsub(/\\y[W|K|Y|R|S|M]\\y/,"N",\$4); OFS = "\\t"; print}}' |\
+        awk '{{gsub(/\\y[W|K|Y|R|S|M|B|D|H|V]\\y/,"N",\$4); OFS = "\t"; print}}' |\
         sed '/^\$/d' > ${sample}.temp1.strelka.vcf.gz
 
     bcftools sort ${sample}.temp1.strelka.vcf.gz -Oz -o ${sample}.strelka.vcf.gz 
