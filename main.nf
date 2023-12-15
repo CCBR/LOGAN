@@ -39,7 +39,10 @@ workflow.onComplete {
 //Final Workflow
 workflow {
     //Inputs
-    if ([params.fastq_input,params.file_input].any() && params.sample_sheet){
+    //if (params.file_input){
+        
+    //}
+    if ([params.fastq_input,params.file_input].any() && params.sample_shee && !params.bam){
         INPUT()
         ALIGN(INPUT.out.fastqinput,INPUT.out.sample_sheet)
     //Germline
@@ -74,7 +77,7 @@ workflow {
     }
     
     //TUMOR-NOMRAL BAM INPUT
-    if ([params.bam_input,params.file_input].any() && params.sample_sheet){
+    if ([params.bam_input,params.file_input].any() && params.sample_sheet && params.bam){
         INPUT_BAM()
         if (params.vc){
             VC(INPUT_BAM.out.bamwithsample,INPUT_BAM.out.splitout,INPUT_BAM.out.sample_sheet)
