@@ -89,8 +89,8 @@ workflow ALIGN_TONLY {
         sample_sheet
 
     main:
-    fastp(fastqinput)
-    splitinterval(intervalbedin)
+        fastp(fastqinput)
+        splitinterval(intervalbedin)
     
     bwamem2(fastp.out)
     //indelrealign(bwamem2.out)
