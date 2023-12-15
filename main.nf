@@ -4,32 +4,15 @@ nextflow.enable.dsl=2
 date = new Date().format( 'yyyyMMdd' )
 
 
-//SUB WORKFLOWS to SPLIT
-PIPE_ALIGN=params.PIPE_ALIGN
-
-PIPE_VC=params.PIPE_VC
-PIPE_SV=params.PIPE_SV
-PIPE_CNV=params.PIPE_CNV
-
-PIPE_QC_GL=params.PIPE_QC_GL
-PIPE_QC_NOGL=params.PIPE_QC_NOGL
-
-PIPE_GL=params.PIPE_GL
-
-PIPE_TONLY_ALIGN=params.PIPE_TONLY_ALIGN
-PIPE_TONLY_VC=params.PIPE_TONLY_VC
-PIPE_TONLY_SV=params.PIPE_TONLY_SV
-PIPE_TONLY_CNV=params.PIPE_TONLY_CNV
-PIPE_TONLY_QC=params.PIPE_TONLY_QC
-
-
-PIPE_BAMVC=params.PIPE_BAMVC
-PIPE_BAMSV=params.PIPE_BAMCNV
-PIPE_BAMCNV=params.PIPE_BAMCNV
-
-PIPE_TONLY_BAMVC=params.PIPE_TONLY_BAMVC
-PIPE_TONLY_BAMSV=params.PIPE_TONLY_BAMSV
-PIPE_TONLY_BAMCNV=params.PIPE_TONLY_BAMCNV
+log.info """\
+         L O G A E E K   P I P E L I N E    
+         =============================
+         genome: ${params.genome}
+         outdir: ${params.outdir}
+         Samplesheet: ${params.sample_sheet}
+         Samples: ${params.fastq_input} ${params.file_input} ${params.bam_input}
+         """
+         .stripIndent()
 
 
 
@@ -42,15 +25,39 @@ include {INPUT_TONLY; INPUT_TONLY_BAM;
     VC_TONLY; SV_TONLY; CNVhuman_tonly; CNVmouse_tonly; QC_TONLY } from "./subworkflows/local/workflows_tonly.nf"
 
 
-log.info """\
-         W G S S E E K   P I P E L I N E    
-         =============================
-         genome: ${params.genome}
-         outdir: ${params.outdir}
-         Samplesheet: ${params.sample_sheet}
-         Samples: ${params.fastq_input} ${params.file_input} ${params.bam_input}
-         """
-         .stripIndent()
+
+
+//SUB WORKFLOWS to SPLIT
+PIPE_ALIGN=params.align
+
+PIPE_VC=params.vc
+PIPE_SV=params.sv
+PIPE_CNV=params.cnv
+
+PIPE_QC_GL=params.qc_gl
+PIPE_QC_NOGL=params.qc_nogl
+
+PIPE_GL=params.gl
+
+PIPE_TONLY_ALIGN=params.align_tumoronly
+PIPE_TONLY_VC=params.vc_tumoronly
+PIPE_TONLY_SV=params.sv_tumoronly
+PIPE_TONLY_CNV=params.cnv_tumoronly
+PIPE_TONLY_QC=params.qc_tumoronly
+
+
+PIPE_BAMVC=params.vc_bam
+PIPE_BAMSV=params.sv_bam
+PIPE_BAMCNV=params.cnv_bam
+
+PIPE_TONLY_BAMVC=params.vc_bam_tumoronly
+PIPE_TONLY_BAMSV=params.sv_bam_tumoronly
+PIPE_TONLY_BAMCNV=params.cnv_bam_tumoronly
+
+
+
+
+
 
 workflow.onComplete {
     if (!workflow.stubRun && !workflow.commandLine.contains('-preview')) {
@@ -61,7 +68,6 @@ workflow.onComplete {
     }
 }
 
-//Final Workflow
 //Final Workflow
 workflow {
 

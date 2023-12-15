@@ -399,7 +399,7 @@ process varscan_tn {
 
     gatk SortVcf -I !{tumor.simpleName}_vs_!{normal.simpleName}_!{bed.simpleName}.varscan.snp_temp.vcf.gz \
     -I !{tumor.simpleName}_vs_!{normal.simpleName}_!{bed.simpleName}.varscan.indel_temp.vcf.gz \
-    -R  !{GENOMEREF} -SD !{GENOMEDICT} \
+    -R !{GENOMEREF} -SD !{GENOMEDICT} \
     -O !{tumor.simpleName}_vs_!{normal.simpleName}_!{bed.simpleName}_temp.varscan.vcf
 
     printf "NORMAL\t!{normalname}\nTUMOR\t!{tumorname}\n" > sampname 
