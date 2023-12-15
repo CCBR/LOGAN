@@ -9,7 +9,7 @@ authors: # TODO: author names should match those in pyproject.toml
   - family-names: Koparde
     given-names: Vishal
     orcid: https://orcid.org/0000-0001-8978-8495
-title: "TOOL_NAME: insert one-line description here" # TODO: citation title should match pyproject.toml
-url: https://ccbr.github.io/TOOL_NAME/
-repository-code: https://github.com/CCBR/TOOL_NAME
+title: "LOGAN: whoLe genOme-sequencinG Analysis pipeliNe" # TODO: citation title should match pyproject.toml
+url: https://ccbr.github.io/LOGAN/
+repository-code: https://github.com/CCBR/LOGAN
 license: MIT

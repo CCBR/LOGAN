@@ -3,7 +3,7 @@
 #SBATCH --mem=1g
 #SBATCH --time=1-00:00:00
 #SBATCH --parsable
-#SBATCH -J "tool_name"
+#SBATCH -J "LOGAN"
 #SBATCH --mail-type=BEGIN,END,FAIL
 #SBATCH --output "log/slurm_%j.log"
 #SBATCH --output "log/slurm_%j.log"
