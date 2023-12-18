@@ -16,7 +16,7 @@ log.info """\
 
 
 
-include {INPUT; INPUT_BAM; ALIGN; GL;
+include {DETERMINEBAM; INPUT; INPUT_BAM; ALIGN; GL;
     VC; SV; CNVmouse; CNVhuman;
     QC_GL; QC_NOGL} from "./subworkflows/local/workflows.nf"
 
@@ -38,11 +38,9 @@ workflow.onComplete {
 
 //Final Workflow
 workflow {
-    //Inputs
-    //if (params.file_input){
-        
-    //}
-    if ([params.fastq_input,params.file_input].any() && params.sample_shee && !params.bam){
+    DETERMINEBAM()
+    if ([params.fastq_input,params.file_input].any() && params.sample_sheet && !params.BAMINPUT){
+        println "Tumor-Normal FASTQ"
         INPUT()
         ALIGN(INPUT.out.fastqinput,INPUT.out.sample_sheet)
     //Germline
@@ -77,7 +75,8 @@ workflow {
     }
     
     //TUMOR-NOMRAL BAM INPUT
-    if ([params.bam_input,params.file_input].any() && params.sample_sheet && params.bam){
+    if ([params.bam_input,params.file_input].any() && params.sample_sheet && BAMINPUT){
+        println "Tumor-Normal with BAMs"
         INPUT_BAM()
         if (params.vc){
             VC(INPUT_BAM.out.bamwithsample,INPUT_BAM.out.splitout,INPUT_BAM.out.sample_sheet)
@@ -100,7 +99,8 @@ workflow {
     }  
     
     ///Tumor Only Pipelines
-    if ([params.fastq_input,params.file_input].any() && !params.sample_sheet){
+    if ([params.fastq_input,params.file_input].any() && !params.sample_sheet && !params.BAMINPUT){
+        println "Tumor-Only FASTQ"
         INPUT_TONLY()
         ALIGN_TONLY(INPUT_TONLY.out.fastqinput,INPUT_TONLY.out.sample_sheet)
         if (params.vc){
@@ -127,7 +127,8 @@ workflow {
     }
 
     //Variant Calling from BAM-Tumor Only Mode
-    if ([params.bam_input,params.file_input].any() && !params.sample_sheet){
+    if ([params.bam_input,params.file_input].any() && !params.sample_sheet && params.BAMINPUT){
+        println "Tumor-Only BAM"
         INPUT_TONLY_BAM()
         if (params.vc){
             VC_TONLY(INPUT_TONLY_BAM.out.bamwithsample,INPUT_TONLY_BAM.out.splitout,INPUT_TONLY_BAM.out.sample_sheet)

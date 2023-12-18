@@ -70,7 +70,7 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get install -y \
       apt-transport-https \
       software-properties-common
 
-# Install R (4.0) -- and R packages
+# Install R (4.2.2) -- and R packages
 # ggplot2  dplyr  plotly  htmlwidgets  tidyr and a few extras
 # For more information, check out: https://cran.r-project.org/bin/linux/ubuntu/
 RUN apt-key adv --keyserver keyserver.ubuntu.com --recv-keys E298A3A825C0D65DFD57CBB651716619E084DAB9 \
@@ -85,12 +85,15 @@ RUN Rscript -e 'install.packages(c("argparse"), repos="http://cran.r-project.org
 RUN Rscript -e 'install.packages(c("flexdashboard"), repos="http://cran.r-project.org")'
 RUN Rscript -e 'BiocManager::install(c("rtracklayer"))'
 
+
 # Install Sequenza-Utils/3.0.0 and Sequenza
 # Requires R, Python, SAMtools, tabix (already satisfied)
 # https://cran.r-project.org/web/packages/sequenza/vignettes/sequenza.html#getting-started
+##Install Old version of IOtools for parallel processing
 RUN pip3 install --upgrade pip \
 	  && pip3 install sequenza-utils \
-      && Rscript -e 'remotes::install_github("ShixiangWang/copynumber"); remotes::install_github("cran/sequenza")'
+      && Rscript -e 'remotes::install_github("ShixiangWang/copynumber"); remotes::install_github("cran/sequenza")' \
+      && Rscript -e 'remotes::install_version("iotools",version="0.3-2")'
 
 # Install Control-FREEC/v11.6 and additional dependencies
 # Requires R, samtools, bedtools, sambamba (already satisfied)

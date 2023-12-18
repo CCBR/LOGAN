@@ -1,6 +1,5 @@
 //All Worksflows in One Place
 // TODO split subworkflows out into one per file  
-
 // TODO: this line should be moved to within a subworkflow or the main workflow
 intervalbedin = Channel.fromPath(params.genomes[params.genome].intervals,checkIfExists: true,type: 'file')
 
@@ -93,7 +92,7 @@ workflow ALIGN_TONLY {
         splitinterval(intervalbedin)
     
     bwamem2(fastp.out)
-    //indelrealign(bwamem2.out)
+    //indelrealign(bwamem2.out) Consider indelreaglinement using ABRA?
 
     bqsrbambyinterval=bwamem2.out.combine(splitinterval.out.flatten())
 
@@ -335,12 +334,13 @@ workflow INPUT_TONLY_BAM {
         if (bamcheck1.size()>0){
             baminputonly=Channel.fromPath(params.bam_input)
                 | map{it-> tuple(it.simpleName,it,file("${it}.bai"))} 
-        }
-        else if (bamcheck2.size()>0){
+        }else if (bamcheck2.size()>0){
             bai=Channel.from(bamcheck2).map{it -> tuple(it.simpleName,it)}
             baminputonly=Channel.fromPath(params.bam_input)
             | map{it-> tuple(it.simpleName,it)}
             | join(bai)
+        }else if (bamcheck1.size==0 && bamcheck2.size==0 ){
+            println "Missing BAM Index"
         }
 
         sample_sheet=baminputonly.map{samplename,bam,bai -> tuple (

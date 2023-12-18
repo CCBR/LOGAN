@@ -52,6 +52,21 @@ include {splitinterval} from '../../modules/local/splitbed.nf'
 
 
 
+workflow DETERMINEBAM {
+    if(params.bam_input){
+        params.BAMINPUT=true
+    }else if(params.file_input){
+            file(params.file_input).text
+                        //.splitCsv(header: false, sep: "\t", strip:true)
+                       // .map{ sample,bam,bai ->
+                        //if (bam[0] =~ /.bam/){
+                         //   params.BAMINPUT=
+                        //}
+                        //}
+    }
+
+}
+
 workflow INPUT {
 
     if(params.fastq_input){
@@ -550,12 +565,13 @@ workflow INPUT_BAM {
         if (bamcheck1.size()>0){
             baminputonly=Channel.fromPath(params.bam_input)
            .map{it-> tuple(it.simpleName,it,file("${it}.bai"))}
-        }
-              else if (bamcheck2.size()>0){
+        }else if (bamcheck2.size()>0){
             bai=Channel.from(bamcheck2).map{it -> tuple(it.simpleName,it)}
             baminputonly=Channel.fromPath(params.bam_input)
            .map{it-> tuple(it.simpleName,it)}
            .join(bai)
+        }else if (bamcheck1.size==0 && bamcheck2.size==0){
+            println "Missing BAM Index"
         }
 
     }else if(params.file_input) {
