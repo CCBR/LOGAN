@@ -1,5 +1,5 @@
 ///References to assign
-GENOME=file(params.genomes[params.genome].genome)
+GENOMEREF=file(params.genomes[params.genome].genome)
 DBSNP=file(params.genomes[params.genome].dbsnp) //dbsnp_138.hg38.vcf.gz"
 FASTQ_SCREEN_CONF=file(params.fastq_screen_conf)
 BACDB=file(params.genomes[params.genome].KRAKENBACDB)
@@ -16,11 +16,8 @@ SCRIPT_PATH_PCA = file(params.script_ancestry)
     
 
 //OUTPUT DIRECTORY 
-outdir=file(params.output)
-
 process fc_lane {
     label 'process_low'
-    publishDir("${outdir}/QC/fc_lane/", mode:'copy')
 
     input:
         tuple val(samplename), path(fqs)
@@ -48,7 +45,6 @@ process fc_lane {
 process fastq_screen {
     //Uses Trimmed Files
 
-    publishDir(path: "${outdir}/QC/fastq_screen/", mode:'copy')
 
     input:
     tuple val(samplename),
@@ -98,7 +94,6 @@ process kraken {
     @Output:
         Kraken logfile and interative krona report
     */
-    publishDir(path: "${outdir}/QC/kraken/", mode: 'copy')
     
     input:
         tuple val(samplename), 
@@ -150,7 +145,6 @@ process fastqc {
         FastQC report and zip file containing sequencing quality information
     """
 
-    publishDir(path: "${outdir}/QC/fastqc/", mode: 'copy')
 
     input:
         tuple val(samplename), path("${samplename}.bqsr.bam"), path("${samplename}.bqsr.bai")
@@ -188,12 +182,8 @@ process qualimap_bamqc {
         Recalibrated BAM file (scatter)
     @Output:
         Report containing post-aligment quality-control metrics
-    */
-    publishDir("${outdir}/QC/qualimap/", mode: "copy")
-    
-    //module=['qualimap/2.2.1','java/12.0.1']
-    //module: config['images']['qualimap']
-    
+    */    
+
     input:
         tuple val(samplename), path(bam), path(bai)
 
@@ -235,8 +225,6 @@ process samtools_flagstats {
         Text file containing alignment statistics
     */
     label 'process_mid'
-
-    publishDir("${outdir}/QC/flagstats/", mode: "copy")
     
     input:
         tuple val(samplename), path(bam), path(bai)
@@ -270,9 +258,6 @@ process mosdepth {
         `{prefix}.quantized.bed.gz` (if --quantize is specified)
         `{prefix}.thresholds.bed.gz` (if --thresholds is specified)
     */
-
-    publishDir("${outdir}/QC/mosdepth/", mode: "copy")
-
     input:
         tuple val(samplename), path(bam), path(bai)
     
@@ -311,7 +296,6 @@ process vcftools {
     */
     label 'process_mid'
 
-    publishDir(path:"${outdir}/QC/vcftools", mode: 'copy')
     
     input: 
         tuple path(germlinevcf),path(germlinetbi)
@@ -340,9 +324,7 @@ process collectvariantcallmetrics {
         Multi-sample gVCF file (indirect-gather-due-to-aggregation)
     @Output:
         Text file containing a collection of metrics relating to snps and indels 
-    */
-    publishDir("${outdir}/QC/variantmetrics", mode: 'copy')
-    
+    */    
     input: 
         tuple path(germlinevcf),path(germlinetbi)
     
@@ -383,7 +365,6 @@ process bcftools_stats {
     */
 
     label 'process_mid'
-    publishDir("${outdir}/QC/bcftoolsstat", mode: 'copy')
 
     input:
         tuple val(samplename),  path("${samplename}.gvcf.gz"),path("${samplename}.gvcf.gz.tbi")
@@ -417,8 +398,6 @@ process gatk_varianteval {
     */
     label 'process_mid'
 
-    publishDir("${outdir}/QC/gatk_varianteval", mode: 'copy')
-
     input: 
         tuple val(samplename), path("${samplename}.gvcf.gz") ,path("${samplename}.gvcf.gz.tbi")
     output: 
@@ -434,7 +413,7 @@ process gatk_varianteval {
     script: 
     """
     gatk --java-options '-Xmx12g -XX:ParallelGCThreads=16' VariantEval \
-        -R $GENOME \
+        -R $GENOMEREF \
         -O ${samplename}.germline.eval.grp \
         --dbsnp $DBSNP \
         --eval ${samplename}.gvcf.gz
@@ -460,7 +439,6 @@ process snpeff {
         Evaluation table containing a collection of summary statistics
     */
     label 'process_mid'
-    publishDir("${outdir}/QC/snpeff", mode: 'copy')
 
     input:  
         tuple val(samplename), path("${samplename}.gvcf.gz"), path("${samplename}.gvcf.gz.tbi")
@@ -497,7 +475,6 @@ process somalier_extract {
         Exracted sites in (binary) somalier format
     */
     label 'process_low'
-    publishDir("${outdir}/QC/somalier", mode: 'copy')
 
     input:
         tuple val(samplename), path("${samplename}.bam"), path("${samplename}.bai")
@@ -514,7 +491,7 @@ process somalier_extract {
     somalier extract \
         -d output \
         --sites $SITES_VCF \
-        -f $GENOME \
+        -f $GENOMEREF \
         ${samplename}.bam
     """
 
@@ -538,7 +515,6 @@ process somalier_analysis_human {
     */
     label 'process_low'
 
-    publishDir("${outdir}/QC/somalier", mode: 'copy')
 
     input:
         path(somalierin)
@@ -603,8 +579,6 @@ process somalier_analysis_mouse {
     */
     label 'process_low'
 
-    publishDir("${outdir}/QC/somalier", mode: 'copy')
-
     input:
         path(somalierin)
     
@@ -655,8 +629,6 @@ process multiqc {
     @Output:
         Interactive MulitQC report and a QC metadata table
     """
-
-    publishDir("${outdir}/QC/multiqc", mode: 'copy')
     
     input:  
         path(allqcin)

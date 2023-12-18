@@ -1,19 +1,15 @@
 GENOMEREF=file(params.genomes[params.genome].genome)
 GENOMEFAI=file(params.genomes[params.genome].genomefai)
 GENOMEDICT=file(params.genomes[params.genome].genomedict)
-KGPGERMLINE=params.genomes[params.genome].kgp //1000G_phase1.snps.high_confidence.hg38.vcf.gz"
-DBSNP=file(params.genomes[params.genome].dbsnp) //dbsnp_138.hg38.vcf.gz"
-GNOMADGERMLINE=params.genomes[params.genome].gnomad //somatic-hg38-af-only-gnomad.hg38.vcf.gz
+KGPGERMLINE=params.genomes[params.genome].kgp 
+DBSNP=file(params.genomes[params.genome].dbsnp) 
+GNOMADGERMLINE=params.genomes[params.genome].gnomad 
 PON=file(params.genomes[params.genome].pon) 
 VEPCACHEDIR=file(params.genomes[params.genome].vepcache)
 VEPSPECIES=params.genomes[params.genome].vepspecies
 VEPBUILD=params.genomes[params.genome].vepbuild
 SOMATIC_FOREST=params.genomes[params.genome].octopus_sforest
 GERMLINE_FOREST=params.genomes[params.genome].octopus_gforest
-
-//Output
-outdir=file(params.output)
-
 
 
 process pileup_paired_tonly {
@@ -48,7 +44,6 @@ process pileup_paired_tonly {
 
 process contamination_tumoronly {
     label 'process_highmem'
-    publishDir(path: "${outdir}/vcfs/mutect2/", mode: 'copy')
 
     input:
         tuple val(tumorname),
@@ -87,7 +82,6 @@ process contamination_tumoronly {
 
 process learnreadorientationmodel_tonly {
     label 'process_highmem'
-    publishDir(path: "${outdir}/vcfs/mutect2", mode: 'copy')
 
     input:
         tuple val(sample), path(f1r2)
@@ -116,7 +110,6 @@ process learnreadorientationmodel_tonly {
 
 process mergemut2stats_tonly {
     label 'process_low'
-    publishDir(path: "${outdir}/vcfs/mutect2", mode: 'copy')
 
     input:
         tuple val(sample), path(stats)
@@ -182,7 +175,6 @@ process mutect2_t_tonly {
 
 process mutect2filter_tonly {
     label 'process_mid'
-    publishDir(path: "${outdir}/vcfs/mutect2_tonly", mode: 'copy')
 
     input:
         tuple val(sample), path(mutvcfs), path(stats), path(obs), path(pileups),path(tumorcontamination)
@@ -216,7 +208,7 @@ process mutect2filter_tonly {
 
     bcftools sort ${sample}.tonly.mut2.final.vcf.gz |\
     bcftools norm --threads $task.cpus --check-ref s -f $GENOMEREF -O v |\
-        awk '{{gsub(/\\y[W|K|Y|R|S|M]\\y/,"N",\$4); OFS = "\t"; print}}' |\
+        awk '{{gsub(/\\y[W|K|Y|R|S|M|B|D|H|V]\\y/,"N",\$4); OFS = "\t"; print}}' |\
         sed '/^\$/d' |\
     bcftools view - -Oz -o  ${sample}.tonly.mut2.norm.vcf.gz
     bcftools index -t ${sample}.tonly.mut2.norm.vcf.gz
@@ -247,10 +239,13 @@ process varscan_tonly {
 
     '''
     varscan_opts="--strand-filter 0 --min-var-freq 0.01 --output-vcf 1 --variants 1"
-    pileup_cmd="samtools mpileup -d 100000 -q 15 -Q 15 -f !{GENOMEREF} !{tumor}"
+    pileup_cmd="samtools mpileup -d 100000 -q 15 -Q 15 -f !{GENOMEREF} -l !{bed} !{tumor}"
     varscan_cmd="varscan mpileup2cns <($pileup_cmd) $varscan_opts"
 
-    eval "$varscan_cmd > !{tumor.simpleName}_!{bed.simpleName}.tonly.varscan.vcf"
+    eval "$varscan_cmd > !{tumor.simpleName}_!{bed.simpleName}.tonly.varscan.vcf_temp"
+
+    awk '{{gsub(/\\y[W|K|Y|R|S|M|B|D|H|V]\\y/,"N",\$4); OFS = "\t"; print}}' !{tumor.simpleName}_!{bed.simpleName}.tonly.varscan.vcf_temp \
+        | sed '/^$/d' | bcftools view - -Oz -o !{tumor.simpleName}_!{bed.simpleName}.tonly.varscan.vcf
 
     printf "TUMOR\t!{tumorname}\n" > sampname 
     
@@ -445,7 +440,6 @@ process annotvep_tonly {
 
 process combinemafs_tonly {
     label 'process_low'
-    publishDir(path: "${outdir}/mafs/tumor_only", mode: 'copy')
 
     input: 
         path(allmafs)
