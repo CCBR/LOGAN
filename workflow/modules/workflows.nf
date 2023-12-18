@@ -375,6 +375,11 @@ workflow CNVmouse {
         //FREEC Paired Mode
         bamwithsample | freec_paired
 
+        //FREEC Unpaired Mode
+        bamwithsample
+            | map{tname,tumor,tbai,nname,norm,nbai->tuple(tname,tumor,tbai)}
+            | freec
+
 }
 
 workflow CNVhuman {
@@ -401,19 +406,6 @@ workflow CNVhuman {
             | purple
 
 }
-
-  /*
-    //baminput=sample_sheet
-      //     .map{samplename,bam,vcf-> tuple(samplename,file(bam),file("${bam}.bai"))}
-
-    //somaticinput=sample_sheet
-     //      .map{samplename,bam,vcf-> tuple(samplename,file(vcf))}
-
-
-
-    */
-
-
 
 
 workflow QC_NOGL {
