@@ -10,7 +10,7 @@ log.info """\
          genome: ${params.genome}
          outdir: ${params.outdir}
          Sample Sheet: ${params.sample_sheet}
-         Samples: ${params.fastq_input} ${params.file_input} ${params.bam_input}
+         Samples: ${params.fastq_input} ${params.fastq_file_input} ${params.bam_input} ${params.bam_file_input} 
          """
          .stripIndent()
 
@@ -38,8 +38,7 @@ workflow.onComplete {
 
 //Final Workflow
 workflow {
-    DETERMINEBAM()
-    if ([params.fastq_input,params.file_input].any() && params.sample_sheet && !params.BAMINPUT){
+        if ([params.fastq_input,params.fastq_file_input].any() && params.sample_sheet){
         println "Tumor-Normal FASTQ"
         INPUT()
         ALIGN(INPUT.out.fastqinput,INPUT.out.sample_sheet)
@@ -75,7 +74,7 @@ workflow {
     }
     
     //TUMOR-NOMRAL BAM INPUT
-    if ([params.bam_input,params.file_input].any() && params.sample_sheet && BAMINPUT){
+    if ([params.bam_input,params.bam_file_input].any() && params.sample_sheet){
         println "Tumor-Normal with BAMs"
         INPUT_BAM()
         if (params.vc){
@@ -99,7 +98,7 @@ workflow {
     }  
     
     ///Tumor Only Pipelines
-    if ([params.fastq_input,params.file_input].any() && !params.sample_sheet && !params.BAMINPUT){
+    if ([params.fastq_input,params.file_input].any() && !params.sample_sheet){
         println "Tumor-Only FASTQ"
         INPUT_TONLY()
         ALIGN_TONLY(INPUT_TONLY.out.fastqinput,INPUT_TONLY.out.sample_sheet)
@@ -127,7 +126,7 @@ workflow {
     }
 
     //Variant Calling from BAM-Tumor Only Mode
-    if ([params.bam_input,params.file_input].any() && !params.sample_sheet && params.BAMINPUT){
+    if ([params.bam_input,params.bam_file_input].any() && !params.sample_sheet){
         println "Tumor-Only BAM"
         INPUT_TONLY_BAM()
         if (params.vc){
