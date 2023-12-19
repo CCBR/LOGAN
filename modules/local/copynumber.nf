@@ -123,11 +123,22 @@ process sequenza {
 
 process freec_paired {
     label 'process_highcpu'
+    publishDir("${outdir}/cnv/freec_paired", mode: 'copy')
 
     input:
-        tuple val(tumorname), path(tumor), path(tumorbai), val(normalname), path(normal), path(normalbai)
+        tuple val(tumorname), path(tumor), path(tumorbai),
+        val(normalname), path(normal), path(normalbai)
 
-    shell: """
+    output:
+        tuple val(tumorname), val(normalname),
+        path("${tumorname}_vs_${normalname}.bam_CNVs.p.value.txt"),
+        path("${tumorname}_vs_${normalname}.bam_ratio.txt"),
+        path("${tumorname}_vs_${normalname}.bam_BAF.txt"),
+        path("${tumorname}_vs_${normalname}.bam_ratio.txt.log2.png"),
+        path("${tumorname}_vs_${normalname}.bam_ratio.txt.png")
+
+    shell:
+    """
 
     perl $FREECPAIR_SCRIPT \
         . \
@@ -150,15 +161,21 @@ process freec_paired {
     cat $FREECPLOT | \
         R --slave \
         --args 2 \
-        ${tumorname}_vs_${normalname}.bam_ratio.txt \
-        ${tumorname}_vs_${normalname}.bam_BAF.txt
+        ${tumorname}.bam_ratio.txt \
+        ${tumorname}.bam_BAF.txt
 
-    """      
+    mv ${tumorname}.bam_CNVs.p.value.txt ${tumorname}_vs_${normalname}.bam_CNVs.p.value.txt
+    mv ${tumorname}.bam_ratio.txt ${tumorname}_vs_${normalname}.bam_ratio.txt
+    mv ${tumorname}.bam_BAF.txt ${tumorname}_vs_${normalname}.bam_BAF.txt
+    mv ${tumorname}.bam_ratio.txt.log2.png ${tumorname}_vs_${normalname}.bam_ratio.txt.log2.png
+    mv ${tumorname}.bam_ratio.txt.png ${tumorname}_vs_${normalname}.bam_ratio.txt.png
+
+    """
 
     stub:
     """
-    touch ${tumorname}_vs_${normalname}.bam_CNVs.p.value.txt  
-    touch ${tumorname}_vs_${normalname}.bam_ratio.txt 
+    touch ${tumorname}_vs_${normalname}.bam_CNVs.p.value.txt
+    touch ${tumorname}_vs_${normalname}.bam_ratio.txt
     touch ${tumorname}_vs_${normalname}.bam_BAF.txt
     touch ${tumorname}_vs_${normalname}.bam_ratio.txt.log2.png
     touch ${tumorname}_vs_${normalname}.bam_ratio.txt.png
@@ -169,9 +186,19 @@ process freec_paired {
 
 process freec {
     label 'process_mid'
+    publishDir("${outdir}/cnv/freec_unpaired", mode: 'copy')
 
     input:
         tuple val(tumorname), path(tumor), path(tumorbai)
+
+    output:
+        tuple val(tumorname),
+        path("${tumorname}.bam_CNVs.p.value.txt"),
+        path("${tumorname}.bam_ratio.txt"),
+        path("${tumorname}.bam_BAF.txt"),
+        path("${tumorname}.bam_ratio.txt.log2.png"),
+        path("${tumorname}.bam_ratio.txt.png")
+
 
     shell: """
 
@@ -189,24 +216,24 @@ process freec {
 
     cat $FREECSIGNIFICANCE | \
         R --slave \
-        --args ${tumor}_CNVs \
-        ${tumor}_ratio.txt
+        --args ${tumorname}_CNVs \
+        ${tumorname}_ratio.txt
 
     cat $FREECPLOT | \
         R --slave \
         --args 2 \
-        ${tumor}_ratio.txt \
-        ${tumor}_BAF.txt
+        ${tumorname}_ratio.txt \
+        ${tumorname}_BAF.txt
 
-    """      
+    """
 
     stub:
     """
-    touch ${tumor}_CNVs.p.value.txt  
-    touch ${tumor}_ratio.txt 
-    touch ${tumor}_BAF.txt 
-    touch ${tumor}_ratio.txt.log2.png
-    touch ${tumor}_ratio.txt.png
+    touch ${tumorname}_CNVs.p.value.txt
+    touch ${tumorname}_ratio.txt
+    touch ${tumorname}_BAF.txt
+    touch ${tumorname}_ratio.txt.log2.png
+    touch ${tumorname}_ratio.txt.png
 
     """
 }
