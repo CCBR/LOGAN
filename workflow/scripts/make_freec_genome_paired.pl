@@ -26,17 +26,18 @@ print C "ploidy = 2,3,4\nbreakPointThreshold = 0.8\nwindow = 50000\n";
 print C "chrFiles = $chrFiles\n";
 print C "minimalSubclonePresence = 20\nmaxThreads = 8\n";
 print C "outputDir = $ARGV[0]\n\n";
- 
+
 print C '[sample]' . "\n\n";
- 
+
 print C "mateFile = $tumormateFile\n";
 print C "inputFormat = BAM\nmateOrientation = FR\n\n";
 
-print C '[BAF]' . "\n\n";
+print C '[control]' . "\n\n";
 
 print C "mateFile = $controlmateFile\n";
 print C "inputFormat = BAM\nmateOrientation = FR\n\n";
- 
+
+print C '[BAF]' . "\n\n";
 print C "makePileup = $makePileup\n";
 print C "fastaFile = $fastaFile\n";
 print C "minimalCoveragePerPosition = 20\nminimalQualityPerPosition = 20\n";
