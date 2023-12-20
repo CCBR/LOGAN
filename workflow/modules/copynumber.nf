@@ -133,11 +133,11 @@ process freec_paired {
 
     output:
         tuple val(tumorname), val(normalname),
-        path("${tumorname}_vs_${normalname}.bam_CNVs.p.value.txt"),
-        path("${tumorname}_vs_${normalname}.bam_ratio.txt"),
-        path("${tumorname}_vs_${normalname}.bam_BAF.txt"),
-        path("${tumorname}_vs_${normalname}.bam_ratio.txt.log2.png"),
-        path("${tumorname}_vs_${normalname}.bam_ratio.txt.png")
+        path("${tumorname}_vs_${normalname}_CNVs.p.value.txt"),
+        path("${tumorname}_vs_${normalname}_ratio.txt"),
+        path("${tumorname}_vs_${normalname}_BAF.txt"),
+        path("${tumorname}_vs_${normalname}_ratio.txt.log2.png"),
+        path("${tumorname}_vs_${normalname}_ratio.txt.png")
 
     shell:
     """
@@ -163,24 +163,26 @@ process freec_paired {
     cat $FREECPLOT | \
         R --slave \
         --args 2 \
-        ${tumorname}.bam_ratio.txt \
-        ${tumorname}.bam_BAF.txt
+        ${tumor}_ratio.txt \
+        ${tumor}_BAF.txt
 
-    mv ${tumorname}.bam_CNVs.p.value.txt ${tumorname}_vs_${normalname}.bam_CNVs.p.value.txt
-    mv ${tumorname}.bam_ratio.txt ${tumorname}_vs_${normalname}.bam_ratio.txt
-    mv ${tumorname}.bam_ratio.txt ${tumorname}_vs_${normalname}.bam_ratio.txt
-    mv ${tumorname}.bam_ratio.txt.log2.png ${tumorname}_vs_${normalname}.bam_ratio.txt.log2.png
-    mv ${tumorname}.bam_ratio.txt.png ${tumorname}_vs_${normalname}.bam_ratio.txt.png
+    mv ${tumor}_CNVs.p.value.txt ${tumorname}_vs_${normalname}_CNVs.p.value.txt
+    mv ${tumor}_ratio.txt ${tumorname}_vs_${normalname}_ratio.txt
+    mv ${tumor}_BAF.txt ${tumorname}_vs_${normalname}_BAF.txt
+    mv ${tumor}_BAF.txt.png ${tumorname}_vs_${normalname}_BAF.txt.png
+    mv ${tumor}_ratio.txt.log2.png ${tumorname}_vs_${normalname}_ratio.txt.log2.png
+    mv ${tumor}_ratio.txt.png ${tumorname}_vs_${normalname}_ratio.txt.png
 
     """
 
     stub:
     """
-    touch ${tumorname}_vs_${normalname}.bam_CNVs.p.value.txt
-    touch ${tumorname}_vs_${normalname}.bam_ratio.txt
-    touch ${tumorname}_vs_${normalname}.bam_BAF.txt
-    touch ${tumorname}_vs_${normalname}.bam_ratio.txt.log2.png
-    touch ${tumorname}_vs_${normalname}.bam_ratio.txt.png
+    touch ${tumorname}_vs_${normalname}_CNVs.p.value.txt
+    touch ${tumorname}_vs_${normalname}_ratio.txt
+    touch ${tumorname}_vs_${normalname}_BAF.txt
+    touch ${tumorname}_vs_${normalname}_BAF.txt.png
+    touch ${tumorname}_vs_${normalname}_ratio.txt.log2.png
+    touch ${tumorname}_vs_${normalname}_ratio.txt.png
 
     """
 }
@@ -195,11 +197,11 @@ process freec {
 
     output:
         tuple val(tumorname),
-        path("${tumorname}.bam_CNVs.p.value.txt"),
-        path("${tumorname}.bam_ratio.txt"),
-        path("${tumorname}.bam_BAF.txt"),
-        path("${tumorname}.bam_ratio.txt.log2.png"),
-        path("${tumorname}.bam_ratio.txt.png")
+        path("${tumorname}_CNVs.p.value.txt"),
+        path("${tumorname}_ratio.txt"),
+        path("${tumorname}_BAF.txt"),
+        path("${tumorname}_ratio.txt.log2.png"),
+        path("${tumorname}_ratio.txt.png")
 
 
     shell: """
@@ -218,14 +220,21 @@ process freec {
 
     cat $FREECSIGNIFICANCE | \
         R --slave \
-        --args ${tumorname}_CNVs \
-        ${tumorname}_ratio.txt
+        --args ${tumor}_CNVs \
+        ${tumor}_ratio.txt
 
     cat $FREECPLOT | \
         R --slave \
         --args 2 \
-        ${tumorname}_ratio.txt \
-        ${tumorname}_BAF.txt
+        ${tumor}_ratio.txt \
+        ${tumor}_BAF.txt
+
+    mv ${tumor}_CNVs.p.value.txt ${tumorname}_CNVs.p.value.txt
+    mv ${tumor}_ratio.txt ${tumorname}_ratio.txt
+    mv ${tumor}_BAF.txt ${tumorname}_BAF.txt
+    mv ${tumor}_BAF.txt.png ${tumorname}_BAF.txt.png
+    mv ${tumor}_ratio.txt.log2.png ${tumorname}_ratio.txt.log2.png
+    mv ${tumor}_ratio.txt.png ${tumorname}_ratio.txt.png
 
     """
 
@@ -234,6 +243,7 @@ process freec {
     touch ${tumorname}_CNVs.p.value.txt
     touch ${tumorname}_ratio.txt
     touch ${tumorname}_BAF.txt
+    touch ${tumorname}_BAF.txt.png
     touch ${tumorname}_ratio.txt.log2.png
     touch ${tumorname}_ratio.txt.png
 
