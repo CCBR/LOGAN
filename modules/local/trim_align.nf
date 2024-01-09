@@ -3,12 +3,13 @@ KNOWNRECAL = params.genomes[params.genome].KNOWNRECAL
 
 
 process fastp {
+    container = "${params.containers.logan}"
     label 'process_mid'
     tag { name }
 
     input:
     tuple val(samplename), path(fqs)
-    
+
     output:
     tuple val(samplename),
     path("${samplename}.R1.trimmed.fastq.gz"),
@@ -40,15 +41,16 @@ process fastp {
 
 
 process bwamem2 {
+    container = "${params.containers.logan}"
     tag { name }
-    
+
     input:
-        tuple val(samplename), 
+        tuple val(samplename),
         path("${samplename}.R1.trimmed.fastq.gz"),
         path("${samplename}.R2.trimmed.fastq.gz"),
         path("${samplename}.fastp.json"),
         path("${samplename}.fastp.html")
-        
+
     output:
         tuple val(samplename), path("${samplename}.bam"), path("${samplename}.bai")
 
@@ -77,9 +79,9 @@ process bwamem2 {
 
 process bqsr {
     /*
-    Base quality recalibration for all samples 
-    */    
-
+    Base quality recalibration for all samples
+    */
+    container = "${params.containers.logan}"
     label 'process_low'
     input:
         tuple val(samplename), path("${samplename}.bam"), path("${samplename}.bai"), path(bed)
@@ -99,19 +101,20 @@ process bqsr {
 
     stub:
     """
-    touch ${samplename}_${bed.simpleName}.recal_data.grp 
+    touch ${samplename}_${bed.simpleName}.recal_data.grp
     """
 
 }
 
 process gatherbqsr {
+    container = "${params.containers.logan}"
     label 'process_low'
-    input: 
+    input:
         tuple val(samplename), path(recalgroups)
     output:
         tuple val(samplename), path("${samplename}.recal_data.grp")
     script:
-    
+
     strin = recalgroups.join(" --input ")
 
     """
@@ -131,10 +134,11 @@ process gatherbqsr {
 
 process applybqsr {
     /*
-    Base quality recalibration for all samples to 
-    */   
+    Base quality recalibration for all samples to
+    */
+    container = "${params.containers.logan}"
     label 'process_low'
-    
+
     input:
         tuple val(samplename), path("${samplename}.bam"), path("${samplename}.bai"), path("${samplename}.recal_data.grp")
 
@@ -154,7 +158,7 @@ process applybqsr {
     """
 
     stub:
-    
+
     """
     touch ${samplename}.bqsr.bam ${samplename}.bqsr.bai
     """
@@ -164,12 +168,13 @@ process applybqsr {
 
 
 process samtoolsindex {
+    container = "${params.containers.logan}"
     label 'process_mid'
-    publishDir(path: "${outdir}/bams/BQSR", mode: 'copy') 
-    
+    publishDir(path: "${outdir}/bams/BQSR", mode: 'copy')
+
     input:
     tuple val(bamname), path(bam)
-    
+
     output:
     tuple val(bamname), path(bam), path("${bam}.bai")
 
@@ -187,9 +192,10 @@ process samtoolsindex {
 
 //Save to CRAM for output
 process bamtocram_tonly {
+    container = "${params.containers.logan}"
     label 'process_mid'
-    
-    input: 
+
+    input:
         tuple val(tumorname), path(tumor), path(tumorbai)
 
     output:
@@ -204,27 +210,27 @@ process bamtocram_tonly {
 
 /*
 process indelrealign {
-    //Briefly, RealignerTargetCreator runs faster with increasing -nt threads, 
+    //Briefly, RealignerTargetCreator runs faster with increasing -nt threads,
     //while IndelRealigner shows diminishing returns for increasing scatter
-    
+
     tag { name }
-    
+
     input:
     tuple val(samplename), path("${samplename}.bam"), path("${samplename}.bai")
 
     output:
     tuple val(samplename), path("${samplename}.ir.bam")
 
-    script: 
-    
+    script:
+
     """
     /usr/bin/java -Xmx32g -jar \${GATK_JAR} -T RealignerTargetCreator \
         -I ${samplename}.bam \
         -R ${GENOMEREF} \
         -o ${samplename}.intervals \
         -nt 16 \
-        -known ${MILLSINDEL} -known ${SHAPEITINDEL} 
-    
+        -known ${MILLSINDEL} -known ${SHAPEITINDEL}
+
     /usr/bin/java -Xmx32g -jar \${GATK_JAR} -T IndelRealigner \
         -R ${GENOMEREF} \
         -I ${samplename}.bam \
@@ -234,11 +240,11 @@ process indelrealign {
         -targetIntervals ${samplename}.intervals \
         -o  ${samplename}.ir.bam
     """
-    
+
 
     stub:
     """
-    touch ${samplename}.ir.bam 
+    touch ${samplename}.ir.bam
     """
 
 }

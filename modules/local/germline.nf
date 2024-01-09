@@ -5,15 +5,15 @@ MODEL="/opt/models/wgs/model.ckpt"
 //Processes
 //Deep Variant
 process deepvariant_step1 {
-    
+
     input:
         tuple val(samplename), path("${samplename}.bam"), path("${samplename}.bai"), path(bed)
-    
+
     output:
-        tuple val(samplename), path("outputshard/${samplename}.tfrecord_${bed}.gz"), 
+        tuple val(samplename), path("outputshard/${samplename}.tfrecord_${bed}.gz"),
         path("gvcf/${samplename}.gvcf.tfrecord_${bed}.gz")
 
-    script:     
+    script:
     """
     mkdir -p outputshard
     mkdir -p gvcf
@@ -24,7 +24,7 @@ process deepvariant_step1 {
     --reads ${samplename}.bam \
     --channels insert_size \
     --examples outputshard/${samplename}.tfrecord_${bed}.gz \
-    --gvcf gvcf/${samplename}.gvcf.tfrecord_${bed}.gz 
+    --gvcf gvcf/${samplename}.gvcf.tfrecord_${bed}.gz
     """
 
     stub:
@@ -32,23 +32,22 @@ process deepvariant_step1 {
     mkdir -p outputshard
     mkdir -p gvcf
     touch outputshard/${samplename}.tfrecord_${bed}.gz
-    touch gvcf/${samplename}.gvcf.tfrecord_${bed}.gz 
+    touch gvcf/${samplename}.gvcf.tfrecord_${bed}.gz
     """
 
 }
 
 //Step 2 requires GPU
 process deepvariant_step2 {
-    
-    
+
     input:
         tuple val(samplename), path(tfrecords), path(tfgvcf)
-    
+
     output:
-        tuple val(samplename), path(tfrecords), 
+        tuple val(samplename), path(tfrecords),
         path("${samplename}_call_variants_output.tfrecord.gz"), path(tfgvcf)
 
-    script: 
+    script:
 
     """
     call_variants \
@@ -69,17 +68,16 @@ process deepvariant_step2 {
 //Step 3 DV
 process deepvariant_step3 {
 
-    
     input:
         tuple val(samplename), path(tfrecords), path("${samplename}_call_variants_output.tfrecord.gz"),
         path(tfgvcf)
-    
+
     output:
         tuple val(samplename), path("${samplename}.vcf.gz"), path("${samplename}.vcf.gz.tbi"),
         path("${samplename}.gvcf.gz"), path("${samplename}.gvcf.gz.tbi")
 
 
-    script: 
+    script:
     """
    postprocess_variants \
     --ref $GENOMEREF \
@@ -101,16 +99,15 @@ process deepvariant_step3 {
 //Combined DeepVariant
 process deepvariant_combined {
 
-
     input:
         tuple val(samplename), path("${samplename}.bam"), path("${samplename}.bai")
-    
+
     output:
         tuple val(samplename), path("${samplename}.gvcf.gz"), path("${samplename}.gvcf.gz.tbi"),
         path("${samplename}.vcf.gz"), path("${samplename}.vcf.gz.tbi")
 
 
-    script:     
+    script:
     """
     run_deepvariant \
         --model_type=WGS \
@@ -118,7 +115,7 @@ process deepvariant_combined {
         --reads=${samplename}.bam \
         --output_gvcf= ${samplename}.gvcf.gz \
         --output_vcf=${samplename}.vcf.gz \
-        --num_shards=16 
+        --num_shards=16
     """
 
 
@@ -126,7 +123,7 @@ process deepvariant_combined {
     """
     touch ${samplename}.vcf.gz ${samplename}.vcf.gz.tbi
     touch ${samplename}.gvcf.gz  ${samplename}.gvcf.gz.tbi
-    
+
     """
 
 
@@ -134,20 +131,19 @@ process deepvariant_combined {
 
 process glnexus {
 
- 
     input:
         path(gvcfs)
-    
+
     output:
-        tuple path("germline.v.bcf"), 
+        tuple path("germline.v.bcf"),
         path("germline.norm.vcf.gz"),path("germline.norm.vcf.gz.tbi")
 
-    script: 
+    script:
 
     """
     glnexus_cli --config DeepVariant_unfiltered \
     *.gvcf.gz --threads 8 > germline.v.bcf
-    
+
     bcftools norm \
         -m - \
         -Oz \
@@ -160,18 +156,13 @@ process glnexus {
         -f -t \
         --threads 8 \
         germline.norm.vcf.gz
-    
+
     """
 
     stub:
     """
         touch germline.v.bcf
-        touch germline.norm.vcf.gz 
+        touch germline.norm.vcf.gz
         touch germline.norm.vcf.gz.tbi
     """
 }
-
-
-
-
-
