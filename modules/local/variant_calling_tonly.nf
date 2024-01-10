@@ -186,7 +186,7 @@ process mutect2_t_tonly {
 process mutect2filter_tonly {
     container = "${params.containers.logan}"
 
-    label 'process_mid'
+    label 'process_medium'
 
     input:
         tuple val(sample), path(mutvcfs), path(stats), path(obs), path(pileups),path(tumorcontamination)
@@ -359,9 +359,7 @@ process octopus_tonly {
 
 process somaticcombine_tonly {
     container = "${params.containers.logan}"
-
-    label 'process_mid'
-    publishDir(path: "${outdir}/vcfs/combined_tonly", mode: 'copy')
+    label 'process_medium'
 
     input:
         tuple val(tumorsample),
@@ -396,8 +394,7 @@ process somaticcombine_tonly {
 
 process annotvep_tonly {
     container = "${params.containers.vcf2maf}"
-
-    publishDir("${outdir}/mafs", mode: "copy")
+    label 'process_medium'
 
     input:
         tuple val(tumorsample),

@@ -226,7 +226,7 @@ process samtools_flagstats {
     @Output:
         Text file containing alignment statistics
     */
-    label 'process_mid'
+    label 'process_medium'
 
     input:
         tuple val(samplename), path(bam), path(bai)
@@ -296,7 +296,7 @@ process vcftools {
     @Output:
         Text file containing a measure of heterozygosity
     */
-    label 'process_mid'
+    label 'process_medium'
 
 
     input:
@@ -366,7 +366,7 @@ process bcftools_stats {
         Text file containing a collection of summary statistics
     */
 
-    label 'process_mid'
+    label 'process_medium'
 
     input:
         tuple val(samplename),  path("${samplename}.gvcf.gz"),path("${samplename}.gvcf.gz.tbi")
@@ -398,7 +398,7 @@ process gatk_varianteval {
     @Output:
         Evaluation table containing a collection of summary statistics
     */
-    label 'process_mid'
+    label 'process_medium'
 
     input:
         tuple val(samplename), path("${samplename}.gvcf.gz") ,path("${samplename}.gvcf.gz.tbi")
@@ -440,7 +440,7 @@ process snpeff {
     @Output:
         Evaluation table containing a collection of summary statistics
     */
-    label 'process_mid'
+    label 'process_medium'
 
     input:
         tuple val(samplename), path("${samplename}.gvcf.gz"), path("${samplename}.gvcf.gz.tbi")

@@ -4,7 +4,7 @@ KNOWNRECAL = params.genomes[params.genome].KNOWNRECAL
 
 process fastp {
     container = "${params.containers.logan}"
-    label 'process_mid'
+    label 'process_medium'
     tag { name }
 
     input:
@@ -169,8 +169,7 @@ process applybqsr {
 
 process samtoolsindex {
     container = "${params.containers.logan}"
-    label 'process_mid'
-    publishDir(path: "${outdir}/bams/BQSR", mode: 'copy')
+    label 'process_medium'
 
     input:
     tuple val(bamname), path(bam)
@@ -193,7 +192,7 @@ process samtoolsindex {
 //Save to CRAM for output
 process bamtocram_tonly {
     container = "${params.containers.logan}"
-    label 'process_mid'
+    label 'process_medium'
 
     input:
         tuple val(tumorname), path(tumor), path(tumorbai)

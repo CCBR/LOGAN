@@ -224,7 +224,7 @@ process mergemut2stats {
 
 process mutect2filter {
     container = "${params.containers.logan}"
-    label 'process_mid'
+    label 'process_medium'
 
     input:
         tuple val(tumor), val(normal),path(mutvcfs), path(stats), path(obs),
@@ -687,7 +687,7 @@ process bcftools_index_octopus {
 process combineVariants_strelka {
     //Concat all somatic snvs/indels across all files, strelka separates snv/indels
     container = "${params.containers.logan}"
-    label 'process_mid'
+    label 'process_medium'
 
     input:
         tuple val(sample),
@@ -733,7 +733,7 @@ process combineVariants_strelka {
 
 process somaticcombine {
     container = "${params.containers.logan}"
-    label 'process_mid'
+    label 'process_medium'
 
     input:
         tuple val(tumorsample), val(normal),
@@ -772,7 +772,9 @@ process somaticcombine {
 
 
 process annotvep_tn {
+    label 'process_medium'
     container = "${params.containers.vcf2maf}"
+
     input:
         tuple val(tumorsample), val(normalsample),
         val(vc), path(tumorvcf), path(vcfindex)
@@ -837,9 +839,7 @@ process annotvep_tn {
 
 process combinemafs_tn {
     container = "${params.containers.logan}"
-
     label 'process_low'
-    publishDir(path: "${outdir}/mafs/paired", mode: 'copy')
 
     input:
         path(allmafs)

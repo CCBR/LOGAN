@@ -127,9 +127,7 @@ process sequenza {
 
 process freec_paired {
     container = "${params.containers.logan}"
-
     label 'process_highcpu'
-    publishDir("${outdir}/cnv/freec_paired", mode: 'copy')
 
     input:
         tuple val(tumorname), path(tumor), path(tumorbai),
@@ -194,9 +192,7 @@ process freec_paired {
 
 process freec {
     container = "${params.containers.logan}"
-
-    label 'process_mid'
-    publishDir("${outdir}/cnv/freec_unpaired", mode: 'copy')
+    label 'process_medium'
 
     input:
         tuple val(tumorname), path(tumor), path(tumorbai)
@@ -260,7 +256,7 @@ process freec {
 process amber_tonly {
     container = "${params.containers.logan}"
 
-    label 'process_mid'
+    label 'process_medium'
 
     input:
         tuple val(tumorname), path(tumor), path(tumorbai)
@@ -297,7 +293,7 @@ process amber_tonly {
 process amber_tn {
     container = "${params.containers.logan}"
 
-    label 'process_mid'
+    label 'process_medium'
 
     input:
         tuple val(tumorname), path(tumor), path(tumorbai),
@@ -335,7 +331,7 @@ process amber_tn {
 process cobalt_tonly {
     container = "${params.containers.logan}"
 
-    label "process_mid"
+    label 'process_medium'
 
     input:
         tuple val(tumorname), path(tumor), path(tumorbai)
@@ -370,7 +366,7 @@ process cobalt_tonly {
 process cobalt_tn {
     container = "${params.containers.logan}"
 
-    label "process_mid"
+    label 'process_medium'
 
     input:
         tuple val(tumorname), path(tumor), path(tumorbai),
@@ -407,9 +403,7 @@ process cobalt_tn {
 
 process purple {
     container = "${params.containers.logan}"
-
-    label 'process_mid'
-    publishDir("${outdir}/cnv/purple", mode: 'copy')
+    label 'process_medium'
 
     input:
         tuple val(tumorname),
@@ -450,8 +444,6 @@ process purple {
 /*
 process ascat_tn {
     module=["java/12.0.1","R/3.6.3"]
-
-    publishDir("${outdir}/purple", mode: 'copy')
 
     input:
         tuple val(samplename), path(cobaltin), path(amberin), path("${samplename}.tonly.final.mut2.vcf.gz")
