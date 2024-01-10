@@ -326,7 +326,7 @@ process vardict_tonly {
 
 process octopus_tonly {
     container = "${params.containers.octopus}"
-    //label 'process_highcpu'
+    label 'process_somaticcaller_high'
 
     input:
         tuple val(tumorname), path(tumor), path(tumorbai), path(bed)

@@ -429,7 +429,7 @@ process varscan_tn {
 
 process octopus_tn {
     container = "${params.containers.octopus}"
-    //label 'process_highcpu' Using separate docker for octopus
+    label 'process_somaticcaller_high'
 
     input:
         tuple val(tumorname), path(tumor), path(tumorbai),
