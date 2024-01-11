@@ -13,7 +13,7 @@ GERMLINE_FOREST=params.genomes[params.genome].octopus_gforest
 
 
 process pileup_paired_tonly {
-    container = "${params.containers.logan}"
+    container "${params.containers.logan}"
 
     label 'process_highmem'
 
@@ -45,7 +45,7 @@ process pileup_paired_tonly {
 
 
 process contamination_tumoronly {
-    container = "${params.containers.logan}"
+    container "${params.containers.logan}"
 
     label 'process_highmem'
 
@@ -85,7 +85,7 @@ process contamination_tumoronly {
 
 
 process learnreadorientationmodel_tonly {
-    container = "${params.containers.logan}"
+    container "${params.containers.logan}"
 
     label 'process_highmem'
 
@@ -115,7 +115,7 @@ process learnreadorientationmodel_tonly {
 
 
 process mergemut2stats_tonly {
-    container = "${params.containers.logan}"
+    container "${params.containers.logan}"
 
     label 'process_low'
 
@@ -144,9 +144,9 @@ process mergemut2stats_tonly {
 
 
 process mutect2_t_tonly {
-    container = "${params.containers.logan}"
-
+    container "${params.containers.logan}"
     label 'process_somaticcaller'
+
     input:
         tuple val(tumorname), path(tumor), path(tumorbai), path(bed)
 
@@ -184,7 +184,7 @@ process mutect2_t_tonly {
 
 
 process mutect2filter_tonly {
-    container = "${params.containers.logan}"
+    container "${params.containers.logan}"
 
     label 'process_medium'
 
@@ -219,7 +219,7 @@ process mutect2filter_tonly {
         --output ${sample}.tonly.mut2.final.vcf.gz
 
     bcftools sort ${sample}.tonly.mut2.final.vcf.gz |\
-    bcftools norm --threads $task.cpus --check-ref s -f $GENOMEREF -O v |\
+    bcftools norm --threads ${task.cpus} --check-ref s -f $GENOMEREF -O v |\
         awk '{{gsub(/\\y[W|K|Y|R|S|M|B|D|H|V]\\y/,"N",\$4); OFS = "\t"; print}}' |\
         sed '/^\$/d' |\
     bcftools view - -Oz -o  ${sample}.tonly.mut2.norm.vcf.gz
@@ -237,7 +237,7 @@ process mutect2filter_tonly {
 
 
 process varscan_tonly {
-    container = "${params.containers.logan}"
+    container "${params.containers.logan}"
 
     label 'process_somaticcaller'
     input:
@@ -277,7 +277,7 @@ process varscan_tonly {
 
 
 process vardict_tonly {
-    container = "${params.containers.logan}"
+    container "${params.containers.logan}"
 
     label 'process_highcpu'
     input:
@@ -297,7 +297,7 @@ process vardict_tonly {
         -x 500 \
         --nosv \
         -b ${tumor} --fisher \
-        -t -Q 20 -c 1 -S 2 -E 3 --th $task.cpus \
+        -t -Q 20 -c 1 -S 2 -E 3 --th ${task.cpus} \
         temp_${bed} | var2vcf_valid.pl \
             -N ${tumor} \
             -Q 20 \
@@ -325,7 +325,7 @@ process vardict_tonly {
 
 
 process octopus_tonly {
-    container = "${params.containers.octopus}"
+    container "${params.containers.octopus}"
     label 'process_somaticcaller_high'
 
     input:
@@ -336,20 +336,16 @@ process octopus_tonly {
         path("${tumorname}_${bed.simpleName}.tonly.octopus.vcf.gz")
 
     script:
-
     """
     octopus -R $GENOMEREF -C cancer -I ${tumor} \
     --annotations AC AD DP \
     --target-working-memory 64Gb \
     -t ${bed} \
     $SOMATIC_FOREST \
-    -o ${tumorname}_${bed.simpleName}.tonly.octopus.vcf.gz --threads $task.cpus
-
-
+    -o ${tumorname}_${bed.simpleName}.tonly.octopus.vcf.gz --threads ${task.cpus}
     """
 
     stub:
-
     """
     touch ${tumorname}_${bed.simpleName}.tonly.octopus.vcf.gz
     """
@@ -358,7 +354,7 @@ process octopus_tonly {
 
 
 process somaticcombine_tonly {
-    container = "${params.containers.logan}"
+    container "${params.containers.logan}"
     label 'process_medium'
 
     input:
@@ -393,7 +389,7 @@ process somaticcombine_tonly {
 }
 
 process annotvep_tonly {
-    container = "${params.containers.vcf2maf}"
+    container "${params.containers.vcf2maf}"
     label 'process_medium'
 
     input:
@@ -457,7 +453,7 @@ process annotvep_tonly {
 }
 
 process combinemafs_tonly {
-    container = "${params.containers.logan}"
+    container "${params.containers.logan}"
     label 'process_low'
 
     input:

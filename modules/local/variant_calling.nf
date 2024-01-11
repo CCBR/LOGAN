@@ -15,7 +15,7 @@ LOFREQ_CONVERT=params.lofreq_convert
 
 
 process mutect2 {
-    container = "${params.containers.logan}"
+    container "${params.containers.logan}"
     label 'process_somaticcaller'
 
     input:
@@ -56,7 +56,7 @@ process mutect2 {
 
 
 process pileup_paired_t {
-    container = "${params.containers.logan}"
+    container "${params.containers.logan}"
     label 'process_highmem'
 
     input:
@@ -86,7 +86,7 @@ process pileup_paired_t {
 
 
 process pileup_paired_n {
-    container = "${params.containers.logan}"
+    container "${params.containers.logan}"
     label 'process_highmem'
 
     input:
@@ -116,7 +116,7 @@ process pileup_paired_n {
 
 
 process contamination_paired {
-    container = "${params.containers.logan}"
+    container "${params.containers.logan}"
     label 'process_highmem'
 
     input:
@@ -170,7 +170,7 @@ process contamination_paired {
 
 
 process learnreadorientationmodel {
-    container = "${params.containers.logan}"
+    container "${params.containers.logan}"
     label 'process_highmem'
 
     input:
@@ -196,7 +196,7 @@ process learnreadorientationmodel {
 
 
 process mergemut2stats {
-    container = "${params.containers.logan}"
+    container "${params.containers.logan}"
     label 'process_low'
 
     input:
@@ -223,7 +223,7 @@ process mergemut2stats {
 
 
 process mutect2filter {
-    container = "${params.containers.logan}"
+    container "${params.containers.logan}"
     label 'process_medium'
 
     input:
@@ -274,7 +274,7 @@ process mutect2filter {
 
 
 process strelka_tn {
-    container = "${params.containers.logan}"
+    container "${params.containers.logan}"
     label 'process_highcpu'
     input:
         tuple val(tumorname), path(tumor), path(tumorbai),
@@ -329,7 +329,7 @@ process strelka_tn {
 
 
 process vardict_tn {
-    container = "${params.containers.logan}"
+    container "${params.containers.logan}"
     label 'process_highcpu'
 
     input:
@@ -379,7 +379,7 @@ process vardict_tn {
 
 
 process varscan_tn {
-    container = "${params.containers.logan}"
+    container "${params.containers.logan}"
     label 'process_somaticcaller'
 
     input:
@@ -428,7 +428,7 @@ process varscan_tn {
 
 
 process octopus_tn {
-    container = "${params.containers.octopus}"
+    container "${params.containers.octopus}"
     label 'process_somaticcaller_high'
 
     input:
@@ -463,7 +463,7 @@ process octopus_tn {
 
 
 process lofreq_tn {
-    container = "${params.containers.logan}"
+    container "${params.containers.logan}"
     label 'process_somaticcaller'
 
     input:
@@ -523,7 +523,7 @@ process lofreq_tn {
 
 
 process muse_tn {
-    container = "${params.containers.logan}"
+    container "${params.containers.logan}"
     label 'process_somaticcaller'
     input:
         tuple val(tumorname), path(tumor), path(tumorbai),
@@ -560,7 +560,7 @@ process muse_tn {
 
 
 process combineVariants {
-    container = "${params.containers.logan}"
+    container "${params.containers.logan}"
     label 'process_highmem'
 
     input:
@@ -610,7 +610,7 @@ process combineVariants {
 
 
 process combineVariants_alternative {
-    container = "${params.containers.logan}"
+    container "${params.containers.logan}"
     label 'process_highmem'
 
     input:
@@ -658,7 +658,7 @@ process combineVariants_alternative {
 
 
 process bcftools_index_octopus {
-    container = "${params.containers.logan}"
+    container "${params.containers.logan}"
     label 'process_low'
 
     input:
@@ -686,7 +686,7 @@ process bcftools_index_octopus {
 
 process combineVariants_strelka {
     //Concat all somatic snvs/indels across all files, strelka separates snv/indels
-    container = "${params.containers.logan}"
+    container "${params.containers.logan}"
     label 'process_medium'
 
     input:
@@ -732,7 +732,7 @@ process combineVariants_strelka {
 
 
 process somaticcombine {
-    container = "${params.containers.logan}"
+    container "${params.containers.logan}"
     label 'process_medium'
 
     input:
@@ -773,7 +773,7 @@ process somaticcombine {
 
 process annotvep_tn {
     label 'process_medium'
-    container = "${params.containers.vcf2maf}"
+    container "${params.containers.vcf2maf}"
 
     input:
         tuple val(tumorsample), val(normalsample),
@@ -838,7 +838,7 @@ process annotvep_tn {
 
 
 process combinemafs_tn {
-    container = "${params.containers.logan}"
+    container "${params.containers.logan}"
     label 'process_low'
 
     input:
