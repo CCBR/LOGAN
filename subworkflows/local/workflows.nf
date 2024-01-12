@@ -71,8 +71,8 @@ workflow INPUT {
 
     if(params.fastq_input){
         fastqinput=Channel.fromFilePairs(params.fastq_input)
-    }else if(params.file_input) {
-        fastqinput=Channel.fromPath(params.file_input)
+    }else if(params.fastq_file_input) {
+        fastqinput=Channel.fromPath(params.fastq_file_input)
                         .splitCsv(header: false, sep: "\t", strip:true)
                         .map{ sample,fq1,fq2 ->
                         tuple(sample, tuple(file(fq1),file(fq2)))
@@ -574,8 +574,8 @@ workflow INPUT_BAM {
             println "Missing BAM Index"
         }
 
-    }else if(params.file_input) {
-        baminputonly=Channel.fromPath(params.file_input)
+    }else if(params.bam_file_input) {
+        baminputonly=Channel.fromPath(params.bam_file_input)
                         .splitCsv(header: false, sep: "\t", strip:true)
                         .map{ sample,bam,bai  ->
                         tuple(sample, file(bam),file(bai))

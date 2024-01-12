@@ -21,12 +21,13 @@ ENSEMBLCACHE='/data/SCLC-BRAINMETS/cn/common/ensembl_data'
 DRIVERS='/data/SCLC-BRAINMETS/cn/common/DriverGenePanel.38.tsv'
 HOTSPOTS='/data/SCLC-BRAINMETS/cn/variants/KnownHotspots.somatic.38.vcf.gz'
 
-//DBSNP_INDEL=file(params.genomes[params.genome].KNOWNINDELS) 
+//DBSNP_INDEL=file(params.genomes[params.genome].KNOWNINDELS)
 //ascatR=
 
 
-//mm10 Paired-Sequenza, FREEC-tumor only 
+//mm10 Paired-Sequenza, FREEC-tumor only
 process seqz_sequenza_bychr {
+    container = "${params.containers.logan}"
     label 'process_low'
 
     input:
@@ -57,13 +58,15 @@ process seqz_sequenza_bychr {
 
 
 process sequenza {
+    container = "${params.containers.logan}"
+
     label 'process_highcpu'
 
     input:
         tuple val(pairid), path(seqz)
 
     output:
-        tuple val(pairid), 
+        tuple val(pairid),
         path("${pairid}_alternative_solutions.txt"),
         path("${pairid}_alternative_fit.pdf"),
         path("${pairid}_model_fit.pdf"),
@@ -83,9 +86,9 @@ process sequenza {
     //samtools mpileup ${normal} -f $GENOMEREF -Q 20 |gzip > ${normalname}.mpileup.gz
     //sequenza-utils seqz_binning --seqz --window 50 -o ${sample}_bin50.seqz.gz
 
-    shell: 
+    shell:
     '''
-    
+
     zcat !{seqz} | awk '{if (NR==1) {print $0} else {if ($1!="chromosome"){print $0}}}' |\
     sequenza-utils seqz_binning \
         -w 100 \
@@ -99,11 +102,11 @@ process sequenza {
 
     '''
 
-    stub: 
-    
+    stub:
+
     """
-    touch "${pairid}_alternative_solutions.txt" 
-    touch "${pairid}_alternative_fit.pdf" 
+    touch "${pairid}_alternative_solutions.txt"
+    touch "${pairid}_alternative_fit.pdf"
     touch "${pairid}_model_fit.pdf"
     touch "${pairid}_confints_CP.txt"
     touch "${pairid}_CN_bars.pdf"
@@ -121,13 +124,25 @@ process sequenza {
 
 }
 
+
 process freec_paired {
+    container = "${params.containers.logan}"
     label 'process_highcpu'
 
     input:
-        tuple val(tumorname), path(tumor), path(tumorbai), val(normalname), path(normal), path(normalbai)
+        tuple val(tumorname), path(tumor), path(tumorbai),
+        val(normalname), path(normal), path(normalbai)
 
-    shell: """
+    output:
+        tuple val(tumorname), val(normalname),
+        path("${tumorname}_vs_${normalname}_CNVs.p.value.txt"),
+        path("${tumorname}_vs_${normalname}_ratio.txt"),
+        path("${tumorname}_vs_${normalname}_BAF.txt"),
+        path("${tumorname}_vs_${normalname}_ratio.txt.log2.png"),
+        path("${tumorname}_vs_${normalname}_ratio.txt.png")
+
+    shell:
+    """
 
     perl $FREECPAIR_SCRIPT \
         . \
@@ -150,28 +165,46 @@ process freec_paired {
     cat $FREECPLOT | \
         R --slave \
         --args 2 \
-        ${tumorname}_vs_${normalname}.bam_ratio.txt \
-        ${tumorname}_vs_${normalname}.bam_BAF.txt
+        ${tumor}_ratio.txt \
+        ${tumor}_BAF.txt
 
-    """      
+    mv ${tumor}_CNVs.p.value.txt ${tumorname}_vs_${normalname}_CNVs.p.value.txt
+    mv ${tumor}_ratio.txt ${tumorname}_vs_${normalname}_ratio.txt
+    mv ${tumor}_BAF.txt ${tumorname}_vs_${normalname}_BAF.txt
+    mv ${tumor}_BAF.txt.png ${tumorname}_vs_${normalname}_BAF.txt.png
+    mv ${tumor}_ratio.txt.log2.png ${tumorname}_vs_${normalname}_ratio.txt.log2.png
+    mv ${tumor}_ratio.txt.png ${tumorname}_vs_${normalname}_ratio.txt.png
+
+    """
 
     stub:
     """
-    touch ${tumorname}_vs_${normalname}.bam_CNVs.p.value.txt  
-    touch ${tumorname}_vs_${normalname}.bam_ratio.txt 
-    touch ${tumorname}_vs_${normalname}.bam_BAF.txt
-    touch ${tumorname}_vs_${normalname}.bam_ratio.txt.log2.png
-    touch ${tumorname}_vs_${normalname}.bam_ratio.txt.png
+    touch ${tumorname}_vs_${normalname}_CNVs.p.value.txt
+    touch ${tumorname}_vs_${normalname}_ratio.txt
+    touch ${tumorname}_vs_${normalname}_BAF.txt
+    touch ${tumorname}_vs_${normalname}_BAF.txt.png
+    touch ${tumorname}_vs_${normalname}_ratio.txt.log2.png
+    touch ${tumorname}_vs_${normalname}_ratio.txt.png
 
     """
 }
 
 
 process freec {
-    label 'process_mid'
+    container = "${params.containers.logan}"
+    label 'process_medium'
 
     input:
         tuple val(tumorname), path(tumor), path(tumorbai)
+
+    output:
+        tuple val(tumorname),
+        path("${tumorname}_CNVs.p.value.txt"),
+        path("${tumorname}_ratio.txt"),
+        path("${tumorname}_BAF.txt"),
+        path("${tumorname}_ratio.txt.log2.png"),
+        path("${tumorname}_ratio.txt.png")
+
 
     shell: """
 
@@ -198,26 +231,36 @@ process freec {
         ${tumor}_ratio.txt \
         ${tumor}_BAF.txt
 
-    """      
+    mv ${tumor}_CNVs.p.value.txt ${tumorname}_CNVs.p.value.txt
+    mv ${tumor}_ratio.txt ${tumorname}_ratio.txt
+    mv ${tumor}_BAF.txt ${tumorname}_BAF.txt
+    mv ${tumor}_BAF.txt.png ${tumorname}_BAF.txt.png
+    mv ${tumor}_ratio.txt.log2.png ${tumorname}_ratio.txt.log2.png
+    mv ${tumor}_ratio.txt.png ${tumorname}_ratio.txt.png
+
+    """
 
     stub:
     """
-    touch ${tumor}_CNVs.p.value.txt  
-    touch ${tumor}_ratio.txt 
-    touch ${tumor}_BAF.txt 
-    touch ${tumor}_ratio.txt.log2.png
-    touch ${tumor}_ratio.txt.png
+    touch ${tumorname}_CNVs.p.value.txt
+    touch ${tumorname}_ratio.txt
+    touch ${tumorname}_BAF.txt
+    touch ${tumorname}_BAF.txt.png
+    touch ${tumorname}_ratio.txt.log2.png
+    touch ${tumorname}_ratio.txt.png
 
     """
 }
 
 
 process amber_tonly {
-    label 'process_mid'
+    container = "${params.containers.logan}"
+
+    label 'process_medium'
 
     input:
         tuple val(tumorname), path(tumor), path(tumorbai)
-       
+
 
     output:
         tuple val(tumorname), path("${tumorname}_amber")
@@ -243,13 +286,15 @@ process amber_tonly {
 
     """
     mkdir ${tumorname}_amber
-    touch ${tumorname}_amber/${tumorname}.amber.baf.tsv.gz ${tumorname}_amber/${tumorname}.amber.baf.pcf ${tumorname}_amber/${tumorname}.amber.qc 
+    touch ${tumorname}_amber/${tumorname}.amber.baf.tsv.gz ${tumorname}_amber/${tumorname}.amber.baf.pcf ${tumorname}_amber/${tumorname}.amber.qc
     """
 }
 
 process amber_tn {
-    label 'process_mid'
-    
+    container = "${params.containers.logan}"
+
+    label 'process_medium'
+
     input:
         tuple val(tumorname), path(tumor), path(tumorbai),
         val(normalname), path(normal), path(normalbai)
@@ -279,19 +324,21 @@ process amber_tn {
 
     """
     mkdir ${tumorname}_vs_${normalname}_amber
-    touch ${tumorname}_vs_${normalname}_amber/${tumorname}.amber.baf.tsv.gz ${tumorname}_vs_${normalname}_amber/${tumorname}.amber.baf.pcf ${tumorname}_vs_${normalname}_amber/${tumorname}.amber.qc 
+    touch ${tumorname}_vs_${normalname}_amber/${tumorname}.amber.baf.tsv.gz ${tumorname}_vs_${normalname}_amber/${tumorname}.amber.baf.pcf ${tumorname}_vs_${normalname}_amber/${tumorname}.amber.qc
     """
 }
 
 process cobalt_tonly {
-    label "process_mid"
+    container = "${params.containers.logan}"
+
+    label 'process_medium'
 
     input:
         tuple val(tumorname), path(tumor), path(tumorbai)
 
     output:
         tuple val(tumorname), path("${tumorname}_cobalt")
-        //path("${samplename}/${samplename}.cobalt.ratio.tsv.gz"), 
+        //path("${samplename}/${samplename}.cobalt.ratio.tsv.gz"),
         //path("${samplename}/${samplename}.cobalt.ratio.pcf"),
         //path("${samplename}/${samplename}.cobalt.gc.median.tsv")
 
@@ -317,7 +364,9 @@ process cobalt_tonly {
 }
 
 process cobalt_tn {
-    label "process_mid"
+    container = "${params.containers.logan}"
+
+    label 'process_medium'
 
     input:
         tuple val(tumorname), path(tumor), path(tumorbai),
@@ -325,7 +374,7 @@ process cobalt_tn {
 
     output:
         tuple val(tumorname), path("${tumorname}_vs_${normalname}_cobalt")
-        //path("${samplename}/${samplename}.cobalt.ratio.tsv.gz"), 
+        //path("${samplename}/${samplename}.cobalt.ratio.tsv.gz"),
         //path("${samplename}/${samplename}.cobalt.ratio.pcf"),
         //path("${samplename}/${samplename}.cobalt.gc.median.tsv")
 
@@ -353,12 +402,12 @@ process cobalt_tn {
 
 
 process purple {
-    label 'process_mid'
-    publishDir("${outdir}/cnv/purple", mode: 'copy')
+    container = "${params.containers.logan}"
+    label 'process_medium'
 
     input:
         tuple val(tumorname),
-        path(cobaltin), 
+        path(cobaltin),
         path(amberin),
         path(somaticvcf),
         path(somaticvcfindex)
@@ -395,8 +444,6 @@ process purple {
 /*
 process ascat_tn {
     module=["java/12.0.1","R/3.6.3"]
-
-    publishDir("${outdir}/purple", mode: 'copy')
 
     input:
         tuple val(samplename), path(cobaltin), path(amberin), path("${samplename}.tonly.final.mut2.vcf.gz")
@@ -436,4 +483,3 @@ process ascat_tn {
 }
 
 */
-
