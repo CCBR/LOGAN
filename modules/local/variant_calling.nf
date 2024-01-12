@@ -330,7 +330,7 @@ process strelka_tn {
 
 process vardict_tn {
     container "${params.containers.logan}"
-    label 'process_highcpu'
+    label 'process_somaticcaller_high'
 
     input:
         tuple val(tumorname), path(tumor), path(tumorbai), val(normalname), path(normal), path(normalbai), path(bed)

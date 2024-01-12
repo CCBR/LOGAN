@@ -278,8 +278,8 @@ process varscan_tonly {
 
 process vardict_tonly {
     container "${params.containers.logan}"
+    label 'process_somaticcaller_high'
 
-    label 'process_highcpu'
     input:
         tuple val(tumorname), path(tumor), path(tumorbai), path(bed)
 
