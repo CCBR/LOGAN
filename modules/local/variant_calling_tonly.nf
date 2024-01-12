@@ -185,7 +185,6 @@ process mutect2_t_tonly {
 
 process mutect2filter_tonly {
     container "${params.containers.logan}"
-
     label 'process_medium'
 
     input:
