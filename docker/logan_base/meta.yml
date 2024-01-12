@@ -1,4 +1,4 @@
 dockerhub_namespace: dnousome
 image_name: ccbr_logan_base
-version: v0.3.3
+version: v0.3.4
 container: "$(dockerhub_namespace)/$(image_name):$(version)"

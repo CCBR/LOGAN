@@ -27,10 +27,11 @@ RUN apt-get update \
 # bwa/0.7.17-4  bowtie/1.2.3  bowtie2/2.3.5.1 
 # bedtools/2.27.1  bedops/2.4.37  samtools/1.10 
 # bcftools/1.10.2  vcftools/0.1.16  
-# Previous tools already installed trimmomatic/0.39  tabix/1.10.2
+# Previous tools already installed  tabix/1.10.2 ##trimmomatic/0.39 
 RUN DEBIAN_FRONTEND=noninteractive apt-get install -y \
-      tabix \
-      trimmomatic 
+      tabix 
+      #\
+      #trimmomatic 
       
 # Install BWA-MEM2 v2.2.1
 RUN wget https://github.com/bwa-mem2/bwa-mem2/releases/download/v2.2.1/bwa-mem2-2.2.1_x64-linux.tar.bz2 \
@@ -56,6 +57,16 @@ ENV PATH="/opt2/gatk-4.4.0.0:$PATH"
 # Use DISCVRSeq For CombineVariants Replacement
 RUN wget https://github.com/BimberLab/DISCVRSeq/releases/download/1.3.62/DISCVRSeq-1.3.62.jar 
 ENV DISCVRSeq_JAR="/opt2/DISCVRSeq-1.3.62.jar"
+
+# Install last release of GATK3 (GATK/3.8-1)
+# Only being used for the CombineVariants
+# command that is not available in GATK4
+# Available via env variable: $GATK_JAR
+# Requires Java8 or 1.8
+RUN wget https://storage.googleapis.com/gatk-software/package-archive/gatk/GenomeAnalysisTK-3.8-1-0-gf15c1c3ef.tar.bz2 \
+    && tar -xvjf /opt2/GenomeAnalysisTK-3.8-1-0-gf15c1c3ef.tar.bz2 \
+    && rm /opt2/GenomeAnalysisTK-3.8-1-0-gf15c1c3ef.tar.bz2
+ENV GATK_JAR="/opt2/GenomeAnalysisTK-3.8-1-0-gf15c1c3ef/GenomeAnalysisTK.jar"
 
 # Install dependencies needed to add a new repository over HTTPS
 RUN DEBIAN_FRONTEND=noninteractive apt-get install -y \
@@ -163,9 +174,9 @@ RUN wget https://github.com/AstraZeneca-NGS/VarDictJava/releases/download/v1.8.3
 ENV PATH="/opt2/VarDict-1.8.3/bin:$PATH"
 
 # Fastp From Opengene github
-RUN wget http://opengene.org/fastp/fastp.0.23.2 \
+RUN wget http://opengene.org/fastp/fastp.0.23.4 \
     && mkdir fastp \
-    && mv fastp.0.23.2 fastp/fastp \
+    && mv fastp.0.23.4 fastp/fastp \
     && chmod a+x fastp/fastp
 ENV PATH="/opt2/fastp:$PATH"
 
@@ -194,9 +205,11 @@ ENV PATH="/opt2/svaba:$PATH"
 # LOFREQ
 RUN wget https://github.com/CSB5/lofreq/raw/master/dist/lofreq_star-2.1.5_linux-x86-64.tgz \
     && tar -xzf lofreq_star-2.1.5_linux-x86-64.tgz \ 
-    && chmod a+x lofreq_star-2.1.5_linux-x86-64/bin/lofreq 
+    && chmod a+x lofreq_star-2.1.5_linux-x86-64/bin/lofreq \
+    && rm lofreq_star-2.1.5_linux-x86-64.tgz
 
 ENV PATH="/opt2/lofreq_star-2.1.5_linux-x86-64/bin/:$PATH"
+
 # MUSE
 RUN wget -O muse_2.0.4.tar.gz https://github.com/wwylab/MuSE/archive/refs/tags/v2.0.4.tar.gz \
     && tar -xzf muse_2.0.4.tar.gz \ 
@@ -208,7 +221,6 @@ RUN wget -O muse_2.0.4.tar.gz https://github.com/wwylab/MuSE/archive/refs/tags/v
     && rm /opt2/muse_2.0.4.tar.gz
 
 ENV PATH="/opt2/MuSE:$PATH"
-
 
 
 # Add Dockerfile and argparse.bash script
