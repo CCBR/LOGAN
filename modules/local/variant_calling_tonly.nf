@@ -352,6 +352,70 @@ process octopus_tonly {
 
 
 
+process octopus_convertvcf_tonly {
+    container "${params.containers.logan}"
+    label 'process_low'
+    
+    input:
+        tuple val(tumor), val(oct), path(vcf), path(vcfindex)
+
+    output:
+        tuple val(tumor), path("${tumor}.octopus_tonly.norm.vcf.gz"), 
+        path("${tumor}.octopus_tonly.norm.vcf.gz.tbi")
+
+
+    script:
+    """
+    zcat ${vcf}  | sed 's/^##fileformat=VCFv4.3/##fileformat=VCFv4.2/'  > ${tumor}_temp.octopus_tonly.norm.vcf
+    bgzip ${tumor}_temp.octopus_tonly.norm.vcf
+    mv ${tumor}_temp.octopus_tonly.norm.vcf.gz ${tumor}.octopus_tonly.norm.vcf.gz
+    bcftools index -t ${tumor}.octopus_tonly.norm.vcf.gz -f
+    """
+
+    stub:
+    """
+    touch ${tumor}.octopus_tonly.norm.vcf.gz ${tumor}.octopus_tonly.norm.vcf.gz.tbi
+    """
+}
+
+
+process somaticcombine_tonly {
+    container "${params.containers.logan}"
+    label 'process_medium'
+
+    input:
+        tuple val(tumorsample),
+        val(callers),
+        path(vcfs), path(vcfindex)
+
+    output:
+        tuple val(tumorsample),
+        path("${tumorsample}_combined_tonly.vcf.gz"),
+        path("${tumorsample}_combined_tonly.vcf.gz.tbi")
+
+    script:
+        vcfin1=[callers, vcfs].transpose().collect { a, b -> a + " " + b }
+        vcfin2="-V:" + vcfin1.join(" -V:")
+
+    """
+    /usr/lib/jvm/java-8-openjdk-amd64/bin/java -jar \$GATK_JAR -T CombineVariants  \
+        -R $GENOMEREF \
+        --genotypemergeoption PRIORITIZE \
+        --rod_priority_list mutect2_tonly,octopus_tonly,vardict_tonly,varscan_tonly \
+        --filteredrecordsmergetype KEEP_IF_ANY_UNFILTERED \
+        -o ${tumorsample}_combined_tonly.vcf.gz \
+        $vcfin2
+    """
+
+    stub:
+    """
+    touch ${tumorsample}_combined_tonly.vcf.gz ${tumorsample}_combined_tonly.vcf.gz.tbi
+    """
+
+}
+
+
+/*DISCVRSeq
 process somaticcombine_tonly {
     container "${params.containers.logan}"
     label 'process_medium'
@@ -386,7 +450,7 @@ process somaticcombine_tonly {
     """
 
 }
-
+*/
 process annotvep_tonly {
     container "${params.containers.vcf2maf}"
     label 'process_medium'

@@ -19,7 +19,7 @@ include {mutect2; mutect2filter; pileup_paired_t; pileup_paired_n;
     contamination_paired; learnreadorientationmodel;mergemut2stats;
     strelka_tn; combineVariants_strelka;
     varscan_tn; vardict_tn; lofreq_tn; muse_tn;
-    octopus_tn; bcftools_index_octopus; bcftools_index_octopus as bcftools_index_octopus_tonly;
+    octopus_tn; bcftools_index_octopus; bcftools_index_octopus as bcftools_index_octopus_tonly; octopus_convertvcf; 
     combineVariants as combineVariants_vardict; combineVariants as combineVariants_vardict_tonly;
     combineVariants as combineVariants_varscan; combineVariants as combineVariants_varscan_tonly;
     combineVariants_alternative as combineVariants_lofreq; combineVariants as combineVariants_muse;
@@ -34,7 +34,7 @@ include {mutect2_t_tonly; mutect2filter_tonly;
     varscan_tonly; vardict_tonly; octopus_tonly;
     contamination_tumoronly;
     learnreadorientationmodel_tonly;
-    mergemut2stats_tonly;
+    mergemut2stats_tonly; octopus_convertvcf_tonly;
     annotvep_tonly as annotvep_tonly_varscan; annotvep_tonly as annotvep_tonly_vardict;
     annotvep_tonly as annotvep_tonly_mut2; annotvep_tonly as annotvep_tonly_octopus;
     annotvep_tonly as annotvep_tonly_combined;
@@ -314,6 +314,8 @@ workflow VC {
         | map{samplename,marked,markedindex,normvcf,normindex ->
             tuple(samplename.split('_vs_')[0],samplename.split('_vs_')[1],"octopus",normvcf,normindex)}
     annotvep_tn_octopus(octopus_in)
+    octopus_in_sc = octopus_in | octopus_convertvcf
+        |  map{tumor,vcf,vcfindex ->tuple(tumor,"octopus_tonly",normvcf,normindex)} 
 
     //Octopus TOnly
     octopus_in_tonly=bambyinterval.map{tumor,bam,bai,normal,nbam,nbai,bed->
@@ -324,15 +326,17 @@ workflow VC {
         | join(sample_sheet) |
         map{tumor,marked,markedindex,normvcf,normindex,normal ->tuple(tumor,"octopus_tonly",normvcf,normindex)}
     annotvep_tonly_octopus(octopus_in_tonly)
+    octopus_in_tonly_sc=octopus_in_tonly | octopus_convertvcf_tonly
+        | map{tumor,vcf,vcfindex ->tuple(tumor,"octopus_tonly",normvcf,normindex)} 
 
     //Combine All Variants Using VCF and Then Reannotate
-    mutect2_in|concat(strelka_in)|concat(octopus_in)|concat(muse_in)|concat(lofreq_in)
+    mutect2_in|concat(strelka_in)|concat(octopus_in_sc)|concat(muse_in)|concat(lofreq_in)
         | concat(vardict_in) |concat(varscan_in) | groupTuple(by:[0,1])
         | somaticcombine
         | map{tumor,normal,vcf,index ->tuple(tumor,normal,"combined",vcf,index)}
         | annotvep_tn_combined
 
-    mutect2_in_tonly|concat(octopus_in_tonly)
+    mutect2_in_tonly|concat(octopus_in_tonly_sc)
         | concat(vardict_in_tonly)|concat(varscan_in_tonly) | groupTuple()
         | somaticcombine_tonly
         | map{tumor,vcf,index ->tuple(tumor,"combined_tonly",vcf,index)}

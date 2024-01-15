@@ -32,7 +32,7 @@ include {mutect2_t_tonly; mutect2filter_tonly; pileup_paired_tonly;
     octopus_tonly; 
     contamination_tumoronly;
     learnreadorientationmodel_tonly; 
-    mergemut2stats_tonly;
+    mergemut2stats_tonly; octopus_convertvcf_tonly;
     annotvep_tonly as annotvep_tonly_varscan; annotvep_tonly as annotvep_tonly_vardict; 
     annotvep_tonly as annotvep_tonly_mut2; annotvep_tonly as annotvep_tonly_octopus;
     annotvep_tonly as annotvep_tonly_combined;
@@ -196,9 +196,11 @@ workflow VC_TONLY {
         | combineVariants_alternative | join(sample_sheet)
         | map{tumor,marked,markedindex,normvcf,normindex ->tuple(tumor,"octopus_tonly",normvcf,normindex)} 
     annotvep_tonly_octopus(octopus_in_tonly)
+    octopus_in_tonly_sc=octopus_in_tonly | octopus_convertvcf_tonly 
+        | map{tumor,normvcf,normindex ->tuple(tumor,"octopus_tonly",normvcf,normindex)} 
 
-
-    mutect2_tonly_in | concat(octopus_in_tonly)
+    //Combined Variants and Annotated
+    mutect2_tonly_in | concat(octopus_in_tonly_sc)
         | concat(vardict_in_tonly) | concat(varscan_in_tonly)
         | groupTuple()
         | somaticcombine_tonly 

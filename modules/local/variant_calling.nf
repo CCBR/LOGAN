@@ -221,6 +221,32 @@ process mergemut2stats {
 
 }
 
+process octopus_convertvcf {
+    container "${params.containers.logan}"
+    label 'process_low'
+    
+    input:
+        tuple val(tumor), val(normal), 
+        val(oct), path(vcf), path(vcfindex)
+
+    output:
+        tuple val(tumor), val(normal), path("${tumor}.octopus.norm.vcf.gz"), 
+        path("${tumor}.octopus.norm.vcf.gz.tbi")
+
+
+    script:
+    """
+    zcat ${vcf}  | sed 's/^##fileformat=VCFv4.3/##fileformat=VCFv4.2/'  > ${tumor}_temp.octopus.norm.vcf
+    bgzip ${tumor}_temp.octopus.norm.vcf
+    mv ${tumor}_temp.octopus.norm.vcf.gz ${tumor}.octopus.norm.vcf.gz
+    bcftools index -t ${tumor}.octopus.norm.vcf.gz -f
+    """
+
+    stub:
+    """
+    touch ${tumor}.octopus.norm.vcf.gz ${tumor}.octopus.norm.vcf.gz.tbi
+    """
+}
 
 process mutect2filter {
     container "${params.containers.logan}"
@@ -750,6 +776,49 @@ process somaticcombine {
         vcfin2="-V:" + vcfin1.join(" -V:")
 
     """
+    /usr/lib/jvm/java-8-openjdk-amd64/bin/java -jar \$GATK_JAR -T CombineVariants  \
+        -R $GENOMEREF \
+        --genotypemergeoption PRIORITIZE \
+        --rod_priority_list mutect2,strelka,octopus,muse,lofreq,vardict,varscan \
+        --filteredrecordsmergetype KEEP_IF_ANY_UNFILTERED \
+        -o ${tumorsample}_vs_${normal}_combined.vcf.gz \
+        $vcfin2
+        
+    """
+
+    stub:
+    vcfin1=[callers, vcfs].transpose().collect { a, b -> a + " " + b }
+    vcfin2="-V:" + vcfin1.join(" -V:")
+
+    """
+    touch ${tumorsample}_vs_${normal}_combined.vcf.gz
+    touch ${tumorsample}_vs_${normal}_combined.vcf.gz.tbi
+    """
+
+}
+
+
+
+/*DISCVR
+process somaticcombine {
+    container "${params.containers.logan}"
+    label 'process_medium'
+
+    input:
+        tuple val(tumorsample), val(normal),
+        val(callers),
+        path(vcfs), path(vcfindex)
+
+    output:
+        tuple val(tumorsample), val(normal),
+        path("${tumorsample}_vs_${normal}_combined.vcf.gz"),
+        path("${tumorsample}_vs_${normal}_combined.vcf.gz.tbi")
+
+    script:
+        vcfin1=[callers, vcfs].transpose().collect { a, b -> a + " " + b }
+        vcfin2="-V:" + vcfin1.join(" -V:")
+
+    """
     java -jar \$DISCVRSeq_JAR MergeVcfsAndGenotypes \
         -R $GENOMEREF \
         --genotypeMergeOption PRIORITIZE \
@@ -769,7 +838,7 @@ process somaticcombine {
     """
 
 }
-
+*/
 
 process annotvep_tn {
     label 'process_medium'
