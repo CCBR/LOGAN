@@ -275,18 +275,19 @@ workflow VC {
     annotvep_tonly_vardict(vardict_in_tonly)
 
     //VarScan TN
-    varscan_in=bambyinterval.combine(contamination_paired.out)
-        | varscan_tn | groupTuple(by:[0,1])
+    varscan_in=bambyinterval.combine(contamination_paired.out,by:0) 
+        | varscan_tn | groupTuple(by:[0,1]) 
         | map{tumor,normal,vcf-> tuple("${tumor}_vs_${normal}",vcf.toSorted{it -> (it.name =~ /${tumor}_vs_${normal}_(.*?).varscan.vcf.gz/)[0][1].toInteger()},"varscan")}
         | combineVariants_varscan | join(sample_sheet_paired)
         | map{sample,marked,markedindex,normvcf,normindex,tumor,normal ->tuple(tumor,normal,"varscan",normvcf,normindex)}
     annotvep_tn_varscan(varscan_in)
 
+    
     //VarScan TOnly
-    varscan_in_tonly=bambyinterval.combine(contamination_paired.out)
-    | map{tumor,bam,bai,normal,nbam,nbai,bed,tumorname2,tpile,npile,tumorc,normalc ->
+    varscan_in_tonly=bambyinterval.combine(contamination_paired.out,by:0) 
+    | map{tumor,bam,bai,normal,nbam,nbai,bed,tpile,npile,tumorc,normalc ->
             tuple(tumor,bam,bai,bed,tpile,tumorc)} | varscan_tonly  | groupTuple 
-    | map{tumor,vcf-> tuple(tumor,vcf.toSorted{it -> (it.name =~ /${tumor}_(.*?).tonly.varscan.vcf.gz/)[0][1].toInteger()},"varscan_tonly")} 
+    | map{tumor,vcf-> tuple(tumor,vcf.toSorted{it -> (it.name =~ /${tumor}_(.*?).tonly.varscan.vcf.gz/)[0][1].toInteger()},"varscan_tonly")}  
     | combineVariants_varscan_tonly 
     | join(sample_sheet)
     | map{tumor,marked,markedindex,normvcf,normindex,normal ->tuple(tumor,"varscan_tonly",normvcf,normindex)}
@@ -346,7 +347,6 @@ workflow VC {
 
     emit:
         somaticcall_input=octopus_in
-
 
 }
 

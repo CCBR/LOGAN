@@ -411,7 +411,6 @@ process varscan_tn {
     input:
         tuple val(tumorname), path(tumor), path(tumorbai),
         val(normalname), path(normal), path(normalbai), path(bed),
-        val(tumor1),
         path(tumorpileup), path(normalpileup),
         path(tumor_con_table), path(normal_con_table)
 
