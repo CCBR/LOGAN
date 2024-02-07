@@ -203,6 +203,16 @@ RUN wget -O svaba_1.2.0 https://github.com/walaj/svaba/releases/download/v1.2.0/
 ENV PATH="/opt2/svaba:$PATH"
 
 # LOFREQ
+RUN git clone https://github.com/CSB5/lofreq \
+    && cd /opt2/lofreq \
+    && ./bootstrap \
+    && ./configure --prefix=/opt2/lofreq/ \
+    && make \
+    && make install 
+
+ENV PATH="/opt2/lofreq/bin:$PATH"
+
+
 RUN wget https://github.com/CSB5/lofreq/raw/master/dist/lofreq_star-2.1.5_linux-x86-64.tgz \
     && tar -xzf lofreq_star-2.1.5_linux-x86-64.tgz \ 
     && chmod a+x lofreq_star-2.1.5_linux-x86-64/bin/lofreq \
