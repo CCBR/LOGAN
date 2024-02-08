@@ -27,11 +27,11 @@ RUN apt-get update \
 # bwa/0.7.17-4  bowtie/1.2.3  bowtie2/2.3.5.1 
 # bedtools/2.27.1  bedops/2.4.37  samtools/1.10 
 # bcftools/1.10.2  vcftools/0.1.16  
-# Previous tools already installed  tabix/1.10.2 ##trimmomatic/0.39 
+# Previous tools already installed  tabix/1.10.2 trimmomatic/0.39 
 RUN DEBIAN_FRONTEND=noninteractive apt-get install -y \
-      tabix 
-      #\
-      #trimmomatic 
+    tabix \
+    libhts-dev
+
       
 # Install BWA-MEM2 v2.2.1
 RUN wget https://github.com/bwa-mem2/bwa-mem2/releases/download/v2.2.1/bwa-mem2-2.2.1_x64-linux.tar.bz2 \
