@@ -212,14 +212,6 @@ RUN git clone https://github.com/CSB5/lofreq \
 
 ENV PATH="/opt2/lofreq/bin:$PATH"
 
-
-RUN wget https://github.com/CSB5/lofreq/raw/master/dist/lofreq_star-2.1.5_linux-x86-64.tgz \
-    && tar -xzf lofreq_star-2.1.5_linux-x86-64.tgz \ 
-    && chmod a+x lofreq_star-2.1.5_linux-x86-64/bin/lofreq \
-    && rm lofreq_star-2.1.5_linux-x86-64.tgz
-
-ENV PATH="/opt2/lofreq_star-2.1.5_linux-x86-64/bin/:$PATH"
-
 # MUSE
 RUN wget -O muse_2.0.4.tar.gz https://github.com/wwylab/MuSE/archive/refs/tags/v2.0.4.tar.gz \
     && tar -xzf muse_2.0.4.tar.gz \ 
