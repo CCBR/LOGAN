@@ -488,7 +488,7 @@ process octopus_tn {
 
 
 process lofreq_tn {
-    container "${params.containers.logan}"
+    container "${params.containers.lofreq}"
     label 'process_somaticcaller'
 
     input:
