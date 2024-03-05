@@ -146,18 +146,13 @@ process fastqc {
     @Output:
         FastQC report and zip file containing sequencing quality information
     """
-
-
     input:
         tuple val(samplename), path("${samplename}.bqsr.bam"), path("${samplename}.bqsr.bai")
     output:
         tuple val(samplename), path("${samplename}_fastqc.html"), path("${samplename}_fastqc.zip")
 
-    //message: "Running FastQC with {threads} threads on '{input}' input file"
-    //threads: 8
-    //module=['fastqc/0.11.9']
-
     script:
+
     """
     mkdir -p fastqc
     fastqc -t 8 \
@@ -404,14 +399,6 @@ process gatk_varianteval {
         tuple val(samplename), path("${samplename}.gvcf.gz") ,path("${samplename}.gvcf.gz.tbi")
     output:
         path("${samplename}.germline.eval.grp")
-    //params:
-     //   rname    = "vareval",
-      //  genome   = config['references']['GENOME'],
-       // dbsnp    = config['references']['DBSNP'],
-      //  ver_gatk = config['tools']['gatk4']['version']
-    //message: "Running GATK4 VariantEval on '{input.vcf}' input file"
-    //container: config['images']['wes_base']
-    //threads: 16
     script:
     """
     gatk --java-options '-Xmx12g -XX:ParallelGCThreads=16' VariantEval \
@@ -475,6 +462,12 @@ process somalier_extract {
         Mapped and pre-processed BAM file
     @Output:
         Exracted sites in (binary) somalier format
+    
+    params:
+        sites_vcf = config['references']['SOMALIER']['SITES_VCF'],
+        genomeFasta = config['references']['GENOME'],
+        rname = 'somalier_extract'
+    container: config['images']['wes_base']
     */
     label 'process_low'
 
@@ -482,11 +475,7 @@ process somalier_extract {
         tuple val(samplename), path("${samplename}.bam"), path("${samplename}.bai")
     output:
         path("output/${samplename}.somalier")
-    //params:
-    //    sites_vcf = config['references']['SOMALIER']['SITES_VCF'],
-    //    genomeFasta = config['references']['GENOME'],
-    //    rname = 'somalier_extract'
-    //container: config['images']['wes_base']
+
     script:
     """
     mkdir -p output

@@ -209,11 +209,6 @@ process bamtocram_tonly {
 
 /*
 process indelrealign {
-    //Briefly, RealignerTargetCreator runs faster with increasing -nt threads,
-    //while IndelRealigner shows diminishing returns for increasing scatter
-
-    tag { name }
-
     input:
     tuple val(samplename), path("${samplename}.bam"), path("${samplename}.bai")
 
