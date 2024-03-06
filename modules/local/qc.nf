@@ -18,7 +18,6 @@ SCRIPT_PATH_PCA = file(params.script_ancestry)
 //OUTPUT DIRECTORY
 process fc_lane {
     container = "${params.containers.logan}"
-
     label 'process_low'
 
     input:
@@ -46,8 +45,6 @@ process fc_lane {
 
 process fastq_screen {
     //Uses Trimmed Files
-
-
     input:
     tuple val(samplename),
         path("${samplename}.R1.trimmed.fastq.gz"),

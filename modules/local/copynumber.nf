@@ -3,15 +3,15 @@ SEQUENZAGC=file(params.genomes[params.genome].SEQUENZAGC)
 SEQUENZA_SCRIPT=params.script_sequenza
 
 if (params.genome=="mm10"){
-FREECLENGTHS=file(params.genomes[params.genome].FREEC.FREECLENGTHS)
-FREECCHROMS=file(params.genomes[params.genome].FREEC.FREECCHROMS)
-FREECPILEUP=file(params.genomes[params.genome].FREEC.FREECPILEUP)
-FREECSNPS = file(params.genomes[params.genome].FREEC.FREECSNPS)
-FREECTARGETS=file(params.genomes[params.genome].intervals)
-FREECSCRIPT = params.script_freec
-FREECPAIR_SCRIPT = params.script_freecpaired
-FREECSIGNIFICANCE = params.freec_significance
-FREECPLOT = params.freec_plot
+    FREECLENGTHS=file(params.genomes[params.genome].FREEC.FREECLENGTHS)
+    FREECCHROMS=file(params.genomes[params.genome].FREEC.FREECCHROMS)
+    FREECPILEUP=file(params.genomes[params.genome].FREEC.FREECPILEUP)
+    FREECSNPS = file(params.genomes[params.genome].FREEC.FREECSNPS)
+    FREECTARGETS=file(params.genomes[params.genome].intervals)
+    FREECSCRIPT = params.script_freec
+    FREECPAIR_SCRIPT = params.script_freecpaired
+    FREECSIGNIFICANCE = params.freec_significance
+    FREECPLOT = params.freec_plot
 }
 
 GERMLINEHET="/data/SCLC-BRAINMETS/cn/copy_number/GermlineHetPon.38.vcf.gz"
