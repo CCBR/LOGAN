@@ -13,7 +13,6 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - uses: docker://nextflow/nextflow:22.10.8
-    - uses: actions/setup-python@v4
     - name: Tumor-normal FastQ Stub Run
       run: |
         docker run -v $PWD:/opt2 nextflow/nextflow:22.10.8 \
