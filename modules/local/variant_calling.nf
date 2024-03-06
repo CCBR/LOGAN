@@ -460,7 +460,6 @@ process octopus_tn {
         tuple val(tumorname), path(tumor), path(tumorbai),
         val(normalname), path(normal), path(normalbai), path(bed)
 
-
     output:
         tuple val("${tumorname}_vs_${normalname}"),
         path("${tumorname}_vs_${normalname}_${bed.simpleName}.octopus.vcf.gz")
@@ -893,6 +892,7 @@ process annotvep_tn {
     --vep-path /opt/vep/src/ensembl-vep \
     --vep-data !{VEPCACHEDIR} \
     --ncbi-build !{VEPBUILD} --species !{VEPSPECIES} --ref-fasta !{GENOMEREF} \
+    --retain-info "set" \
     --vep-overwrite
 
     '''

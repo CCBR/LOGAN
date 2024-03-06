@@ -503,6 +503,7 @@ process annotvep_tonly {
     --vep-path /opt/vep/src/ensembl-vep \
     --vep-data !{VEPCACHEDIR} \
     --ncbi-build !{VEPBUILD} --species !{VEPSPECIES} --ref-fasta !{GENOMEREF} \
+    --retain-info "set" \
     --vep-overwrite
 
 
