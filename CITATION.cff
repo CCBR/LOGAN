@@ -3,6 +3,7 @@ message: "Please cite LOGAN as below." # TODO set up Zenodo to archive your tool
 authors: # TODO: author names should match those in pyproject.toml
   - family-names: Nousome
     given-names: Darryl
+    orcid: https://orcid.org/0000-0002-5259-8599
   - family-names: Sovacool
     given-names: Kelly
     orcid: https://orcid.org/0000-0003-3283-829X
