@@ -1,4 +1,7 @@
 overrides:
-  - files: "*.md"
+  - files:
+      - "*.md"
+      - "*.cff"
+      - ".prettierrc"
     options:
       tabWidth: 2
