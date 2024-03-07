@@ -16,8 +16,8 @@ WORKDIR /opt2
 
 ###Create AnnotSV 
 RUN wget https://github.com/lgmgeo/AnnotSV/archive/refs/tags/v3.3.6.tar.gz \
-    && tar -xvjf /opt2/3.3.6.tar.gz \
-    && rm /opt2/3.3.6.tar.gz
+    && tar -xvjf /opt2/v3.3.6.tar.gz \
+    && rm /opt2/v3.3.6.tar.gz
 ENV PATH="/opt2/AnnotSV-3.3.6/bin:$PATH"
 
 ##ClassifyCNV
