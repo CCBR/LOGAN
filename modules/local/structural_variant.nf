@@ -1,19 +1,16 @@
 GENOMEREF=file(params.genomes[params.genome].genome)
 GENOME=params.genome
 BWAGENOME=file(params.genomes[params.genome].bwagenome)
-DBSNP_INDEL=file(params.genomes[params.genome].KNOWNINDELS) 
+DBSNP_INDEL=file(params.genomes[params.genome].KNOWNINDELS)
 
-outdir=file(params.output)
 
 
 process svaba_somatic {
     label 'process_highcpu'
 
-    publishDir(path: "${outdir}/SV/svaba", mode: 'copy') 
-
     input:
         tuple val(tumorname), path(tumor), path(tumorbai), val(normalname), path(normal), path(normalbai)
-    
+
     output:
         tuple val(tumorname),
         path("${tumor.simpleName}.bps.txt.gz"),
@@ -37,7 +34,7 @@ process svaba_somatic {
     """
 
     stub:
-    
+
     """
     touch "${tumor.simpleName}.bps.txt.gz"
     touch "${tumor.simpleName}.contigs.bam"
@@ -61,11 +58,10 @@ process svaba_somatic {
 process manta_somatic {
 
     label 'process_highcpu'
-    publishDir(path: "${outdir}/SV/manta", mode: 'copy') 
 
     input:
         tuple val(tumorname), path(tumor), path(tumorbai),val(normalname), path(normal), path(normalbai)
-    
+
     output:
         tuple val(tumorname),
         path("${tumor.simpleName}.diplodSV.vcf.gz"),
@@ -84,7 +80,7 @@ process manta_somatic {
         --runDir=wd
 
     wd/runWorkflow.py -m local -j 10 -g 10
-    
+
     mv wd/results/variants/diploidSV.vcf.gz ${tumor.simpleName}.diplodSV.vcf.gz
     mv wd/results/variants/somaticSV.vcf.gz ${tumor.simpleName}.somaticSV.vcf.gz
     mv wd/results/variants/candidateSV.vcf.gz ${tumor.simpleName}.candidateSV.vcf.gz
@@ -93,7 +89,7 @@ process manta_somatic {
     """
 
     stub:
-    
+
     """
     touch ${tumor.simpleName}.diplodSV.vcf.gz
     touch ${tumor.simpleName}.somaticSV.vcf.gz
@@ -108,7 +104,6 @@ process annotsv_tn {
      //Requires bedtools,bcftools
 
     module = ['annotsv/3.3.1']
-    publishDir(path: "${outdir}/SV/annotated", mode: 'copy') 
 
     input:
         tuple val(tumorname), path(somaticvcf), val(sv)
@@ -142,11 +137,10 @@ process annotsv_tn {
 
 process manta_tonly {
     label 'process_highcpu'
-    publishDir(path: "${outdir}/SV/manta_tonly", mode: 'copy') 
 
     input:
         tuple val(tumorname), path(tumor), path(tumorbai)
-    
+
     output:
         tuple val(tumorname),
         path("${tumor.simpleName}.candidateSV.vcf.gz"),
@@ -164,7 +158,7 @@ process manta_tonly {
         --runDir=wd
 
     wd/runWorkflow.py -m local -j 10 -g 10
-    
+
     mv wd/results/variants/candidateSV.vcf.gz ${tumor.simpleName}.candidateSV.vcf.gz
     mv wd/results/variants/candidateSmallIndels.vcf.gz ${tumor.simpleName}.candidateSmallIndels.vcf.gz
     mv wd/results/variants/tumorSV.vcf.gz ${tumor.simpleName}.tumorSV.vcf.gz
@@ -172,7 +166,7 @@ process manta_tonly {
     """
 
     stub:
-    
+
     """
     touch ${tumor.simpleName}.candidateSV.vcf.gz
     touch ${tumor.simpleName}.candidateSmallIndels.vcf.gz
@@ -185,11 +179,10 @@ process manta_tonly {
 
 process svaba_tonly {
     label 'process_highcpu'
-    publishDir(path: "${outdir}/SV/svaba_tonly", mode: 'copy') 
 
     input:
         tuple val(tumorname), path(tumor), path(tumorbai)
-    
+
     output:
         tuple val(tumorname),
         path("${tumor.simpleName}.bps.txt.gz"),
@@ -209,7 +202,7 @@ process svaba_tonly {
     """
 
     stub:
-    
+
     """
     touch "${tumor.simpleName}.bps.txt.gz"
     touch "${tumor.simpleName}.contigs.bam"
@@ -228,11 +221,11 @@ process svaba_tonly {
 process gunzip {
 
     input:
-        tuple val(tumorname), 
+        tuple val(tumorname),
         path(vcf), val(sv)
 
     output:
-        tuple val(tumorname), 
+        tuple val(tumorname),
         path("${tumorname}.tumorSV.vcf"), val(sv)
 
     script:
@@ -251,10 +244,9 @@ process gunzip {
 
 process survivor_sv {
     module = ['survivor']
-    publishDir(path: "${outdir}/SV/survivor", mode: 'copy') 
 
     input:
-        tuple val(tumorname), 
+        tuple val(tumorname),
         path(vcfs),val(svs)
 
     output:
@@ -283,9 +275,7 @@ process survivor_sv {
 process annotsv_tonly {
      //AnnotSV for Manta/Svaba works with either vcf.gz or .vcf files
      //Requires bedtools,bcftools
-
     module = ['annotsv/3.3.1']
-    publishDir(path: "${outdir}/SV/annotated_tonly", mode: 'copy') 
 
     input:
         tuple val(tumorname), path(somaticvcf), val(sv)

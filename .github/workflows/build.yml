@@ -36,4 +36,11 @@ jobs:
           mkdir tmp && cd tmp
           which logan
           logan init
-          logan run -profile ci_stub,docker -stub
+          logan run -profile ci_stub,docker \
+          --fastq_input "/opt2/.tests/*R{1,2}.fastq.gz" \
+          --vc --cnv --sv \
+          --genome hg38 \
+          --outdir /opt2/output_tn_fqs \
+          --interval /opt2/.tests/interval.bed \
+          -stub
+
