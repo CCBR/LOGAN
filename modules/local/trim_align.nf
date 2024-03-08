@@ -79,7 +79,7 @@ process bwamem2 {
 
 process indelrealign {
     container "${params.containers.logan}"
-    label 'process_high'
+    label 'process_long'
 
     input:
     tuple val(samplename), path("${samplename}.bam"), path("${samplename}.bai")
@@ -90,21 +90,20 @@ process indelrealign {
     script:
 
     """
-    /usr/lib/jvm/java-8-openjdk-amd64/bin/java -Xmx32g -jar \$GATK_JAR -T RealignerTargetCreator \
+    /usr/lib/jvm/java-8-openjdk-amd64/bin/java -Xmx16g -jar \$GATK_JAR -T RealignerTargetCreator \
         -I ${samplename}.bam \
         -R ${GENOMEREF} \
         -o ${samplename}.intervals \
         -nt $task.cpus \
         ${KNOWNINDELS}
 
-    /usr/lib/jvm/java-8-openjdk-amd64/bin/java -Xmx32g -jar \$GATK_JAR -T IndelRealigner \
+    /usr/lib/jvm/java-8-openjdk-amd64/bin/java -Xmx16g -jar \$GATK_JAR -T IndelRealigner \
         -R ${GENOMEREF} \
         -I ${samplename}.bam \
         ${KNOWNINDELS} \
-        --use_jdk_inflater \
-        --use_jdk_deflater \
+        -nt $task.cpus \
         -targetIntervals ${samplename}.intervals \
-        -o  ${samplename}.ir.bam
+        -o ${samplename}.ir.bam
     """
 
     stub:
@@ -196,7 +195,6 @@ process gatherbqsr {
     """
 }
 
-
 process applybqsr {
     /*
     Base quality recalibration for all samples to
@@ -231,7 +229,6 @@ process applybqsr {
 }
 
 
-
 process samtoolsindex {
     container = "${params.containers.logan}"
     label 'process_medium'
@@ -263,11 +260,18 @@ process bamtocram_tonly {
         tuple val(tumorname), path(tumor), path(tumorbai)
 
     output:
-        path("${sample}.cram")
+        path("${tumorname}.cram"), path("${tumorname}.cram.crai")
+
 
     script:
     """
-        samtools view -@ $task.cpus -C -T $GENOMEREF -o ${sample}.cram {$tumor}.bam
+        samtools view -@ $task.cpus -C -T $GENOMEREF -o ${sample}.cram $tumor
+        samtools index ${tumorname}.cram -@ $task.cpus
+    """
+    
+    stub:
+    """
+    touch ${tumorname}.cram ${tumorname}.cram.crai
     """
 }
 
