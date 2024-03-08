@@ -1,7 +1,7 @@
 GENOMEREF=file(params.genomes[params.genome].genome)
 GENOME=params.genome
 BWAGENOME=file(params.genomes[params.genome].bwagenome)
-DBSNP_INDEL=file(params.genomes[params.genome].KNOWNINDELS)
+INDELREF=file(params.genomes[params.genome].INDELREF)
 
 
 
@@ -30,7 +30,7 @@ process svaba_somatic {
 
     script:
     """
-    svaba run -t ${tumor} -n ${normal} -p $task.cpus -D $DBSNP_INDEL -a ${tumor.simpleName} -G $BWAGENOME
+    svaba run -t ${tumor} -n ${normal} -p $task.cpus -D $INDELREF -a ${tumor.simpleName} -G $BWAGENOME
     """
 
     stub:
@@ -198,7 +198,7 @@ process svaba_tonly {
 
     script:
     """
-    svaba run -t ${tumor} -p $task.cpus -D $DBSNP_INDEL -a ${tumor.simpleName} -G $BWAGENOME
+    svaba run -t ${tumor} -p $task.cpus -D $INDELREF -a ${tumor.simpleName} -G $BWAGENOME
     """
 
     stub:

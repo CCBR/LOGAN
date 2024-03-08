@@ -9,7 +9,7 @@ include {fc_lane; fastq_screen;kraken;qualimap_bamqc;fastqc;
     somalier_extract;somalier_analysis_human;somalier_analysis_mouse;
     multiqc} from  '../../modules/local/qc.nf'
 
-include {fastp; bwamem2; //indelrealign;
+include {fastp; bwamem2; indelrealign; bqsr_ir;
     bqsr; gatherbqsr; applybqsr; samtoolsindex} from  '../../modules/local/trim_align.nf'
 
 include {deepvariant_step1; deepvariant_step2; deepvariant_step3;
@@ -57,12 +57,7 @@ workflow DETERMINEBAM {
         params.BAMINPUT=true
     }else if(params.file_input){
             file(params.file_input).text
-                        //.splitCsv(header: false, sep: "\t", strip:true)
-                       // .map{ sample,bam,bai ->
-                        //if (bam[0] =~ /.bam/){
-                         //   params.BAMINPUT=
-                        //}
-                        //}
+
     }
 
 }
@@ -425,18 +420,6 @@ workflow CNVhuman {
 
 }
 
-  /*
-    //baminput=sample_sheet
-      //     .map{samplename,bam,vcf-> tuple(samplename,file(bam),file("${bam}.bai"))}
-
-    //somaticinput=sample_sheet
-     //      .map{samplename,bam,vcf-> tuple(samplename,file(vcf))}
-
-
-
-    */
-
-
 
 
 workflow QC_NOGL {
@@ -586,10 +569,24 @@ workflow INPUT_BAM {
                                   }
     }
 
-
     splitinterval(intervalbedin)
 
-    bamwithsample=baminputonly.combine(sample_sheet,by:0).map{it.swap(3,0)}.combine(baminputonly,by:0).map{it.swap(3,0)}
+    if (params.indelrealign){ 
+        bqsrs= baminputonly | indelrealign | combine(splitinterval.out.flatten()) 
+            | bqsr_ir 
+            | groupTuple 
+            | map { samplename,beds -> 
+            tuple( samplename, beds.toSorted{ it -> (it.name =~ /${samplename}_(.*?).recal_data.grp/)[0][1].toInteger() } )} 
+            | gatherbqsr
+
+        baminput2=baminputonly.combine(bqsrs,by:0) 
+            |applybqsr
+
+        bamwithsample=baminput2.combine(sample_sheet,by:0).map{it.swap(3,0)}.combine(baminputonly,by:0).map{it.swap(3,0)} 
+
+    } else {
+        bamwithsample=baminputonly.combine(sample_sheet,by:0).map{it.swap(3,0)}.combine(baminputonly,by:0).map{it.swap(3,0)}    
+    }
 
     emit:
         bamwithsample
