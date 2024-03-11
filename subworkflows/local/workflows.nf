@@ -104,10 +104,6 @@ workflow ALIGN {
     splitinterval(intervalbedin)
 
     bwamem2(fastp.out)
-
-    //indelrealign(bwamem2.out)
-    //indelbambyinterval=indelrealign.out.combine(splitinterval.out.flatten())
-
     bqsrbambyinterval=bwamem2.out.combine(splitinterval.out.flatten())
     bambyinterval=bwamem2.out.combine(splitinterval.out.flatten())
 
@@ -131,7 +127,6 @@ workflow ALIGN {
         fastpout=fastp.out
         fastqin=fastqinput
         splitout=splitinterval.out
-        //indelbambyinterval
         bqsrbambyinterval
         sample_sheet
         bqsrout=applybqsr.out
