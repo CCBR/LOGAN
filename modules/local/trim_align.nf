@@ -101,7 +101,6 @@ process indelrealign {
         -R ${GENOMEREF} \
         -I ${samplename}.bam \
         ${KNOWNINDELS} \
-        -nt $task.cpus \
         -targetIntervals ${samplename}.intervals \
         -o ${samplename}.ir.bam
     """
