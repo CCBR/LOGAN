@@ -199,7 +199,7 @@ process applybqsr {
     Base quality recalibration for all samples to
     */
     container = "${params.containers.logan}"
-    label 'process_low'
+    label 'process_long'
 
     input:
         tuple val(samplename), path(bam), path(bai), path("${samplename}.recal_data.grp")
