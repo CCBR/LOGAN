@@ -6,6 +6,7 @@ INDELREF=file(params.genomes[params.genome].INDELREF)
 
 
 process svaba_somatic {
+    container = "${params.containers.logan}"
     label 'process_highcpu'
 
     input:
@@ -56,7 +57,7 @@ process svaba_somatic {
 
 
 process manta_somatic {
-
+    container = "${params.containers.logan}"
     label 'process_highcpu'
 
     input:
@@ -102,7 +103,6 @@ process manta_somatic {
 process annotsv_tn {
      //AnnotSV for Manta/Svaba works with either vcf.gz or .vcf files
      //Requires bedtools,bcftools
-
     module = ['annotsv/3.3.1']
 
     input:
@@ -136,6 +136,7 @@ process annotsv_tn {
 
 
 process manta_tonly {
+    container = "${params.containers.logan}"
     label 'process_highcpu'
 
     input:
@@ -178,6 +179,7 @@ process manta_tonly {
 
 
 process svaba_tonly {
+    container = "${params.containers.logan}"
     label 'process_highcpu'
 
     input:
