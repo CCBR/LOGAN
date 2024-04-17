@@ -1,4 +1,6 @@
 SPLIT_BED=file(params.splitbed)
+SPLIT_BEDBYLINE=file(params.splitbedbyline)
+
 SPLIT_REGIONS=params.split_regions
 
 
@@ -20,6 +22,26 @@ process splitinterval {
     """
     mkdir -p bedout
     python $SPLIT_BED -infile ${BED_IN} -num ${SPLIT_REGIONS} -out 'bedout/bed'
+    """
+}
+
+process split_byline {
+    //Keep Process Local
+    executor="local"
+    cpus= '2'
+    memory=2.GB
+
+    input:
+        path(BED_IN)
+
+    output:
+        path('bedout/*.bed')
+
+    script:
+
+    """
+    mkdir -p bedout
+    python $SPLIT_BEDBYLINE -infile ${BED_IN}
     """
 }
 

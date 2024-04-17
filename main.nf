@@ -71,7 +71,7 @@ workflow {
 
     }
 
-    //TUMOR-NOMRAL BAM INPUT
+    //TUMOR-NORMAL BAM INPUT
     if ([params.bam_input,params.bam_file_input].any() && params.sample_sheet){
         println "Tumor-Normal with BAMs"
         INPUT_BAM()

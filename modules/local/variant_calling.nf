@@ -471,7 +471,7 @@ process octopus_tn {
     --threads $task.cpus \
     $GERMLINE_FOREST \
     $SOMATIC_FOREST \
-    --target-working-memory 64Gb \
+    -B 10Gb \
     -o ${tumorname}_vs_${normalname}_${bed.simpleName}.octopus.vcf.gz
     """
 
@@ -681,7 +681,7 @@ process combineVariants_alternative {
 
 process bcftools_index_octopus {
     container "${params.containers.logan}"
-    label 'process_low'
+    label 'process_single'
 
     input:
         tuple val(tumor),
