@@ -380,7 +380,7 @@ workflow SV {
 
         //Survivor
         gunzip(manta_out).concat(svaba_out).groupTuple()
-       | survivor_sv | annotsv_survivor_tn | ifEmpty("Empty SV input--No SV annotated")
+            | survivor_sv | annotsv_survivor_tn | ifEmpty("Empty SV input--No SV annotated")
 
 }
 

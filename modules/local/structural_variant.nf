@@ -232,7 +232,7 @@ process gunzip {
 
     script:
     """
-    gunzip ${vcf} > ${tumorname}.tumorSV.vcf
+    gunzip -f ${vcf} > ${tumorname}.tumorSV.vcf
     """
 
     stub:
