@@ -21,7 +21,6 @@ ENSEMBLCACHE='/data/SCLC-BRAINMETS/cn/common/ensembl_data'
 DRIVERS='/data/SCLC-BRAINMETS/cn/common/DriverGenePanel.38.tsv'
 HOTSPOTS='/data/SCLC-BRAINMETS/cn/variants/KnownHotspots.somatic.38.vcf.gz'
 
-//DBSNP_INDEL=file(params.genomes[params.genome].KNOWNINDELS)
 //ascatR=
 
 
@@ -273,7 +272,7 @@ process amber_tonly {
 
     """
 
-    java -Xmx32G -cp amber.jar com.hartwig.hmftools.amber.AmberApplication \
+    java -Xmx32G -cp /opt2/hmftools/amber.jar com.hartwig.hmftools.amber.AmberApplication \
     -tumor ${tumorname} -tumor_bam ${tumor} \
     -output_dir ${tumorname}_amber \
     -threads $task.cpus \
@@ -310,7 +309,7 @@ process amber_tn {
 
     """
 
-    java -Xmx32G -cp amber.jar com.hartwig.hmftools.amber.AmberApplication \
+    java -Xmx32G -cp /opt2/hmftools/amber.jar com.hartwig.hmftools.amber.AmberApplication \
     -tumor ${tumorname} -tumor_bam ${tumor} \
     -reference ${normalname} -reference_bam ${normal} \
     -output_dir ${tumorname}_vs_${normalname}_amber \
@@ -346,7 +345,7 @@ process cobalt_tonly {
 
     """
 
-    java -jar -Xmx8G cobalt.jar \
+    java -jar -Xmx8G /opt2/hmftools/cobalt.jar \
     -tumor ${tumorname} -tumor_bam ${tumor} \
     -output_dir ${tumorname}_cobalt \
     -threads $task.cpus \
@@ -382,7 +381,7 @@ process cobalt_tn {
 
     """
 
-    java -jar -Xmx8G cobalt.jar \
+    java -jar -Xmx8G /opt2/hmftools/cobalt.jar \
     -tumor ${tumorname} -tumor_bam ${tumorname} \
     -reference ${normalname} -reference_bam ${normal} \
     -output_dir ${tumorname}_vs_${normalname}_cobalt \
@@ -418,7 +417,7 @@ process purple {
     script:
 
     """
-    java -jar purple.jar \
+    java -jar /opt2/hmftools/purple.jar \
     -tumor ${tumorname} \
     -amber ${amberin} \
     -cobalt ${cobaltin} \

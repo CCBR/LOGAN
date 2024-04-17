@@ -54,7 +54,6 @@ process mutect2 {
     """
 }
 
-
 process pileup_paired_t {
     container "${params.containers.logan}"
     label 'process_highmem'
@@ -64,7 +63,7 @@ process pileup_paired_t {
         val(normalname), path(normal), path(normalbai), path(bed)
 
     output:
-        tuple val(tumorname),
+        tuple val(tumorname), val(normalname),
         path("${tumor.simpleName}_${bed.simpleName}.tumor.pileup.table")
 
     script:
@@ -84,7 +83,6 @@ process pileup_paired_t {
 
 }
 
-
 process pileup_paired_n {
     container "${params.containers.logan}"
     label 'process_highmem'
@@ -95,7 +93,8 @@ process pileup_paired_n {
 
     output:
         tuple val(tumorname),
-        path("${tumor.simpleName}_${bed.simpleName}.normal.pileup.table")
+        val(normalname),
+        path("${normal.simpleName}_${bed.simpleName}.normal.pileup.table")
 
     script:
     """
@@ -103,15 +102,14 @@ process pileup_paired_n {
         -I ${normal} \
         -V $KGPGERMLINE \
         -L ${bed} \
-        -O ${tumor.simpleName}_${bed.simpleName}.normal.pileup.table
+        -O ${normalname}_${bed.simpleName}.normal.pileup.table
 
     """
 
     stub:
     """
-    touch ${tumor.simpleName}_${bed.simpleName}.normal.pileup.table
+    touch ${normalname}_${bed.simpleName}.normal.pileup.table
     """
-
 }
 
 
@@ -120,7 +118,7 @@ process contamination_paired {
     label 'process_highmem'
 
     input:
-        tuple val(tumorname),
+        tuple val(tumorname), val(normalname),
         path(tumor_pileups),
         path(normal_pileups)
 

@@ -25,8 +25,6 @@ include {INPUT_TONLY; INPUT_TONLY_BAM;
     VC_TONLY; SV_TONLY; CNVhuman_tonly; CNVmouse_tonly; QC_TONLY } from "./subworkflows/local/workflows_tonly.nf"
 
 
-
-//SUB WORKFLOWS to SPLIT
 workflow.onComplete {
     if (!workflow.stubRun && !workflow.commandLine.contains('-preview')) {
         def message = Utils.spooker(workflow)

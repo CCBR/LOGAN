@@ -1,6 +1,6 @@
-GENOMEREF=file(params.genomes[params.genome].genome)
+GENOMEREF = file(params.genomes[params.genome].genome)
 KNOWNRECAL = params.genomes[params.genome].KNOWNRECAL
-
+KNOWNINDELS = params.genomes[params.genome].KNOWNINDELS
 
 process fastp {
     container = "${params.containers.logan}"
@@ -77,6 +77,70 @@ process bwamem2 {
 
 
 
+process indelrealign {
+    container "${params.containers.logan}"
+    label 'process_long'
+
+    input:
+    tuple val(samplename), path("${samplename}.bam"), path("${samplename}.bai")
+
+    output:
+    tuple val(samplename), path("${samplename}.ir.bam"), path("${samplename}.ir.bai")
+
+    script:
+
+    """
+    /usr/lib/jvm/java-8-openjdk-amd64/bin/java -Xmx16g -jar \$GATK_JAR -T RealignerTargetCreator \
+        -I ${samplename}.bam \
+        -R ${GENOMEREF} \
+        -o ${samplename}.intervals \
+        -nt $task.cpus \
+        ${KNOWNINDELS}
+
+    /usr/lib/jvm/java-8-openjdk-amd64/bin/java -Xmx16g -jar \$GATK_JAR -T IndelRealigner \
+        -R ${GENOMEREF} \
+        -I ${samplename}.bam \
+        ${KNOWNINDELS} \
+        -targetIntervals ${samplename}.intervals \
+        -o ${samplename}.ir.bam
+    """
+
+    stub:
+    """
+    touch ${samplename}.ir.bam ${samplename}.ir.bai
+    """
+
+}
+
+
+process bqsr_ir {
+    /*
+    Base quality recalibration for all samples
+    */
+    container = "${params.containers.logan}"
+    label 'process_low'
+    input:
+        tuple val(samplename), path("${samplename}.ir.bam"), path("${samplename}.ir.bai"), path(bed)
+
+    output:
+        tuple val(samplename), path("${samplename}_${bed.simpleName}.recal_data.grp")
+
+    script:
+    """
+    gatk --java-options '-Xmx16g' BaseRecalibrator \
+    --input ${samplename}.ir.bam \
+    --reference ${GENOMEREF} \
+    ${KNOWNRECAL} \
+    --output ${samplename}_${bed.simpleName}.recal_data.grp \
+    --intervals ${bed}
+    """
+
+    stub:
+    """
+    touch ${samplename}_${bed.simpleName}.recal_data.grp
+    """
+}
+
 process bqsr {
     /*
     Base quality recalibration for all samples
@@ -103,7 +167,6 @@ process bqsr {
     """
     touch ${samplename}_${bed.simpleName}.recal_data.grp
     """
-
 }
 
 process gatherbqsr {
@@ -131,16 +194,15 @@ process gatherbqsr {
     """
 }
 
-
 process applybqsr {
     /*
     Base quality recalibration for all samples to
     */
     container = "${params.containers.logan}"
-    label 'process_low'
+    label 'process_long'
 
     input:
-        tuple val(samplename), path("${samplename}.bam"), path("${samplename}.bai"), path("${samplename}.recal_data.grp")
+        tuple val(samplename), path(bam), path(bai), path("${samplename}.recal_data.grp")
 
     output:
         tuple val(samplename), path("${samplename}.bqsr.bam"),  path("${samplename}.bqsr.bai")
@@ -150,7 +212,7 @@ process applybqsr {
     """
     gatk --java-options '-Xmx32g' ApplyBQSR \
         --reference ${GENOMEREF} \
-        --input ${samplename}.bam \
+        --input ${bam} \
         --bqsr-recal-file ${samplename}.recal_data.grp \
         --output ${samplename}.bqsr.bam \
         --use-jdk-inflater \
@@ -164,7 +226,6 @@ process applybqsr {
     """
 
 }
-
 
 
 process samtoolsindex {
@@ -198,48 +259,21 @@ process bamtocram_tonly {
         tuple val(tumorname), path(tumor), path(tumorbai)
 
     output:
-        path("${sample}.cram")
+        path("${tumorname}.cram"), path("${tumorname}.cram.crai")
+
 
     script:
     """
-        samtools view -@ $task.cpus -C -T $GENOMEREF -o ${sample}.cram {$tumor}.bam
+        samtools view -@ $task.cpus -C -T $GENOMEREF -o ${sample}.cram $tumor
+        samtools index ${tumorname}.cram -@ $task.cpus
     """
-}
-
-
-/*
-process indelrealign {
-    input:
-    tuple val(samplename), path("${samplename}.bam"), path("${samplename}.bai")
-
-    output:
-    tuple val(samplename), path("${samplename}.ir.bam")
-
-    script:
-
-    """
-    /usr/bin/java -Xmx32g -jar \${GATK_JAR} -T RealignerTargetCreator \
-        -I ${samplename}.bam \
-        -R ${GENOMEREF} \
-        -o ${samplename}.intervals \
-        -nt 16 \
-        -known ${MILLSINDEL} -known ${SHAPEITINDEL}
-
-    /usr/bin/java -Xmx32g -jar \${GATK_JAR} -T IndelRealigner \
-        -R ${GENOMEREF} \
-        -I ${samplename}.bam \
-        -known ${MILLSINDEL} -known ${SHAPEITINDEL} \
-        --use_jdk_inflater \
-        --use_jdk_deflater \
-        -targetIntervals ${samplename}.intervals \
-        -o  ${samplename}.ir.bam
-    """
-
-
+    
     stub:
     """
-    touch ${samplename}.ir.bam
+    touch ${tumorname}.cram ${tumorname}.cram.crai
     """
-
 }
-*/
+
+
+
+

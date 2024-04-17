@@ -1,11 +1,12 @@
 GENOMEREF=file(params.genomes[params.genome].genome)
-GENOME=params.genome
+ANNOTSVGENOME=file(params.genomes[params.genome].annotsvgenome)
 BWAGENOME=file(params.genomes[params.genome].bwagenome)
-DBSNP_INDEL=file(params.genomes[params.genome].KNOWNINDELS)
+INDELREF=file(params.genomes[params.genome].INDELREF)
 
 
 
 process svaba_somatic {
+    container = "${params.containers.logan}"
     label 'process_highcpu'
 
     input:
@@ -30,7 +31,7 @@ process svaba_somatic {
 
     script:
     """
-    svaba run -t ${tumor} -n ${normal} -p $task.cpus -D $DBSNP_INDEL -a ${tumor.simpleName} -G $BWAGENOME
+    svaba run -t ${tumor} -n ${normal} -p $task.cpus -D $INDELREF -a ${tumor.simpleName} -G $BWAGENOME
     """
 
     stub:
@@ -56,7 +57,7 @@ process svaba_somatic {
 
 
 process manta_somatic {
-
+    container = "${params.containers.logan}"
     label 'process_highcpu'
 
     input:
@@ -102,7 +103,6 @@ process manta_somatic {
 process annotsv_tn {
      //AnnotSV for Manta/Svaba works with either vcf.gz or .vcf files
      //Requires bedtools,bcftools
-
     module = ['annotsv/3.3.1']
 
     input:
@@ -119,7 +119,7 @@ process annotsv_tn {
     mkdir ${sv}
 
     AnnotSV -SVinputFile ${somaticvcf} \
-    -genomeBuild $GENOME \
+    -genomeBuild $ANNOTSVGENOME \
     -SVinputInfo 1 -outputFile ${tumorname} \
     -outputDir ${sv}
 
@@ -136,6 +136,7 @@ process annotsv_tn {
 
 
 process manta_tonly {
+    container = "${params.containers.logan}"
     label 'process_highcpu'
 
     input:
@@ -178,6 +179,7 @@ process manta_tonly {
 
 
 process svaba_tonly {
+    container = "${params.containers.logan}"
     label 'process_highcpu'
 
     input:
@@ -198,7 +200,7 @@ process svaba_tonly {
 
     script:
     """
-    svaba run -t ${tumor} -p $task.cpus -D $DBSNP_INDEL -a ${tumor.simpleName} -G $BWAGENOME
+    svaba run -t ${tumor} -p $task.cpus -D $INDELREF -a ${tumor.simpleName} -G $BWAGENOME
     """
 
     stub:
@@ -230,7 +232,7 @@ process gunzip {
 
     script:
     """
-    gunzip ${vcf} > ${tumorname}.tumorSV.vcf
+    gunzip -f ${vcf} > ${tumorname}.tumorSV.vcf
     """
 
     stub:
@@ -291,7 +293,7 @@ process annotsv_tonly {
     mkdir ${sv}
 
     AnnotSV -SVinputFile ${somaticvcf} \
-    -genomeBuild $GENOME \
+    -genomeBuild $ANNOTSVGENOME \
     -SVinputInfo 1 -outputFile ${tumorname} \
     -outputDir ${sv}
 
