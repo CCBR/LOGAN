@@ -103,8 +103,8 @@ process manta_somatic {
 process annotsv_tn {
      //AnnotSV for Manta/Svaba works with either vcf.gz or .vcf files
      //Requires bedtools,bcftools
-    module = ['annotsv/3.3.1']
-
+    container = "${params.containers.annotcnvsv}"
+    process
     input:
         tuple val(tumorname), path(somaticvcf), val(sv)
 
@@ -245,7 +245,7 @@ process gunzip {
 
 
 process survivor_sv {
-    module = ['survivor']
+    container = "${params.containers.annotcnvsv}"
 
     input:
         tuple val(tumorname),
@@ -277,7 +277,7 @@ process survivor_sv {
 process annotsv_tonly {
      //AnnotSV for Manta/Svaba works with either vcf.gz or .vcf files
      //Requires bedtools,bcftools
-    module = ['annotsv/3.3.1']
+    container = "${params.containers.annotcnvsv}"
 
     input:
         tuple val(tumorname), path(somaticvcf), val(sv)
