@@ -16,17 +16,26 @@ WORKDIR /opt2
 
 ###Create AnnotSV 
 RUN wget https://github.com/lgmgeo/AnnotSV/archive/refs/tags/v3.3.6.tar.gz \
-    && tar -xvjf /opt2/v3.3.6.tar.gz \
+    && tar -xvzf /opt2/v3.3.6.tar.gz \
     && rm /opt2/v3.3.6.tar.gz
 ENV PATH="/opt2/AnnotSV-3.3.6/bin:$PATH"
 
 ##ClassifyCNV
 ##Update the resources for ClassifyCNV
 RUN wget https://github.com/Genotek/ClassifyCNV/archive/refs/tags/v1.1.1.tar.gz \
-    && tar -xvjf /opt2/v1.1.1.tar.gz \
-    && rm /opt2/v1.1.1.tar.gz
-ENV PATH="/opt2/ClassifyCNV-1.1.1:$PATH"
-RUN update_clingen.sh
+    && tar -xvzf /opt2/v1.1.1.tar.gz \
+    && rm /opt2/v1.1.1.tar.gz 
+    #&& chmod a+rx /opt2/ClassifyCNV-1.1.1/update_clingen.sh 
+ENV PATH="/opt2/ClassifyCNV-1.1.1/:$PATH"
+#RUN update_clingen.sh
+
+##Survivor 
+RUN wget https://github.com/fritzsedlazeck/SURVIVOR/archive/refs/tags/v1.0.6.tar.gz \
+    && tar -xvzf /opt2/v1.0.6.tar.gz \
+    && rm /opt2/v1.0.6.tar.gz \
+    && cd /opt2/SURVIVOR-1.0.6/Debug \
+    && make
+ENV PATH="/opt2/SURVIVOR-1.0.6/:$PATH"
 
 
 COPY Dockerfile /opt2/Dockerfile_${REPONAME}.${BUILD_TAG}
