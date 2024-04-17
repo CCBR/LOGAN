@@ -1,5 +1,5 @@
 GENOMEREF=file(params.genomes[params.genome].genome)
-GENOME=params.genome
+ANNOTSVGENOME=file(params.genomes[params.genome].annotsvgenome)
 BWAGENOME=file(params.genomes[params.genome].bwagenome)
 INDELREF=file(params.genomes[params.genome].INDELREF)
 
@@ -119,7 +119,7 @@ process annotsv_tn {
     mkdir ${sv}
 
     AnnotSV -SVinputFile ${somaticvcf} \
-    -genomeBuild $GENOME \
+    -genomeBuild $ANNOTSVGENOME \
     -SVinputInfo 1 -outputFile ${tumorname} \
     -outputDir ${sv}
 
@@ -293,7 +293,7 @@ process annotsv_tonly {
     mkdir ${sv}
 
     AnnotSV -SVinputFile ${somaticvcf} \
-    -genomeBuild $GENOME \
+    -genomeBuild $ANNOTSVGENOME \
     -SVinputInfo 1 -outputFile ${tumorname} \
     -outputDir ${sv}
 
