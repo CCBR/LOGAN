@@ -30,4 +30,10 @@ bedtools subtract -a GRCh38.primary_assembly.genome.bed -b ../hg38.blacklist.bed
 
 gatk BedToIntervalList -I GRCh38.primary_assembly.genome.interval.bed -O \ 
 GRCh38.primary_assembly.genome.interval_list -SD GRCh38.primary_assembly.genome.dict
+
+#hg19
+awk -F '\t' '{printf("%s\t0\t%s\n",$1,$2);}' /data/CCBR_Pipeliner/db/PipeDB/lib/hg19.with_extra.fa.fai >hg19_all.bed
+bedtools subtract -a hg19_all.bed -b hg19-blacklist.v2.bed > hg19_noblacklist.bed
+bedtools sort -i hg19_noblacklist.bed -chrThenSizeD  >hg19_noblacklistsort.bed
+awk '/^chr[0-9,X,Y,M]*\t/ {printf("%s\t%s\t%s\n",$1,$2,$3);}' hg19_noblacklistsort.bed  > hg19_noblacklistsort_vc.bed
 */

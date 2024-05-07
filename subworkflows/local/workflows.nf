@@ -49,7 +49,6 @@ include {splitinterval} from '../../modules/local/splitbed.nf'
 
 
 
-
 workflow DETERMINEBAM {
     if(params.bam_input){
         params.BAMINPUT=true
