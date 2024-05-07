@@ -339,9 +339,11 @@ process octopus_tonly {
     octopus -R $GENOMEREF -C cancer -I ${tumor} \
     --annotations AC AD DP \
     --target-working-memory 64Gb \
+    -B 64Gb \
     -t ${bed} \
+    --threads ${task.cpus}\
     $SOMATIC_FOREST \
-    -o ${tumorname}_${bed.simpleName}.tonly.octopus.vcf.gz --threads ${task.cpus}
+    -o ${tumorname}_${bed.simpleName}.tonly.octopus.vcf.gz 
     """
 
     stub:
@@ -385,7 +387,7 @@ process somaticcombine_tonly {
 
     input:
         tuple val(tumorsample),
-        val(callers),
+        val(caller),
         path(vcfs), path(vcfindex)
 
     output:
@@ -394,20 +396,27 @@ process somaticcombine_tonly {
         path("${tumorsample}_combined_tonly.vcf.gz.tbi")
 
     script:
-        vcfin1=[callers, vcfs].transpose().collect { a, b -> a + " " + b }
+        vcfin1=[caller, vcfs].transpose().collect { a, b -> a + " " + b }
         vcfin2="-V:" + vcfin1.join(" -V:")
+
+        callerin=caller.join(",").replaceAll("_tonly","")
 
     """
     /usr/lib/jvm/java-8-openjdk-amd64/bin/java -jar \$GATK_JAR -T CombineVariants  \
         -R $GENOMEREF \
         --genotypemergeoption PRIORITIZE \
-        --rod_priority_list mutect2_tonly,octopus_tonly,vardict_tonly,varscan_tonly \
+        --rod_priority_list $callerin \
         --filteredrecordsmergetype KEEP_IF_ANY_UNFILTERED \
         -o ${tumorsample}_combined_tonly.vcf.gz \
         $vcfin2
     """
 
     stub:
+    
+    vcfin1=[caller, vcfs].transpose().collect { a, b -> a + " " + b }
+    vcfin2="-V:" + vcfin1.join(" -V:")
+
+    callerin=caller.join(",").replaceAll("_tonly","")
     """
     touch ${tumorsample}_combined_tonly.vcf.gz ${tumorsample}_combined_tonly.vcf.gz.tbi
     """
