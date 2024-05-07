@@ -163,6 +163,16 @@ workflow VC {
     sample_sheet_paired=sample_sheet|map{tu,no -> tuple ("${tu}_vs_${no}",tu, no)}
     bambyinterval=bamwithsample.combine(splitout.flatten())
 
+    bambyinterval 
+        | multiMap {tumorname,tumor,tumorbai,normalname,normalbam,normalbai,bed -> 
+        t1: tuple(tumorname,tumor,tumorbai,bed)
+        n1: tuple(normalname,normalbam,normalbai,bed)
+            }
+        | set{bambyinterval_tonly}
+        
+        bambyinterval_t=bambyinterval_tonly.t1 |
+            concat(bambyinterval_tonly.n1) |unique() 
+
     //Prep Pileups
     params.callers = "mutect2,octopus,muse,lofreq,vardict,varscan"
     params.callist = params.callers.split(',') as List
@@ -229,14 +239,6 @@ workflow VC {
     annotvep_tn_mut2(mutect2_in)
 
     //Mutect2 Tumor Only
-    bambyinterval 
-        | multiMap {tumorname,tumor,tumorbai,normalname,normalbam,normalbai,bed -> 
-        t1: tuple(tumorname,tumor,tumorbai,bed)
-        n1: tuple(normalname,normalbam,normalbai,bed)
-            }
-        | set{bambyinterval_tonly}
-        bambyinterval_t=bambyinterval_tonly.t1.concat(bambyinterval_tonly.n1)
-
         mutect2_t_tonly(bambyinterval_t)
         mutect2_t_tonly.out.groupTuple()
         | multiMap { tumor,vcfs,f1r2,stats ->
@@ -349,6 +351,7 @@ workflow VC {
 
     //Octopus TN
     if ("octopus" in params.callist){
+        bambyinterval|view()
         octopus_in=octopus_tn(bambyinterval) | bcftools_index_octopus
             | groupTuple()
             | map{samplename,vcf,vcfindex-> tuple(samplename,vcf.toSorted{it->(it.name =~ /${samplename}_(.*).octopus.vcf.gz/)[0][1].toInteger()},vcfindex,"octopus")}
@@ -362,11 +365,11 @@ workflow VC {
     //Octopus TOnly
         octopus_in_tonly=octopus_tonly(bambyinterval_t)
             | bcftools_index_octopus_tonly
-            | groupTuple()
-            | map{samplename,vcf,vcfindex->tuple(samplename,vcf.toSorted{it->(it.name =~ /${samplename}_(.*).tonly.octopus.vcf.gz/)[0][1].toInteger()},vcfindex,"octopus_tonly")}
+            | groupTuple() 
+            | map{samplename,vcf,vcfindex->tuple(samplename,vcf.toSorted{it->(it.name =~ /${samplename}_(.*).tonly.octopus.vcf.gz/)[0][1].toInteger()},vcfindex,"octopus_tonly")} 
             | combineVariants_octopus_tonly
-            | join(sample_sheet) |
-            map{tumor,marked,markedindex,normvcf,normindex,normal ->tuple(tumor,"octopus_tonly",normvcf,normindex)}
+            | join(sample_sheet) 
+            | map{tumor,marked,markedindex,normvcf,normindex,normal ->tuple(tumor,"octopus_tonly",normvcf,normindex)}
         annotvep_tonly_octopus(octopus_in_tonly)
         octopus_in_tonly_sc=octopus_in_tonly | octopus_convertvcf_tonly
             | map{tumor,vcf,vcfindex ->tuple(tumor,"octopus_tonly",vcf,vcfindex)} 
