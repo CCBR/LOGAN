@@ -472,6 +472,7 @@ process octopus_tn {
     $GERMLINE_FOREST \
     $SOMATIC_FOREST \
     --target-working-memory 64Gb \
+    -B 64Gb \
     -o ${tumorname}_vs_${normalname}_${bed.simpleName}.octopus.vcf.gz
     """
 
@@ -759,7 +760,7 @@ process somaticcombine {
 
     input:
         tuple val(tumorsample), val(normal),
-        val(callers),
+        val(caller),
         path(vcfs), path(vcfindex)
 
     output:
@@ -768,14 +769,15 @@ process somaticcombine {
         path("${tumorsample}_vs_${normal}_combined.vcf.gz.tbi")
 
     script:
-        vcfin1=[callers, vcfs].transpose().collect { a, b -> a + " " + b }
+        vcfin1=[caller, vcfs].transpose().collect { a, b -> a + " " + b }
         vcfin2="-V:" + vcfin1.join(" -V:")
 
+        callerin=caller.join(",")
     """
     /usr/lib/jvm/java-8-openjdk-amd64/bin/java -jar \$GATK_JAR -T CombineVariants  \
         -R $GENOMEREF \
         --genotypemergeoption PRIORITIZE \
-        --rod_priority_list mutect2,strelka,octopus,muse,lofreq,vardict,varscan \
+        --rod_priority_list $callerin \
         --filteredrecordsmergetype KEEP_IF_ANY_UNFILTERED \
         -o ${tumorsample}_vs_${normal}_combined.vcf.gz \
         $vcfin2
@@ -783,8 +785,10 @@ process somaticcombine {
     """
 
     stub:
-    vcfin1=[callers, vcfs].transpose().collect { a, b -> a + " " + b }
+    vcfin1=[caller, vcfs].transpose().collect { a, b -> a + " " + b }
     vcfin2="-V:" + vcfin1.join(" -V:")
+
+    callerin=caller.join(",")
 
     """
     touch ${tumorsample}_vs_${normal}_combined.vcf.gz
