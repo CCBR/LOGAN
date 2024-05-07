@@ -1,6 +1,6 @@
 # LOGAN 🔬 [![Docker Pulls](https://img.shields.io/docker/pulls/nciccbr/ccbr_wes_base)](https://hub.docker.com/r/nciccbr/ccbr_wes_base) [![GitHub issues](https://img.shields.io/github/issues/ccbr/LOGAN?color=brightgreen)](https://github.com/ccbr/LOGAN/issues)  [![GitHub license](https://img.shields.io/github/license/ccbr/LOGAN)](https://github.com/ccbr/LOGAN/blob/master/LICENSE) 
 
-> **_LOGAN-whoLe genOme-sequencinG Analysis pipeliNe_**. This is the home of the LOGAN Pipeline. Accurately call germline and somatic variants, CNVs, and SVs and  annotate variants!
+> **_LOGAN-whoLe genOme-sequencinG Analysis pipeliNe_**. Call germline and somatic variants, CNVs, and SVs and  annotate variants!
 
 ## Overview
 Welcome to LOGAN! Before getting started, we highly recommend reading through [LOGAN's documentation](https://ccbr.github.io/LOGAN).
@@ -72,7 +72,10 @@ Adding flags determines SNV (germline and/or somatic), SV, and/or CNV calling mo
 
 `--vc`- Enables somatic CNV calling using FREEC, Sequenza, and Purple (hg38 only)
 
+#### Optional Arguments
+`--indelrealign` - Enables indel realignment when running alignment steps. May be helpful for certain callers (VarScan, VarDict)
 
+`--callers`- Comma separated argument for callers, the default is to use all available. Example: `--callers mutect2,octopus,vardict,varscan`
 
 ## Running LOGAN
 Example of Tumor only calling mode 
@@ -87,7 +90,7 @@ logan run --mode local -profile ci_stub --genome hg38 --outdir out --fastq_input
 logan run --mode slurm -profile biowulf,slurm --genome hg38 --outdir out --fastq_input "*R{1,2}.fastq.gz" --vc --sv --cnv
 ```
 
-We currently support the hg38 and mm10 genomes. 
+We currently support the hg38, hg19 (in progress), and mm10 genomes. 
 
 
 
