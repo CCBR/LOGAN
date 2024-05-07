@@ -351,7 +351,6 @@ workflow VC {
 
     //Octopus TN
     if ("octopus" in params.callist){
-        bambyinterval
         octopus_in=octopus_tn(bambyinterval) | bcftools_index_octopus
             | groupTuple()
             | map{samplename,vcf,vcfindex-> tuple(samplename,vcf.toSorted{it->(it.name =~ /${samplename}_(.*).octopus.vcf.gz/)[0][1].toInteger()},vcfindex,"octopus")}
