@@ -467,12 +467,12 @@ process octopus_tn {
     """
     octopus -R $GENOMEREF -I ${normal} ${tumor} --normal-sample ${normalname} \
     -C cancer \
-    --annotations AC AD DP -t ${bed} \
+    --annotations AF AC AD DP -t ${bed} \
     --threads $task.cpus \
     $GERMLINE_FOREST \
     $SOMATIC_FOREST \
-    --target-working-memory 64Gb \
-    -B 64Gb \
+    --target-working-memory 92Gb \
+    -B 72Gb \
     -o ${tumorname}_vs_${normalname}_${bed.simpleName}.octopus.vcf.gz
     """
 
