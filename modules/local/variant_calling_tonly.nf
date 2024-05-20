@@ -337,9 +337,9 @@ process octopus_tonly {
     script:
     """
     octopus -R $GENOMEREF -C cancer -I ${tumor} \
-    --annotations AC AD DP \
-    --target-working-memory 64Gb \
-    -B 64Gb \
+    --annotations AF AC AD DP \
+    --target-working-memory 92Gb \
+    -B 90Gb \
     -t ${bed} \
     --threads ${task.cpus}\
     $SOMATIC_FOREST \
