@@ -472,7 +472,7 @@ process octopus_tn {
     $GERMLINE_FOREST \
     $SOMATIC_FOREST \
     --target-working-memory 92Gb \
-    -B 72Gb \
+    -B 90Gb \
     -o ${tumorname}_vs_${normalname}_${bed.simpleName}.octopus.vcf.gz
     """
 
