@@ -131,6 +131,8 @@ workflow VC_TONLY {
     bambyinterval=bamwithsample.combine(splitout.flatten())
 
     //Common steps
+    call_list = params.callers.split(',') as List
+
     vc_tonly=Channel.empty()
 
     if ("mutect2" in call_list | "varscan" in call_list){ 
