@@ -42,7 +42,7 @@ include {svaba_somatic; manta_somatic;
     annotsv_tn as annotsv_survivor_tn
     annotsv_tn as annotsv_svaba;annotsv_tn as annotsv_manta} from '../../modules/local/structural_variant.nf'
 
-include {amber_tn; cobalt_tn; purple;purple_novc;
+include {amber_tn; cobalt_tn; purple; purple_novc;
     sequenza; seqz_sequenza_bychr; freec; freec_paired } from '../../modules/local/copynumber.nf'
 
 include {splitinterval} from '../../modules/local/splitbed.nf'
@@ -437,6 +437,10 @@ workflow CNVmouse {
         bamwithsample
         
     main:
+        cnvcall_list = params.cnvcallers.split(',') as List
+
+        if ("sequenza" in cnvcall_list){
+
         //Sequenza (Preferred for Paired)
         chrs=Channel.fromList(params.genomes[params.genome].chromosomes)
         seqzin=bamwithsample.map{tname,tumor,tbai,nname,norm,nbai->
@@ -445,7 +449,9 @@ workflow CNVmouse {
         seqz_sequenza_bychr.out.groupTuple()
             .map{pair, seqz -> tuple(pair, seqz.sort{it.name})}
             | sequenza
+        }
 
+        if ("freec" in cnvcall_list){
         //FREEC Paired Mode
         bamwithsample | freec_paired
 
@@ -453,7 +459,7 @@ workflow CNVmouse {
         bamwithsample 
             | map{tname,tumor,tbai,nname,norm,nbai->tuple(tname,tumor,tbai)}
             | freec
-
+        }
 }
 
 workflow CNVhuman {
@@ -470,7 +476,7 @@ workflow CNVhuman {
             bamwithsample | cobalt_tn
             purplein=amber_tn.out.join(cobalt_tn.out)
             purplein.join(somaticcall_input)|
-            map{t1,amber,cobalt,n1,vc,vcf,vcfindex -> tuple(t1,amber,cobalt,vcf,vcfindex)}
+            map{t1,amber,cobalt,n1,vc,vcf,vcfindex -> tuple(t1,n1,amber,cobalt,vcf,vcfindex)}
                 | purple
         }
 
@@ -500,7 +506,7 @@ workflow CNVhuman_novc {
             bamwithsample | amber_tn
             bamwithsample | cobalt_tn
             purplein=amber_tn.out |join(cobalt_tn.out) 
-            purplein | map{t1,amber,cobalt,n1 -> tuple(t1,amber,cobalt)}
+            purplein | map{t1,amber,cobalt,n1 -> tuple(t1,n1,amber,cobalt)}
                 | purple_novc
         }
 

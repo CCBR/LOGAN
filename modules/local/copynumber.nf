@@ -14,14 +14,15 @@ if (params.genome=="mm10"){
     FREECPLOT = params.freec_plot
 }
 
-GERMLINEHET="/data/SCLC-BRAINMETS/cn/copy_number/GermlineHetPon.38.vcf.gz"
-GCPROFILE='/data/SCLC-BRAINMETS/cn/copy_number/GC_profile.1000bp.38.cnp'
-DIPLODREG='/data/SCLC-BRAINMETS/cn/copy_number/DiploidRegions.38.bed.gz'
-ENSEMBLCACHE='/data/SCLC-BRAINMETS/cn/common/ensembl_data'
-DRIVERS='/data/SCLC-BRAINMETS/cn/common/DriverGenePanel.38.tsv'
-HOTSPOTS='/data/SCLC-BRAINMETS/cn/variants/KnownHotspots.somatic.38.vcf.gz'
+GERMLINEHET=file(params.genomes[params.genome].GERMLINEHET)
+GCPROFILE=file(params.genomes[params.genome].GCPROFILE)
+DIPLODREG=file(params.genomes[params.genome].DIPLODREG)
+ENSEMBLCACHE=file(params.genomes[params.genome].ENSEMBLCACHE)
+DRIVERS=file(params.genomes[params.genome].DRIVERS)
+HOTSPOTS=file(params.genomes[params.genome].HOTSPOTS)
 
-//ascatR=
+
+
 
 
 //mm10 Paired-Sequenza, FREEC-tumor only
@@ -337,9 +338,6 @@ process cobalt_tonly {
 
     output:
         tuple val(tumorname), path("${tumorname}_cobalt")
-        //path("${samplename}/${samplename}.cobalt.ratio.tsv.gz"),
-        //path("${samplename}/${samplename}.cobalt.ratio.pcf"),
-        //path("${samplename}/${samplename}.cobalt.gc.median.tsv")
 
     script:
 
@@ -373,9 +371,6 @@ process cobalt_tn {
 
     output:
         tuple val(tumorname), path("${tumorname}_vs_${normalname}_cobalt")
-        //path("${samplename}/${samplename}.cobalt.ratio.tsv.gz"),
-        //path("${samplename}/${samplename}.cobalt.ratio.pcf"),
-        //path("${samplename}/${samplename}.cobalt.gc.median.tsv")
 
     script:
 
@@ -386,7 +381,6 @@ process cobalt_tn {
     -reference ${normalname} -reference_bam ${normal} \
     -output_dir ${tumorname}_vs_${normalname}_cobalt \
     -threads $task.cpus \
-    -tumor_only_diploid_bed $DIPLODREG \
     -gc_profile $GCPROFILE
 
     """
@@ -405,11 +399,85 @@ process purple {
     label 'process_medium'
 
     input:
-        tuple val(tumorname),
-        path(cobaltin),
-        path(amberin),
-        path(somaticvcf),
-        path(somaticvcfindex)
+        tuple val(tumorname), val(normalname),
+        path(cobaltin), path(amberin),
+        path(somaticvcf), path(somaticvcfindex)
+
+    output:
+        tuple val(tumorname), path("${tumorname}")
+
+    script:
+
+    """
+    java -jar /opt2/hmftools/purple.jar \
+    -tumor ${tumorname} \
+    -reference ${normalname} \
+    -amber ${amberin} \
+    -cobalt ${cobaltin} \
+    -gc_profile $GCPROFILE \
+    -ref_genome_version 38 \
+    -ref_genome $GENOME \
+    -ensembl_data_dir $ENSEMBLCACHE \
+    -somatic_vcf ${somaticvcf} \
+    -driver_gene_panel $DRIVERS \
+    -somatic_hotspots $HOTSPOTS \
+    -output_dir ${tumorname}
+    """
+
+    stub:
+
+    """
+    mkdir ${tumorname}
+    touch ${tumorname}/${tumorname}.purple.cnv.somatic.tsv ${tumorname}/${tumorname}.purple.cnv.gene.tsv ${tumorname}/${tumorname}.driver.catalog.somatic.tsv
+    """
+
+}
+
+
+process purple_novc {
+    container = "${params.containers.logan}"
+    label 'process_medium'
+
+    input:
+        tuple val(tumorname), val(normalname),
+        path(cobaltin), path(amberin)
+
+    output:
+        tuple val(tumorname), path("${tumorname}")
+
+    script:
+
+    """
+    java -jar /opt2/hmftools/purple.jar \
+    -tumor ${tumorname} \
+    -reference ${normalname} \
+    -amber ${amberin} \
+    -cobalt ${cobaltin} \
+    -gc_profile $GCPROFILE \
+    -ref_genome_version 38 \
+    -ref_genome $GENOME \
+    -ensembl_data_dir $ENSEMBLCACHE \
+    -output_dir ${tumorname}
+    """
+
+    stub:
+
+    """
+    mkdir ${tumorname}
+    touch ${tumorname}/${tumorname}.purple.cnv.somatic.tsv ${tumorname}/${tumorname}.purple.cnv.gene.tsv ${tumorname}/${tumorname}.driver.catalog.somatic.tsv
+    """
+
+}
+
+
+process purple_tonly {
+    container = "${params.containers.logan}"
+    label 'process_medium'
+
+    input:
+        tuple val(tumorname), 
+        path(cobaltin), path(amberin),
+        path(somaticvcf), path(somaticvcfindex)
 
     output:
         tuple val(tumorname), path("${tumorname}")
@@ -441,14 +509,13 @@ process purple {
 }
 
 
-process purple_novc {
+process purple_tonly_novc {
     container = "${params.containers.logan}"
     label 'process_medium'
 
     input:
-        tuple val(tumorname),
-        path(cobaltin),
-        path(amberin)
+        tuple val(tumorname), val(normalname),
+        path(cobaltin), path(amberin)
 
     output:
         tuple val(tumorname), path("${tumorname}")

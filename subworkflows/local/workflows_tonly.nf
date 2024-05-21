@@ -35,7 +35,7 @@ include {manta_tonly; svaba_tonly; survivor_sv; gunzip;
 annotsv_tonly as annotsv_manta_tonly; annotsv_tonly as annotsv_svaba_tonly;
 annotsv_tonly as annotsv_survivor_tonly} from '../../modules/local/structural_variant.nf'
 
-include {freec; amber_tonly; cobalt_tonly; purple  } from '../../modules/local/copynumber.nf'
+include {freec; amber_tonly; cobalt_tonly; purple_tonly_novc; purple_tonly  } from '../../modules/local/copynumber.nf'
 
 include {splitinterval} from '../../modules/local/splitbed.nf'
 
@@ -266,8 +266,12 @@ workflow CNVmouse_tonly {
     take:
         bamwithsample
         
-    main: 
+    main:  
+    cnvcall_list = params.cnvcallers.split(',') as List
+
+    if ("freec" in cnvcall_list){
         freec(bamwithsample)
+    }
 }
 
 
@@ -291,7 +295,7 @@ workflow CNVhuman_tonly {
             purplein=amber_tonly.out.join(cobalt_tonly.out)
             purplein.join(somaticcall_input)| 
             map{t1,amber,cobalt,vc,vcf,index -> tuple(t1,amber,cobalt,vcf,index)}  
-                | purple
+                | purple_tonly
         }
         
 }
@@ -302,8 +306,8 @@ workflow CNVhuman_novc_tonly {
 
     main: 
         if ("freec" in cnvcall_list){
-        //FREEC-Unpaired only
-        bamwithsample | freec 
+            //FREEC-Unpaired only
+            bamwithsample | freec 
         }   
         
         if ("purple" in cnvcall_list){
@@ -312,7 +316,7 @@ workflow CNVhuman_novc_tonly {
             bamwithsample | cobalt_tonly
             purplein=amber_tonly.out.join(cobalt_tonly.out)
             map{t1,amber,cobalt -> tuple(t1,amber,cobalt)}  
-                | purple_novc
+                | purple_tonly_novc
         }
 }
 
