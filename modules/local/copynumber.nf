@@ -440,6 +440,42 @@ process purple {
 
 }
 
+
+process purple_novc {
+    container = "${params.containers.logan}"
+    label 'process_medium'
+
+    input:
+        tuple val(tumorname),
+        path(cobaltin),
+        path(amberin)
+
+    output:
+        tuple val(tumorname), path("${tumorname}")
+
+    script:
+
+    """
+    java -jar /opt2/hmftools/purple.jar \
+    -tumor ${tumorname} \
+    -amber ${amberin} \
+    -cobalt ${cobaltin} \
+    -gc_profile $GCPROFILE \
+    -ref_genome_version 38 \
+    -ref_genome $GENOME \
+    -ensembl_data_dir $ENSEMBLCACHE \
+    -output_dir ${tumorname}
+    """
+
+    stub:
+
+    """
+    mkdir ${tumorname}
+    touch ${tumorname}/${tumorname}.purple.cnv.somatic.tsv ${tumorname}/${tumorname}.purple.cnv.gene.tsv ${tumorname}/${tumorname}.driver.catalog.somatic.tsv
+    """
+
+}
+
 /*
 process ascat_tn {
     module=["java/12.0.1","R/3.6.3"]
