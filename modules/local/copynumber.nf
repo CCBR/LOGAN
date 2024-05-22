@@ -14,16 +14,14 @@ if (params.genome=="mm10"){
     FREECPLOT = params.freec_plot
 }
 
-GERMLINEHET=file(params.genomes[params.genome].GERMLINEHET)
-GCPROFILE=file(params.genomes[params.genome].GCPROFILE)
-DIPLODREG=file(params.genomes[params.genome].DIPLODREG)
-ENSEMBLCACHE=file(params.genomes[params.genome].ENSEMBLCACHE)
-DRIVERS=file(params.genomes[params.genome].DRIVERS)
-HOTSPOTS=file(params.genomes[params.genome].HOTSPOTS)
-
-
-
-
+if (params.genome=="hg38" | params.genome=="hg19"){
+    GERMLINEHET=file(params.genomes[params.genome].GERMLINEHET)
+    GCPROFILE=file(params.genomes[params.genome].GCPROFILE)
+    DIPLODREG=file(params.genomes[params.genome].DIPLODREG)
+    ENSEMBLCACHE=file(params.genomes[params.genome].ENSEMBLCACHE)
+    DRIVERS=file(params.genomes[params.genome].DRIVERS)
+    HOTSPOTS=file(params.genomes[params.genome].HOTSPOTS)
+}
 
 //mm10 Paired-Sequenza, FREEC-tumor only
 process seqz_sequenza_bychr {
