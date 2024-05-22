@@ -80,9 +80,6 @@ process sequenza {
         path("${pairid}_gc_plots.pdf"),
         path("${pairid}_sequenza_extract.RData")
 
-    //samtools mpileup ${tumor} -f $GENOMEREF -Q 20 |gzip > ${tumorname}.mpileup.gz
-    //samtools mpileup ${normal} -f $GENOMEREF -Q 20 |gzip > ${normalname}.mpileup.gz
-    //sequenza-utils seqz_binning --seqz --window 50 -o ${sample}_bin50.seqz.gz
 
     shell:
     '''
@@ -262,11 +259,7 @@ process amber_tonly {
 
     output:
         tuple val(tumorname), path("${tumorname}_amber")
-        //path("${samplename}.amber.baf.tsv.gz"),
-        //path("${samplename}.amber.baf.pcf"),
-        //path("${samplename}.amber.qc")
-        //path("${samplename}.amber.contamination.vcf.gz") Contamination maybe only with tumor
-
+      
     script:
 
     """
@@ -299,11 +292,7 @@ process amber_tn {
 
     output:
         tuple val(tumorname), path("${tumorname}_vs_${normalname}_amber")
-        //path("${samplename}.amber.baf.tsv.gz"),
-        //path("${samplename}.amber.baf.pcf"),
-        //path("${samplename}.amber.qc")
-        //path("${samplename}.amber.contamination.vcf.gz") Contamination maybe only with tumor
-
+      
     script:
 
     """
@@ -373,7 +362,6 @@ process cobalt_tn {
     script:
 
     """
-
     java -jar -Xmx8G /opt2/hmftools/cobalt.jar \
     -tumor ${tumorname} -tumor_bam ${tumorname} \
     -reference ${normalname} -reference_bam ${normal} \
