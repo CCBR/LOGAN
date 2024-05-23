@@ -393,7 +393,7 @@ workflow VC {
             | annotvep_tn_combined
     }
     
-
+    
     //Implement PCGR Annotator/CivIC Next
         if ("octopus" in call_list){
            somaticcall_input=octopus_in_sc
