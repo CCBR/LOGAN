@@ -16,7 +16,7 @@ include {mutect2; mutect2filter; pileup_paired_t; pileup_paired_n;
     contamination_paired; learnreadorientationmodel; mergemut2stats;
     combineVariants as combineVariants_vardict; combineVariants as combineVariants_varscan; 
     combineVariants as combineVariants_vardict_tonly; combineVariants as combineVariants_varscan_tonly;
-    combineVariants as combineVariants_sage_tonly;
+    combineVariants as combineVariants_sage; combineVariants as combineVariants_sage_tonly;
     combineVariants_alternative; 
     annotvep_tn as annotvep_tn_mut2;
     annotvep_tn as annotvep_tn_varscan; annotvep_tn as annotvep_tn_vardict;
@@ -206,8 +206,7 @@ workflow VC_TONLY {
     if ("octopus" in call_list){
     octopus_in_tonly=bambyinterval | octopus_tonly | bcftools_index_octopus
         | groupTuple()
-        | map{tumor,vcf,vcfindex -> tuple(tumor,vcf.toSorted{it -> it.name}
-                ,vcfindex, "octopus_tonly")} 
+        | map{tumor,vcf,vcfindex -> tuple(tumor,vcf.toSorted{it -> it.name},vcfindex, "octopus_tonly")} 
         | combineVariants_alternative | join(sample_sheet)
         | map{tumor,marked,markedindex,normvcf,normindex ->tuple(tumor,"octopus_tonly",normvcf,normindex)} 
     annotvep_tonly_octopus(octopus_in_tonly)
@@ -217,20 +216,20 @@ workflow VC_TONLY {
     }
 
     //SAGE
-    if ("sage" in params.callist){
-    sage_in_tonly=sage_tonly(bambyinterval)
+    if ("sage" in call_list){
+    sage_in_tonly=sage_tonly(bamwithsample)
             | groupTuple() 
-            | map{samplename,vcf,vcfindex -> tuple(samplename,vcf.toSorted{it->(it.name =~ /${samplename}_(.*).tonly.sage.vcf.gz/)[0][1].toInteger()},vcfindex,"sage_tonly")} 
+            | map{samplename,vcf,vcfindex -> tuple(samplename,vcf,"sage_tonly")} 
             | combineVariants_sage_tonly
             | join(sample_sheet) 
             | map{tumor,marked,markedindex,normvcf,normindex ->tuple(tumor,"sage_tonly",normvcf,normindex)}
-        annotvep_tonly_octopus(sage_in_tonly)
-        sage_in_tonly_sc=sage_in_tonly 
-            | map{tumor,vcf,vcfindex ->tuple(tumor,"sage_tonly",vcf,vcfindex)} 
+    annotvep_tonly_sage(sage_in_tonly)
 
-        vc_tonly=vc_tonly | concat(sage_in_tonly) 
-
+    vc_tonly=vc_tonly | concat(sage_in_tonly) 
     }
+    
+
+    
     //Combined Variants and Annotated
     if (call_list.size()>1){
         vc_tonly
@@ -240,11 +239,13 @@ workflow VC_TONLY {
             | annotvep_tonly_combined
     }
     
-    //Emit for SC downstream, take Oc/Mu2/Vard/Varscan
+    //Emit for SC downstream, take Oc/Mu2/sage/Vard/Varscan
         if("octopus" in call_list){
            somaticcall_input=octopus_in_tonly_sc
         }else if("mutect2" in call_list){
             somaticcall_input=mutect2_in_tonly
+        }else if("sage" in call_list){
+            somaticcall_input=sage_in_tonly
         }else if("vardict" in call_list){
             somaticcall_input=vardict_in_tonly
         }else if("varscan" in call_list){

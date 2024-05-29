@@ -391,30 +391,29 @@ process sage_tonly {
     container "${params.containers.hmftools}"
     label 'process_somaticcaller'
 
-     input:
-        tuple val(tumorname), path(tumor), 
-        path(tumorbai), path(bed)
+    input:
+        tuple val(tumorname), path(tumor), path(tumorbai)
 
- output:
+    output:
         tuple val(tumorname), 
-        path("${tumorname}_${bed.simpleName}.tonly.sage.vcf.gz"),
-        path("${tumorname}_${bed.simpleName}.tonly.sage.vcf.gz.tbi")
+        path("${tumorname}.tonly.sage.vcf.gz"),
+        path("${tumorname}.tonly.sage.vcf.gz.tbi")
 
-script:
-"""
-    java -Xms4G -Xmx32G -cp sage.jar com.hartwig.hmftools.sage.SageApplication \
-    -tumor $tumorname -tumor_bam $tumorbam \
-    -threads $task.cpus \
-    -ref_genome_version $GENOMEVER \
-    -ref_genome $GENOMEREF \
-    $HOTSPOTS $PANELBED $HCBED $ENSEMBLCACHE \
-    -output_vcf ${tumorname}_${bed.simpleName}.tonly.sage.vcf.gz
-"""
+    script:
+    """
+        java -Xms4G -Xmx32G -cp sage.jar com.hartwig.hmftools.sage.SageApplication \
+        -tumor ${tumorname} -tumor_bam ${tumorbam} \
+        -threads $task.cpus \
+        -ref_genome_version $GENOMEVER \
+        -ref_genome $GENOMEREF \
+        $HOTSPOTS $PANELBED $HCBED $ENSEMBLCACHE \
+        -output_vcf ${tumorname}.tonly.sage.vcf.gz
+    """
 
-stub:
-"""
-    touch "${tumorname}_${bed.simpleName}.tonly.sage.vcf.gz" "${tumorname}_${bed.simpleName}.tonly.sage.vcf.gz.tbi"
-"""
+    stub:
+    """
+        touch "${tumorname}.tonly.sage.vcf.gz" "${tumorname}.tonly.sage.vcf.gz.tbi"
+    """
 
 }
 

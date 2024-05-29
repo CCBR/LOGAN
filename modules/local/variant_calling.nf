@@ -493,30 +493,28 @@ process sage_tn {
 
      input:
         tuple val(tumorname), path(tumor), path(tumorbai),
-        val(normalname), path(normal), path(normalbai), path(bed)
+        val(normalname), path(normal), path(normalbai)
 
  output:
         tuple val(tumorname), val(normalname),
-        path("${tumorname}_vs_${normalname}_${bed.simpleName}_sage.vcf.gz"),
-        path("${tumorname}_vs_${normalname}_${bed.simpleName}_sage.vcf.gz.tbi")
+        path("${tumorname}_vs_${normalname}.sage.vcf.gz"),
+        path("${tumorname}_vs_${normalname}.sage.vcf.gz.tbi")
 
 script:
     """
     java -Xms4G -Xmx32G -cp sage.jar com.hartwig.hmftools.sage.SageApplication \
-    -tumor $tumorname -tumor_bam $tumorbam \
-    -reference $normalname -reference_bam $normalbam \
+    -tumor ${tumorname} -tumor_bam ${tumorbam} \
+    -reference ${normalname} -reference_bam ${normalbam} \
     -threads $task.cpus \
     -ref_genome_version $GENOMEVER \
     -ref_genome $GENOMEREF \
     $HOTSPOTS $PANELBED $HCBED $ENSEMBLCACHE \
-    -output_vcf ${tumorname}_vs_${normalname}_${bed.simpleName}.sage.vcf.gz
-
+    -output_vcf ${tumorname}_vs_${normalname}.sage.vcf.gz
     """
 
     stub:
-
     """
-    touch "${tumorname}_vs_${normalname}_${bed.simpleName}.sage.vcf.gz" "${tumorname}_vs_${normalname}_${bed.simpleName}.sage.vcf.gz.tbi"
+    touch "${tumorname}_vs_${normalname}.sage.vcf.gz" "${tumorname}_vs_${normalname}.sage.vcf.gz.tbi"
     """
 }
 
