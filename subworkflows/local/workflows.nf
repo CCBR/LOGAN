@@ -324,7 +324,30 @@ workflow VC {
         vc_all=vc_all|concat(varscan_in)
         vc_tonly=vc_tonly|concat(varscan_in_tonly) 
     }
-    
+
+    //SAGE TN
+    if ("sage" in params.callist){
+        sage_in=sage_tn(bambyinterval) | groupTuple(by:[0,1])
+            | map{tu,no,vcf,vcfindex-> tuple("${tu}_vs_${no}",vcf.toSorted{it -> (it.name =~ /${tu}_vs_${no}_(.*?).sage.vcf.gz/)[0][1].toInteger()},vcfindex,"lofreq")}
+            | combineVariants_sage | join(sample_sheet_paired)
+            | map{sample,marked,markedindex,normvcf,normindex,tumor,normal->tuple(tumor,normal,"sage",normvcf,normindex)}
+        annotvep_tn_sage(sage_in)
+
+        sage_in_tonly=sage_tonly(bambyinterval_t)
+            | groupTuple() 
+            | map{samplename,vcf,vcfindex->tuple(samplename,vcf.toSorted{it->(it.name =~ /${samplename}_(.*).tonly.sage.vcf.gz/)[0][1].toInteger()},vcfindex,"octopus_tonly")} 
+            | combineVariants_sage_tonly
+            | join(sample_sheet) 
+            | map{tumor,marked,markedindex,normvcf,normindex,normal ->tuple(tumor,"sage_tonly",normvcf,normindex)}
+        annotvep_tonly_octopus(sage_in_tonly)
+        sage_in_tonly_sc=sage_in_tonly 
+            | map{tumor,vcf,vcfindex ->tuple(tumor,"sage_tonly",vcf,vcfindex)} 
+
+
+        vc_all=vc_all|concat(sage_in)
+    }
+
+
     //Lofreq TN
     if ("lofreq" in call_list){
         lofreq_in=lofreq_tn(bambyinterval) | groupTuple(by:[0,1])
