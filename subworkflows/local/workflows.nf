@@ -42,7 +42,7 @@ include {svaba_somatic; manta_somatic;
     annotsv_tn as annotsv_survivor_tn
     annotsv_tn as annotsv_svaba;annotsv_tn as annotsv_manta} from '../../modules/local/structural_variant.nf'
 
-include {amber_tn; cobalt_tn; purple;
+include {amber_tn; cobalt_tn; purple; purple_novc;
     sequenza; seqz_sequenza_bychr; freec; freec_paired } from '../../modules/local/copynumber.nf'
 
 include {splitinterval} from '../../modules/local/splitbed.nf'
@@ -160,7 +160,7 @@ workflow VC {
 
     main:
     //Create Pairing for TN (in case of dups)
-    sample_sheet_paired=sample_sheet|map{tu,no -> tuple ("${tu}_vs_${no}",tu, no)}
+    sample_sheet_paired=sample_sheet|map{tu,no -> tuple ("${tu}_vs_${no}",tu, no)} |view()
     bambyinterval=bamwithsample.combine(splitout.flatten())
 
     bambyinterval 
@@ -174,14 +174,13 @@ workflow VC {
             concat(bambyinterval_tonly.n1) |unique() 
 
     //Prep Pileups
-    params.callers = "mutect2,octopus,muse,lofreq,vardict,varscan"
-    params.callist = params.callers.split(',') as List
+    call_list = params.callers.split(',') as List
 
     vc_all=Channel.empty()
     vc_tonly=Channel.empty()
 
     //Common for Mutect2/Varscan
-    if ("mutect2" in params.callist | "varscan" in params.callist){ 
+    if ("mutect2" in call_list | "varscan" in call_list){ 
         pileup_paired_t(bambyinterval) 
         pileup_paired_n(bambyinterval) 
 
@@ -210,7 +209,7 @@ workflow VC {
         contamination_tumoronly(pileup_all) 
     }
 
-    if ("mutect2" in params.callist){
+    if ("mutect2" in call_list){
     //Paired Mutect2
         mutect2(bambyinterval)
         mutect2.out.groupTuple(by:[0,1])
@@ -269,7 +268,7 @@ workflow VC {
 
     }
 
-    if ("strelka" in params.callist){
+    if ("strelka" in call_list){
         //Strelka TN
         strelka_in=strelka_tn(bambyinterval) | groupTuple(by:[0,1])
         | map { tumor,normal,vcfs,vcfindex,indels,indelindex -> tuple("${tumor}_vs_${normal}",
@@ -284,7 +283,7 @@ workflow VC {
 
     }
 
-    if ("vardict" in params.callist){
+    if ("vardict" in call_list){
         //Vardict TN
         vardict_in=vardict_tn(bambyinterval) | groupTuple(by:[0,1])
         | map{tumor,normal,vcf-> tuple("${tumor}_vs_${normal}",vcf.toSorted{it -> (it.name =~ /${tumor}_vs_${normal}_(.*?).vardict.vcf/)[0][1].toInteger()},"vardict")}
@@ -304,7 +303,7 @@ workflow VC {
         vc_tonly=vc_tonly|concat(vardict_in_tonly) 
     }
 
-    if ("varscan" in params.callist){
+    if ("varscan" in call_list){
         //VarScan TN
         varscan_in=bambyinterval.combine(contamination_paired.out,by:0) 
         | varscan_tn | groupTuple(by:[0,1]) 
@@ -327,7 +326,7 @@ workflow VC {
     }
     
     //Lofreq TN
-    if ("lofreq" in params.callist){
+    if ("lofreq" in call_list){
         lofreq_in=lofreq_tn(bambyinterval) | groupTuple(by:[0,1])
             | map{tu,no,snv,dbsnv,indel,dbindel,vcf,vcfindex-> tuple("${tu}_vs_${no}",vcf.toSorted{it -> (it.name =~ /${tu}_vs_${no}_(.*?)_lofreq.vcf.gz/)[0][1].toInteger()},vcfindex,"lofreq")}
             | combineVariants_lofreq | join(sample_sheet_paired)
@@ -339,7 +338,7 @@ workflow VC {
 
 
     //MuSE TN
-    if ("muse" in params.callist){
+    if ("muse" in call_list){
         muse_in=muse_tn(bamwithsample)
             | map{tumor,normal,vcf-> tuple("${tumor}_vs_${normal}",vcf,"muse")}
             | combineVariants_muse | join(sample_sheet_paired)
@@ -350,7 +349,7 @@ workflow VC {
     }
 
     //Octopus TN
-    if ("octopus" in params.callist){
+    if ("octopus" in call_list){
         octopus_in=octopus_tn(bambyinterval) | bcftools_index_octopus
             | groupTuple()
             | map{samplename,vcf,vcfindex-> tuple(samplename,vcf.toSorted{it->(it.name =~ /${samplename}_(.*).octopus.vcf.gz/)[0][1].toInteger()},vcfindex,"octopus")}
@@ -379,26 +378,26 @@ workflow VC {
 
 
     //Combine All Variants Using VCF -> Annotate
-    if (params.callist.size()>1){
+    if (call_list.size()>1){
         vc_all | groupTuple(by:[0,1])
             | somaticcombine
             | map{tumor,normal,vcf,index ->tuple(tumor,normal,"combined",vcf,index)}
             | annotvep_tn_combined
     }
 
-
-    if (params.callist.size()>1){
+    
+    if (call_list.size()>1){
         vc_tonly 
             | somaticcombine_tonly
             | map{tumor,vcf,index ->tuple(tumor,normal,"combined_tonly",vcf,index)}
             | annotvep_tn_combined
     }
-
-
+    
+    
     //Implement PCGR Annotator/CivIC Next
-        if ("octopus" in params.callist){
+        if ("octopus" in call_list){
            somaticcall_input=octopus_in_sc
-        }else if("mutect2" in params.callist){
+        }else if("mutect2" in call_list){
             somaticcall_input=mutect2_in
         }
 
@@ -436,8 +435,12 @@ workflow SV {
 workflow CNVmouse {
     take:
         bamwithsample
-
+        
     main:
+        cnvcall_list = params.cnvcallers.split(',') as List
+
+        if ("sequenza" in cnvcall_list){
+
         //Sequenza (Preferred for Paired)
         chrs=Channel.fromList(params.genomes[params.genome].chromosomes)
         seqzin=bamwithsample.map{tname,tumor,tbai,nname,norm,nbai->
@@ -446,7 +449,9 @@ workflow CNVmouse {
         seqz_sequenza_bychr.out.groupTuple()
             .map{pair, seqz -> tuple(pair, seqz.sort{it.name})}
             | sequenza
+        }
 
+        if ("freec" in cnvcall_list){
         //FREEC Paired Mode
         bamwithsample | freec_paired
 
@@ -454,7 +459,7 @@ workflow CNVmouse {
         bamwithsample 
             | map{tname,tumor,tbai,nname,norm,nbai->tuple(tname,tumor,tbai)}
             | freec
-
+        }
 }
 
 workflow CNVhuman {
@@ -462,23 +467,59 @@ workflow CNVhuman {
         bamwithsample
         somaticcall_input
 
-    main:
-        //Sequenza
-        chrs=Channel.fromList(params.genomes[params.genome].chromosomes)
-        seqzin=bamwithsample.map{tname,tumor,tbai,nname,norm,nbai->
-            tuple("${tname}_${nname}",tname,tumor,tbai,nname,norm,nbai)}
-        seqzin.combine(chrs) | seqz_sequenza_bychr
-        seqz_sequenza_bychr.out.groupTuple()
-            .map{pair, seqz -> tuple(pair, seqz.sort{it.name})}
-            | sequenza
+    main:  
+        cnvcall_list = params.cnvcallers.split(',') as List
 
-        //Purple
-        bamwithsample | amber_tn
-        bamwithsample | cobalt_tn
-        purplein=amber_tn.out.join(cobalt_tn.out)
-        purplein.join(somaticcall_input)|
-        map{t1,amber,cobalt,n1,vc,vcf,vcfindex -> tuple(t1,amber,cobalt,vcf,vcfindex)}
-            | purple
+        if ("purple" in cnvcall_list){
+            //Purple
+            bamwithsample | amber_tn
+            bamwithsample | cobalt_tn
+            purplein=amber_tn.out.join(cobalt_tn.out)
+            purplein.join(somaticcall_input)|
+            map{t1,amber,cobalt,n1,vc,vcf,vcfindex -> tuple(t1,n1,amber,cobalt,vcf,vcfindex)}
+                | purple
+        }
+
+        if ("sequenza" in cnvcall_list){
+            //Sequenza
+            chrs=Channel.fromList(params.genomes[params.genome].chromosomes)
+            seqzin=bamwithsample.map{tname,tumor,tbai,nname,norm,nbai->
+                tuple("${tname}_${nname}",tname,tumor,tbai,nname,norm,nbai)}
+            seqzin.combine(chrs) | seqz_sequenza_bychr
+            seqz_sequenza_bychr.out.groupTuple()
+                .map{pair, seqz -> tuple(pair, seqz.sort{it.name})}
+                | sequenza
+        }
+
+}
+
+
+workflow CNVhuman_novc {
+    take:
+        bamwithsample
+
+    main:  
+        cnvcall_list = params.cnvcallers.split(',') as List
+
+        if ("purple" in cnvcall_list){
+            //Purple
+            bamwithsample | amber_tn
+            bamwithsample | cobalt_tn
+            purplein=amber_tn.out |join(cobalt_tn.out) 
+            purplein | map{t1,amber,cobalt,n1 -> tuple(t1,n1,amber,cobalt)}
+                | purple_novc
+        }
+
+        if ("sequenza" in cnvcall_list){
+            //Sequenza
+            chrs=Channel.fromList(params.genomes[params.genome].chromosomes)
+            seqzin=bamwithsample.map{tname,tumor,tbai,nname,norm,nbai->
+                tuple("${tname}_${nname}",tname,tumor,tbai,nname,norm,nbai)}
+            seqzin.combine(chrs) | seqz_sequenza_bychr
+            seqz_sequenza_bychr.out.groupTuple()
+                .map{pair, seqz -> tuple(pair, seqz.sort{it.name})}
+                | sequenza
+        }
 
 }
 
@@ -600,7 +641,7 @@ workflow INPUT_BAM {
                         row.Tumor,
                         row.Normal
                        )
-                                  }
+                                  } 
     }
 
     //Either BAM Input or File sheet input
@@ -628,7 +669,7 @@ workflow INPUT_BAM {
                         .splitCsv(header: false, sep: "\t", strip:true)
                         .map{ sample,bam,bai  ->
                         tuple(sample, file(bam),file(bai))
-                                  }
+                                  } 
     }
     intervalbedin = Channel.fromPath(params.genomes[params.genome].intervals,checkIfExists: true,type: 'file')
     splitinterval(intervalbedin)
@@ -647,7 +688,7 @@ workflow INPUT_BAM {
         bamwithsample=baminput2.combine(sample_sheet,by:0).map{it.swap(3,0)}.combine(baminputonly,by:0).map{it.swap(3,0)} 
 
     } else {
-        bamwithsample=baminputonly.combine(sample_sheet,by:0).map{it.swap(3,0)}.combine(baminputonly,by:0).map{it.swap(3,0)}    
+        bamwithsample=baminputonly.combine(sample_sheet,by:0).map{it.swap(3,0)}.combine(baminputonly,by:0).map{it.swap(3,0)}
     }
 
     emit:

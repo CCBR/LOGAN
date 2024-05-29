@@ -35,7 +35,7 @@ include {manta_tonly; svaba_tonly; survivor_sv; gunzip;
 annotsv_tonly as annotsv_manta_tonly; annotsv_tonly as annotsv_svaba_tonly;
 annotsv_tonly as annotsv_survivor_tonly} from '../../modules/local/structural_variant.nf'
 
-include {freec; amber_tonly; cobalt_tonly; purple  } from '../../modules/local/copynumber.nf'
+include {freec; amber_tonly; cobalt_tonly; purple_tonly_novc; purple_tonly  } from '../../modules/local/copynumber.nf'
 
 include {splitinterval} from '../../modules/local/splitbed.nf'
 
@@ -131,12 +131,11 @@ workflow VC_TONLY {
     bambyinterval=bamwithsample.combine(splitout.flatten())
 
     //Common steps
-    params.callers = "mutect2,octopus,vardict,varscan"
-    params.callist = params.callers.split(',') as List
+    call_list = params.callers.split(',') as List
 
     vc_tonly=Channel.empty()
 
-    if ("mutect2" in params.callist | "varscan" in params.callist){ 
+    if ("mutect2" in call_list | "varscan" in call_list){ 
         pileup_paired_tonly(bambyinterval)
         pileup_paired_tout=pileup_paired_tonly.out.groupTuple()
         .map{samplename,pileups-> tuple( samplename,
@@ -146,7 +145,7 @@ workflow VC_TONLY {
     }
 
     //Mutect2
-    if ("mutect2" in params.callist){
+    if ("mutect2" in call_list){
         mutect2_t_tonly(bambyinterval)    
         
         mutect2_t_tonly.out.groupTuple()
@@ -177,7 +176,7 @@ workflow VC_TONLY {
     }
 
     //VarDict
-    if ("vardict" in params.callist){
+    if ("vardict" in call_list){
         vardict_in_tonly=vardict_tonly(bambyinterval) | groupTuple()
             | map{tumor,vcf-> tuple(tumor,vcf.toSorted{it -> (it.name =~ /${tumor}_(.*?).tonly.vardict.vcf/)[0][1].toInteger()},"vardict_tonly")}
             | combineVariants_vardict_tonly
@@ -189,7 +188,7 @@ workflow VC_TONLY {
     }
     
     //VarScan_tonly
-    if ("varscan" in params.callist){
+    if ("varscan" in call_list){
         varscan_in_tonly=bambyinterval.combine(contamination_tumoronly.out,by: 0)
             | varscan_tonly | groupTuple() 
             | map{tumor,vcf-> tuple(tumor,vcf.toSorted{it -> (it.name =~ /${tumor}_(.*?).tonly.varscan.vcf/)[0][1].toInteger()},"varscan_tonly")}
@@ -201,7 +200,7 @@ workflow VC_TONLY {
     }
     
     //Octopus_tonly
-    if ("octopus" in params.callist){
+    if ("octopus" in call_list){
     octopus_in_tonly=bambyinterval | octopus_tonly | bcftools_index_octopus
         | groupTuple()
         | map{tumor,vcf,vcfindex -> tuple(tumor,vcf.toSorted{it -> it.name}
@@ -215,7 +214,7 @@ workflow VC_TONLY {
     }
 
     //Combined Variants and Annotated
-    if (params.callist.size()>1){
+    if (call_list.size()>1){
         vc_tonly
             | groupTuple() | view()
             | somaticcombine_tonly 
@@ -224,13 +223,13 @@ workflow VC_TONLY {
     }
     
     //Emit for SC downstream, take Oc/Mu2/Vard/Varscan
-        if("octopus" in params.callist){
+        if("octopus" in call_list){
            somaticcall_input=octopus_in_tonly_sc
-        }else if("mutect2" in params.callist){
+        }else if("mutect2" in call_list){
             somaticcall_input=mutect2_in_tonly
-        }else if("vardict" in params.calllist){
+        }else if("vardict" in call_list){
             somaticcall_input=vardict_in_tonly
-        }else if("varscan" in params.calllist){
+        }else if("varscan" in call_list){
             somaticcall_input=varscan_in_tonly
         }
 
@@ -269,8 +268,12 @@ workflow CNVmouse_tonly {
     take:
         bamwithsample
         
-    main: 
+    main:  
+    cnvcall_list = params.cnvcallers.split(',') as List
+
+    if ("freec" in cnvcall_list){
         freec(bamwithsample)
+    }
 }
 
 
@@ -280,19 +283,45 @@ workflow CNVhuman_tonly {
         somaticcall_input
 
     main: 
-        //FREEC-Unpaired onlypu
-        bamwithsample | freec 
-        
-        //Purple
-        bamwithsample | amber_tonly
-        bamwithsample | cobalt_tonly
-        purplein=amber_tonly.out.join(cobalt_tonly.out)
-        purplein.join(somaticcall_input)| 
-        map{t1,amber,cobalt,vc,vcf,index -> tuple(t1,amber,cobalt,vcf,index)}  
-            | purple
+        cnvcall_list = params.cnvcallers.split(',') as List
 
+        if ("freec" in cnvcall_list){
+            //FREEC-Unpaired only
+            bamwithsample | freec 
+        }
+
+        if ("purple" in cnvcall_list){
+            //Purple
+            bamwithsample | amber_tonly
+            bamwithsample | cobalt_tonly
+            purplein=amber_tonly.out.join(cobalt_tonly.out)
+            purplein.join(somaticcall_input)| 
+            map{t1,amber,cobalt,vc,vcf,index -> tuple(t1,amber,cobalt,vcf,index)}  
+                | purple_tonly
+        }
         
 }
+
+workflow CNVhuman_novc_tonly {
+    take:
+        bamwithsample
+
+    main: 
+        if ("freec" in cnvcall_list){
+            //FREEC-Unpaired only
+            bamwithsample | freec 
+        }   
+        
+        if ("purple" in cnvcall_list){
+            //Purple
+            bamwithsample | amber_tonly
+            bamwithsample | cobalt_tonly
+            purplein=amber_tonly.out.join(cobalt_tonly.out)
+            map{t1,amber,cobalt -> tuple(t1,amber,cobalt)}  
+                | purple_tonly_novc
+        }
+}
+
 
 workflow QC_TONLY {
     take:

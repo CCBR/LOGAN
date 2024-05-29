@@ -17,12 +17,13 @@ log.info """\
 
 
 include {DETERMINEBAM; INPUT; INPUT_BAM; ALIGN; GL;
-    VC; SV; CNVmouse; CNVhuman;
+    VC; SV; CNVmouse; CNVhuman; CNVhuman_novc;
     QC_GL; QC_NOGL} from "./subworkflows/local/workflows.nf"
 
 include {INPUT_TONLY; INPUT_TONLY_BAM;
     ALIGN_TONLY;
-    VC_TONLY; SV_TONLY; CNVhuman_tonly; CNVmouse_tonly; QC_TONLY } from "./subworkflows/local/workflows_tonly.nf"
+    VC_TONLY; SV_TONLY; CNVmouse_tonly;  CNVhuman_tonly; CNVhuman_novc_tonly;
+    QC_TONLY } from "./subworkflows/local/workflows_tonly.nf"
 
 
 workflow.onComplete {
@@ -56,8 +57,7 @@ workflow {
                 CNVmouse(ALIGN.out.bamwithsample)
             } else if (params.genome== "hg38"){
                 if (!params.vc){
-                    VC(ALIGN.out.bamwithsample,ALIGN.out.splitout,ALIGN.out.sample_sheet)
-                    CNVhuman(ALIGN.out.bamwithsample,VC.out.somaticcall_input)
+                    CNVhuman_novc(ALIGN.out.bamwithsample)
                 } else {
                     CNVhuman(ALIGN.out.bamwithsample,VC.out.somaticcall_input)
                 }
@@ -73,7 +73,7 @@ workflow {
 
     //TUMOR-NOMRAL BAM INPUT
     if ([params.bam_input,params.bam_file_input].any() && params.sample_sheet){
-        println "Tumor-Normal with BAMs"
+        println "Tumor-Normal BAM"
         INPUT_BAM()
         if (params.vc){
             VC(INPUT_BAM.out.bamwithsample,INPUT_BAM.out.splitout,INPUT_BAM.out.sample_sheet)
@@ -84,10 +84,9 @@ workflow {
         if (params.cnv){
             if (params.genome == "mm10"){
                 CNVmouse(INPUT_BAM.out.bamwithsample)
-            } else if (params.genome== "hg38"){
+            } else if (params.genome == "hg38"){
                 if (!params.vc){
-                    VC(INPUT_BAM.out.bamwithsample,INPUT_BAM.out.splitout,INPUT_BAM.out.sample_sheet)
-                    CNVhuman(INPUT_BAM.out.bamwithsample,VC.out.somaticcall_input)
+                    CNVhuman_novc(INPUT_BAM.out.bamwithsample)
                 }else {
                     CNVhuman(INPUT_BAM.out.bamwithsample,VC.out.somaticcall_input)
                 }
