@@ -20,16 +20,18 @@ WORKDIR /opt2
 RUN apt-get update \
  && apt-get -y upgrade \
  && DEBIAN_FRONTEND=noninteractive apt-get install -y \
-      bc    
+      bc \
+      openjdk-17-jdk   
 
 # Common bioinformatics tools 
 # bwa/0.7.17-4  bowtie/1.2.3  bowtie2/2.3.5.1 
 # bedtools/2.27.1  bedops/2.4.37  samtools/1.10 
 # bcftools/1.10.2  vcftools/0.1.16  
-# Previous tools already installed trimmomatic/0.39  tabix/1.10.2
+# Previous tools already installed  tabix/1.10.2 trimmomatic/0.39 
 RUN DEBIAN_FRONTEND=noninteractive apt-get install -y \
-      tabix \
-      trimmomatic 
+    tabix \
+    libhts-dev
+
       
 # Install BWA-MEM2 v2.2.1
 RUN wget https://github.com/bwa-mem2/bwa-mem2/releases/download/v2.2.1/bwa-mem2-2.2.1_x64-linux.tar.bz2 \
@@ -44,13 +46,17 @@ RUN wget https://github.com/biod/sambamba/releases/download/v0.8.1/sambamba-0.8.
     && mv /opt2/sambamba-0.8.1-linux-amd64-static /opt2/sambamba \
     && chmod a+rx /opt2/sambamba
 
-# Install GATK4 (GATK/4.3.0.0)
-# Requires Java8 or 1.8
-RUN wget https://github.com/broadinstitute/gatk/releases/download/4.3.0.0/gatk-4.3.0.0.zip \
-    && unzip /opt2/gatk-4.3.0.0.zip \
-    && rm /opt2/gatk-4.3.0.0.zip \
-    && /opt2/gatk-4.3.0.0/gatk --list
-ENV PATH="/opt2/gatk-4.3.0.0:$PATH"
+# Install GATK4 (GATK/4.4.0.0)
+# Requires Java17 
+RUN wget https://github.com/broadinstitute/gatk/releases/download/4.4.0.0/gatk-4.4.0.0.zip \
+    && unzip /opt2/gatk-4.4.0.0.zip \
+    && rm /opt2/gatk-4.4.0.0.zip \
+    && /opt2/gatk-4.4.0.0/gatk --list
+ENV PATH="/opt2/gatk-4.4.0.0:$PATH"
+
+# Use DISCVRSeq For CombineVariants Replacement
+RUN wget https://github.com/BimberLab/DISCVRSeq/releases/download/1.3.62/DISCVRSeq-1.3.62.jar 
+ENV DISCVRSeq_JAR="/opt2/DISCVRSeq-1.3.62.jar"
 
 # Install last release of GATK3 (GATK/3.8-1)
 # Only being used for the CombineVariants
@@ -168,28 +174,44 @@ RUN wget https://github.com/AstraZeneca-NGS/VarDictJava/releases/download/v1.8.3
 ENV PATH="/opt2/VarDict-1.8.3/bin:$PATH"
 
 # Fastp From Opengene github
-RUN wget http://opengene.org/fastp/fastp.0.23.2 \
+RUN wget http://opengene.org/fastp/fastp.0.23.4 \
     && mkdir fastp \
-    && mv fastp.0.23.2 fastp/fastp \
+    && mv fastp.0.23.4 fastp/fastp \
     && chmod a+x fastp/fastp
 ENV PATH="/opt2/fastp:$PATH"
 
-# HMFtools for PURPLE/COBALT/AMBER
-RUN wget https://github.com/hartwigmedical/hmftools/releases/download/amber-v3.9/amber-3.9.jar \
-    && wget https://github.com/hartwigmedical/hmftools/releases/download/cobalt-v1.15.1/cobalt_v1.15.1.jar \
-    && wget https://github.com/hartwigmedical/hmftools/releases/download/purple-v3.9/purple_v3.9.jar \
-    && mkdir hmftools \
-    && mv amber-3.9.jar hmftools/amber.jar \
-    && mv cobalt_v1.15.1.jar hmftools/cobalt.jar \
-    && mv purple_v3.9.jar hmftools/purple.jar \
-    && chmod a+x hmftools/amber.jar
-ENV PATH="/opt2/hmftools:$PATH"
+# ASCAT 
+RUN Rscript -e 'devtools::install_github("VanLoo-lab/ascat/ASCAT")'
 
 # SvABA
 RUN wget -O svaba_1.2.0 https://github.com/walaj/svaba/releases/download/v1.2.0/svaba \
     && mkdir svaba \ 
-    && mv svaba_1.2.0 svaba/svaba
+    && mv svaba_1.2.0 svaba/svaba \
+    && chmod a+x svaba/svaba
+
 ENV PATH="/opt2/svaba:$PATH"
+
+# LOFREQ
+RUN git clone https://github.com/CSB5/lofreq \
+    && cd /opt2/lofreq \
+    && ./bootstrap \
+    && ./configure --prefix=/opt2/lofreq/ \
+    && make \
+    && make install 
+
+ENV PATH="/opt2/lofreq/bin:$PATH"
+
+# MUSE
+RUN wget -O muse_2.0.4.tar.gz https://github.com/wwylab/MuSE/archive/refs/tags/v2.0.4.tar.gz \
+    && tar -xzf muse_2.0.4.tar.gz \ 
+    && cd MuSE-2.0.4 \
+    && ./install_muse.sh \
+    && mv MuSE /opt2/ \
+    && chmod a+x /opt2/MuSE \
+    && rm -R /opt2/MuSE-2.0.4 \
+    && rm /opt2/muse_2.0.4.tar.gz
+
+ENV PATH="/opt2/MuSE:$PATH"
 
 
 # Add Dockerfile and argparse.bash script

@@ -1,14 +1,17 @@
+
 # Build image
 #docker buildx create --platform linux/amd64 --use
 #docker buildx use upbeat_ganguly
 #docker buildx inspect upbeat_ganguly
 #docker buildx build --platform linux/amd64 -f Dockerfile -t dnousome/ccbr_logan_base:v0.3.0 -t dnousome/ccbr_logan_base:latest --push .
 
-docker build --platform linux/amd64 --tag ccbr_logan_base:v0.3.0 -f Dockerfile . 
-docker tag ccbr_logan_base:v0.3.0 dnousome/ccbr_logan_base:v0.3.0
-docker tag ccbr_logan_base:v0.3.0 dnousome/ccbr_logan_base
+docker build --platform linux/amd64 --tag ccbr_logan_base:v0.3.5 -f Dockerfile . 
 
-docker push dnousome/ccbr_logan_base:v0.3.0
+docker tag ccbr_logan_base:v0.3.5 dnousome/ccbr_logan_base:v0.3.5
+docker tag ccbr_logan_base:v0.3.5 dnousome/ccbr_logan_base
+
+
+docker push dnousome/ccbr_logan_base:v0.3.5
 docker push dnousome/ccbr_logan_base:latest
 
 
@@ -21,4 +24,3 @@ docker push dnousome/ccbr_logan_base:latest
 # Push image to DockerHub
 #docker push nciccbr/ccbr_wgs_base:v0.1.0
 #docker push nciccbr/ccbr_wgs_base:latest
-
