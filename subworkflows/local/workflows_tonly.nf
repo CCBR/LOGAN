@@ -16,18 +16,21 @@ include {mutect2; mutect2filter; pileup_paired_t; pileup_paired_n;
     contamination_paired; learnreadorientationmodel; mergemut2stats;
     combineVariants as combineVariants_vardict; combineVariants as combineVariants_varscan; 
     combineVariants as combineVariants_vardict_tonly; combineVariants as combineVariants_varscan_tonly;
-    combineVariants_alternative ; 
-    annotvep_tn as annotvep_tn_mut2; annotvep_tn as annotvep_tn_strelka; annotvep_tn as annotvep_tn_varscan; annotvep_tn as annotvep_tn_vardict;
+    combineVariants as combineVariants_sage_tonly;
+    combineVariants_alternative; 
+    annotvep_tn as annotvep_tn_mut2;
+    annotvep_tn as annotvep_tn_varscan; annotvep_tn as annotvep_tn_vardict;
     combinemafs_tn} from '../../modules/local/variant_calling.nf'
 
 include {mutect2_t_tonly; mutect2filter_tonly; pileup_paired_tonly; 
     varscan_tonly; vardict_tonly; 
-    octopus_tonly; 
+    octopus_tonly; sage_tonly;
     contamination_tumoronly;
     learnreadorientationmodel_tonly; 
     mergemut2stats_tonly; octopus_convertvcf_tonly;
     annotvep_tonly as annotvep_tonly_varscan; annotvep_tonly as annotvep_tonly_vardict; 
     annotvep_tonly as annotvep_tonly_mut2; annotvep_tonly as annotvep_tonly_octopus;
+    annotvep_tonly as annotvep_tonly_sage;
     annotvep_tonly as annotvep_tonly_combined;
     combinemafs_tonly; somaticcombine_tonly} from '../../modules/local/variant_calling_tonly.nf'
 
@@ -213,6 +216,21 @@ workflow VC_TONLY {
     vc_tonly=vc_tonly|concat(octopus_in_tonly_sc)
     }
 
+    //SAGE
+    if ("sage" in params.callist){
+    sage_in_tonly=sage_tonly(bambyinterval)
+            | groupTuple() 
+            | map{samplename,vcf,vcfindex -> tuple(samplename,vcf.toSorted{it->(it.name =~ /${samplename}_(.*).tonly.sage.vcf.gz/)[0][1].toInteger()},vcfindex,"sage_tonly")} 
+            | combineVariants_sage_tonly
+            | join(sample_sheet) 
+            | map{tumor,marked,markedindex,normvcf,normindex ->tuple(tumor,"sage_tonly",normvcf,normindex)}
+        annotvep_tonly_octopus(sage_in_tonly)
+        sage_in_tonly_sc=sage_in_tonly 
+            | map{tumor,vcf,vcfindex ->tuple(tumor,"sage_tonly",vcf,vcfindex)} 
+
+        vc_tonly=vc_tonly | concat(sage_in_tonly) 
+
+    }
     //Combined Variants and Annotated
     if (call_list.size()>1){
         vc_tonly
@@ -233,6 +251,7 @@ workflow VC_TONLY {
             somaticcall_input=varscan_in_tonly
         }
 
+    //Emit for SC downstream, take Combined/Oc/Mu2/Vard/Varscan
     emit:
         somaticcall_input
 }

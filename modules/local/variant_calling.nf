@@ -468,7 +468,6 @@ process octopus_tn {
         path("${tumorname}_vs_${normalname}_${bed.simpleName}.octopus.vcf.gz")
 
     script:
-
     """
     octopus -R $GENOMEREF -I ${normal} ${tumor} --normal-sample ${normalname} \
     -C cancer \
@@ -481,7 +480,6 @@ process octopus_tn {
     """
 
     stub:
-
     """
     touch "${tumorname}_vs_${normalname}_${bed.simpleName}.octopus.vcf.gz"
     """
@@ -502,8 +500,7 @@ process sage_tn {
         path("${tumorname}_vs_${normalname}_${bed.simpleName}_sage.vcf.gz"),
         path("${tumorname}_vs_${normalname}_${bed.simpleName}_sage.vcf.gz.tbi")
 
-    script:
-
+script:
     """
     java -Xms4G -Xmx32G -cp sage.jar com.hartwig.hmftools.sage.SageApplication \
     -tumor $tumorname -tumor_bam $tumorbam \
