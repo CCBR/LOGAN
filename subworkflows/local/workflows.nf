@@ -15,7 +15,7 @@ include {pileup_paired_t; pileup_paired_n;
     mutect2; mutect2filter; 
     contamination_paired; learnreadorientationmodel;mergemut2stats;
     strelka_tn; combineVariants_strelka;
-    varscan_tn; vardict_tn; lofreq_tn; muse_tn;
+    varscan_tn; vardict_tn; lofreq_tn; muse_tn; sage_tn;
     octopus_tn; bcftools_index_octopus; bcftools_index_octopus as bcftools_index_octopus_tonly; octopus_convertvcf; 
     combineVariants as combineVariants_vardict; combineVariants as combineVariants_vardict_tonly;
     combineVariants as combineVariants_varscan; combineVariants as combineVariants_varscan_tonly;
@@ -23,17 +23,17 @@ include {pileup_paired_t; pileup_paired_n;
     combineVariants_alternative as combineVariants_octopus; combineVariants_alternative as combineVariants_octopus_tonly;
     annotvep_tn as annotvep_tn_mut2; annotvep_tn as annotvep_tn_strelka;
     annotvep_tn as annotvep_tn_varscan; annotvep_tn as annotvep_tn_vardict; annotvep_tn as annotvep_tn_octopus;
-    annotvep_tn as annotvep_tn_lofreq; annotvep_tn as annotvep_tn_muse;
+    annotvep_tn as annotvep_tn_lofreq; annotvep_tn as annotvep_tn_muse; annotvep_tn as annotvep_tn_sage;
     annotvep_tn as annotvep_tn_combined;
     combinemafs_tn; somaticcombine} from '../../modules/local/variant_calling.nf'
 
 include {mutect2_t_tonly; mutect2filter_tonly;
-    varscan_tonly; vardict_tonly; octopus_tonly;
+    varscan_tonly; vardict_tonly; octopus_tonly; sage_tonly;
     contamination_tumoronly;
     learnreadorientationmodel_tonly;
     mergemut2stats_tonly; octopus_convertvcf_tonly;
     annotvep_tonly as annotvep_tonly_varscan; annotvep_tonly as annotvep_tonly_vardict;
-    annotvep_tonly as annotvep_tonly_mut2; annotvep_tonly as annotvep_tonly_octopus;
+    annotvep_tonly as annotvep_tonly_mut2; annotvep_tonly as annotvep_tonly_octopus; annotvep_tonly as annvep_tonly_sage;
     annotvep_tonly as annotvep_tonly_combined;
     combinemafs_tonly;somaticcombine_tonly} from '../../modules/local/variant_calling_tonly.nf'
 
@@ -344,8 +344,9 @@ workflow VC {
         sage_in_tonly_sc=sage_in_tonly 
             | map{tumor,vcf,vcfindex ->tuple(tumor,"sage_tonly",vcf,vcfindex)} 
 
+        vc_all=vc_all | concat(sage_in)
+        vc_tonly=vc_tonly | concat(sage_in_tonly) 
 
-        vc_all=vc_all|concat(sage_in)
     }
 
 
@@ -402,13 +403,17 @@ workflow VC {
 
 
     //Combine All Variants Using VCF -> Annotate
+    //Somatic Calls for PurPLE
     if (params.callist.size()>1){
-        vc_all | groupTuple(by:[0,1])
+        somaticcall_input=vc_all | groupTuple(by:[0,1])
             | somaticcombine
             | map{tumor,normal,vcf,index ->tuple(tumor,normal,"combined",vcf,index)}
             | annotvep_tn_combined
+    }else if ("octopus" in params.callist){
+           somaticcall_input=octopus_in_sc
+    }else if("mutect2" in params.callist){
+            somaticcall_input=mutect2_in
     }
-
 
     if (params.callist.size()>1){
         vc_tonly 
@@ -417,14 +422,7 @@ workflow VC {
             | annotvep_tn_combined
     }
 
-
     //Implement PCGR Annotator/CivIC Next
-        if ("octopus" in params.callist){
-           somaticcall_input=octopus_in_sc
-        }else if("mutect2" in params.callist){
-            somaticcall_input=mutect2_in
-        }
-
     emit:
         somaticcall_input
    
