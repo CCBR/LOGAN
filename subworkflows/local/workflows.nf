@@ -14,26 +14,28 @@ include {deepvariant_step1; deepvariant_step2; deepvariant_step3;
 include {pileup_paired_t; pileup_paired_n; 
     mutect2; mutect2filter; 
     contamination_paired; learnreadorientationmodel;mergemut2stats;
-    strelka_tn; combineVariants_strelka;
-    varscan_tn; vardict_tn; lofreq_tn; muse_tn;
+    strelka_tn; 
+    varscan_tn; vardict_tn; lofreq_tn; muse_tn; sage_tn;
     octopus_tn; bcftools_index_octopus; bcftools_index_octopus as bcftools_index_octopus_tonly; octopus_convertvcf; 
+    combineVariants_strelka;
     combineVariants as combineVariants_vardict; combineVariants as combineVariants_vardict_tonly;
     combineVariants as combineVariants_varscan; combineVariants as combineVariants_varscan_tonly;
+    combineVariants as combineVariants_sage; combineVariants as combineVariants_sage_tonly;
     combineVariants_alternative as combineVariants_lofreq; combineVariants as combineVariants_muse;
     combineVariants_alternative as combineVariants_octopus; combineVariants_alternative as combineVariants_octopus_tonly;
     annotvep_tn as annotvep_tn_mut2; annotvep_tn as annotvep_tn_strelka;
     annotvep_tn as annotvep_tn_varscan; annotvep_tn as annotvep_tn_vardict; annotvep_tn as annotvep_tn_octopus;
-    annotvep_tn as annotvep_tn_lofreq; annotvep_tn as annotvep_tn_muse;
+    annotvep_tn as annotvep_tn_lofreq; annotvep_tn as annotvep_tn_muse; annotvep_tn as annotvep_tn_sage;
     annotvep_tn as annotvep_tn_combined;
     combinemafs_tn; somaticcombine} from '../../modules/local/variant_calling.nf'
 
 include {mutect2_t_tonly; mutect2filter_tonly;
-    varscan_tonly; vardict_tonly; octopus_tonly;
+    varscan_tonly; vardict_tonly; octopus_tonly; sage_tonly;
     contamination_tumoronly;
     learnreadorientationmodel_tonly;
     mergemut2stats_tonly; octopus_convertvcf_tonly;
     annotvep_tonly as annotvep_tonly_varscan; annotvep_tonly as annotvep_tonly_vardict;
-    annotvep_tonly as annotvep_tonly_mut2; annotvep_tonly as annotvep_tonly_octopus;
+    annotvep_tonly as annotvep_tonly_mut2; annotvep_tonly as annotvep_tonly_octopus; annotvep_tonly as annotvep_tonly_sage;
     annotvep_tonly as annotvep_tonly_combined;
     combinemafs_tonly;somaticcombine_tonly} from '../../modules/local/variant_calling_tonly.nf'
 
@@ -175,7 +177,7 @@ workflow VC {
 
     //Prep Pileups
     call_list = params.callers.split(',') as List
-
+    
     vc_all=Channel.empty()
     vc_tonly=Channel.empty()
 
@@ -263,8 +265,8 @@ workflow VC {
         annotvep_tonly_mut2(mutect2_in_tonly)
 
 
-        vc_all=vc_all|concat(mutect2_in)
-        vc_tonly=vc_tonly|concat(mutect2_in_tonly) 
+        vc_all = vc_all|concat(mutect2_in)
+        vc_tonly = vc_tonly | concat(mutect2_in_tonly) 
 
     }
 
@@ -324,7 +326,32 @@ workflow VC {
         vc_all=vc_all|concat(varscan_in)
         vc_tonly=vc_tonly|concat(varscan_in_tonly) 
     }
-    
+
+
+
+    //SAGE TN
+    if ("sage" in call_list){
+        sage_in=sage_tn(bamwithsample)
+            | map{tu,no,vcf,vcfindex-> tuple("${tu}_vs_${no}",vcf,"sage")}
+            | combineVariants_sage 
+            | join(sample_sheet_paired)
+            | map{sample,marked,markedindex,normvcf,normindex,tumor,normal->tuple(tumor,normal,"sage",normvcf,normindex)}
+        annotvep_tn_sage(sage_in)
+
+        sage_in_tonly=bamwithsample | map{tumor,tbam,tbai,norm,nbam,nbai -> tuple(tumor,tbam,tbai)} 
+            | sage_tonly 
+            | map{samplename,vcf,vcfindex->tuple(samplename,vcf,"sage_tonly")} 
+            | combineVariants_sage_tonly
+            | join(sample_sheet) 
+            | map{tumor,marked,markedindex,normvcf,normindex,normal ->tuple(tumor,"sage_tonly",normvcf,normindex)}
+        annotvep_tonly_sage(sage_in_tonly)
+        
+        vc_all=vc_all | concat(sage_in)
+        vc_tonly=vc_tonly | concat(sage_in_tonly) 
+
+    }
+
+
     //Lofreq TN
     if ("lofreq" in call_list){
         lofreq_in=lofreq_tn(bambyinterval) | groupTuple(by:[0,1])
@@ -379,28 +406,28 @@ workflow VC {
 
     //Combine All Variants Using VCF -> Annotate
     if (call_list.size()>1){
-        vc_all | groupTuple(by:[0,1])
+        somaticcall_input=vc_all | groupTuple(by:[0,1])
             | somaticcombine
             | map{tumor,normal,vcf,index ->tuple(tumor,normal,"combined",vcf,index)}
-            | annotvep_tn_combined
+            somaticcall_input | annotvep_tn_combined
+    }else if ("octopus" in call_list){
+        somaticcall_input=octopus_in_sc
+    }else if("mutect2" in call_list){
+        somaticcall_input=mutect2_in
+    }else if("sage" in call_list){
+        somaticcall_input=sage_in
     }
 
     
     if (call_list.size()>1){
-        vc_tonly 
+        vc_tonly | groupTuple() 
             | somaticcombine_tonly
-            | map{tumor,vcf,index ->tuple(tumor,normal,"combined_tonly",vcf,index)}
-            | annotvep_tn_combined
+            | map{tumor,vcf,index ->tuple(tumor,"combined_tonly",vcf,index)}
+            | annotvep_tonly_combined
+    
     }
     
-    
     //Implement PCGR Annotator/CivIC Next
-        if ("octopus" in call_list){
-           somaticcall_input=octopus_in_sc
-        }else if("mutect2" in call_list){
-            somaticcall_input=mutect2_in
-        }
-
     emit:
         somaticcall_input
    
@@ -474,10 +501,10 @@ workflow CNVhuman {
             //Purple
             bamwithsample | amber_tn
             bamwithsample | cobalt_tn
-            purplein=amber_tn.out.join(cobalt_tn.out)
-            purplein.join(somaticcall_input)|
-            map{t1,amber,cobalt,n1,vc,vcf,vcfindex -> tuple(t1,n1,amber,cobalt,vcf,vcfindex)}
-                | purple
+            purplein=amber_tn.out.join(cobalt_tn.out) 
+            purplein.join(somaticcall_input) 
+            | map{t1,amber,cobalt,n1,vc,vcf,vcfindex -> tuple(t1,n1,amber,cobalt,vcf,vcfindex)}
+            | purple
         }
 
         if ("sequenza" in cnvcall_list){

@@ -35,17 +35,17 @@ LOGAN supports either
 LOGAN supports inputs of either 
 1) paired end fastq files
 
-`--fastq_input`- A glob can be used to include all FASTQ files. Like `--fastq_input "*R{1,2}.fastq.gz"`. Globbing requires quotes
+`--fastq_input`- A glob can be used to include all FASTQ files. Like `--fastq_input "*R{1,2}.fastq.gz"`. Globbing requires quotes.
 
 2) Pre aligned BAM files with BAI indices 
 
-`--bam_input`- A glob can be used to include all FASTQ files. Like `--bam_input "*.bam"`. Globbing requires quotes
+`--bam_input`- A glob can be used to include all FASTQ files. Like `--bam_input "*.bam"`. Globbing requires quotes.
 
 3) A sheet that indicates the sample name and either FASTQs or BAM file locations
 
 `--fastq_file_input`-  A headerless tab delimited sheet that has the sample name, R1, and R2 file locations
 
-`--bam_file_input` -  A headerless tab delimited sheet that has the sample name, bam and bai file locations
+`--bam_file_input` -  A headerless tab delimited sheet that has the sample name, bam, and bam index (bai) file locations
 
 ### Operating Modes
 
@@ -64,30 +64,50 @@ No flags are required
 
 Adding flags determines SNV (germline and/or somatic), SV, and/or CNV calling modes
 
-`--vc`- Enables somatic SNV calling using mutect2, vardict, varscan, octopus, MUSE (TN only), and lofreq (TN only)
+`--vc`- Enables somatic SNV calling using mutect2, vardict, varscan, octopus, sage, MUSE (TN only), and lofreq (TN only)
+  
 
 `--germline`- Enables germline using DV
 
 `--sv`- Enables somatic SV calling using Manta and SVABA
 
-`--vc`- Enables somatic CNV calling using FREEC, Sequenza, and Purple (hg38 only)
+`--cnv`- Enables somatic CNV calling using FREEC, Sequenza, and Purple (hg38 only)
+
+
 
 #### Optional Arguments
 `--indelrealign` - Enables indel realignment when running alignment steps. May be helpful for certain callers (VarScan, VarDict)
 
-`--callers`- Comma separated argument for callers, the default is to use all available. Example: `--callers mutect2,octopus,vardict,varscan`
+`--callers`- Comma separated argument for callers, the default is to use all available.  
+Example: `--callers mutect2,octopus`
+
+`--cnvcallers`- - Comma separated argument for cnvcallers. Adding flag allows only certain callers to run.  
+Example: `--cnvcallers purple`
+
 
 ## Running LOGAN
+Example of Tumor_Normal calling mode 
+```bash
+# copy the logan config files to your current directory
+logan init
+# preview the logan jobs that will run 
+logan run --mode local -profile ci_stub --genome hg38 --sample_sheet samplesheet.tsv --outdir out --fastq_input "*R{1,2}.fastq.gz" -preview --vc --sv --cnv
+# run a stub/dryrun of the logan jobs 
+logan run --mode local -profile ci_stub --genome hg38 --sample_sheet samplesheet.tsv --outdir out --fastq_input "*R{1,2}.fastq.gz" -stub --vc --sv --cnv
+# launch a logan run on slurm with the test dataset
+logan run --mode slurm -profile biowulf,slurm --genome hg38 --sample_sheet samplesheet.tsv --outdir out --fastq_input "*R{1,2}.fastq.gz" --vc --sv --cnv 
+```
+
 Example of Tumor only calling mode 
 ```bash
 # copy the logan config files to your current directory
 logan init
 # preview the logan jobs that will run 
-logan run --mode local -profile ci_stub --genome hg38 --outdir out --fastq_input "*R{1,2}.fastq.gz" -preview --vc --sv --cnv
+logan run --mode local -profile ci_stub --genome hg38 --outdir out --fastq_input "*R{1,2}.fastq.gz" --callers octopus,mutect2 -preview --vc --sv --cnv
 # run a stub/dryrun of the logan jobs 
-logan run --mode local -profile ci_stub --genome hg38 --outdir out --fastq_input "*R{1,2}.fastq.gz" -stub --vc --sv --cnv
+logan run --mode local -profile ci_stub --genome hg38 --outdir out --fastq_input "*R{1,2}.fastq.gz" --callers octopus,mutect2 -stub --vc --sv --cnv
 # launch a logan run on slurm with the test dataset
-logan run --mode slurm -profile biowulf,slurm --genome hg38 --outdir out --fastq_input "*R{1,2}.fastq.gz" --vc --sv --cnv
+logan run --mode slurm -profile biowulf,slurm --genome hg38 --outdir out --fastq_input "*R{1,2}.fastq.gz" --callers octopus,mutect2 --vc --sv --cnv
 ```
 
 We currently support the hg38, hg19 (in progress), and mm10 genomes. 

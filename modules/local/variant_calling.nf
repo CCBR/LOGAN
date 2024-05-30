@@ -8,11 +8,16 @@ PON=file(params.genomes[params.genome].pon)
 VEPCACHEDIR=file(params.genomes[params.genome].vepcache)
 VEPSPECIES=params.genomes[params.genome].vepspecies
 VEPBUILD=params.genomes[params.genome].vepbuild
+LOFREQ_CONVERT=params.lofreq_convert
+//Octopus
 SOMATIC_FOREST=params.genomes[params.genome].octopus_sforest
 GERMLINE_FOREST=params.genomes[params.genome].octopus_gforest
-LOFREQ_CONVERT=params.lofreq_convert
-
-
+//HMFTOOLS
+HOTSPOTS=params.genomes[params.genome].HOTSPOTS
+PANELBED=params.genomes[params.genome].PANELBED
+HCBED=params.genomes[params.genome].HCBED
+ENSEMBLCACHE=params.genomes[params.genome].ENSEMBLCACHE
+GENOMEVER=params.genomes[params.genome].GENOMEVER
 
 process mutect2 {
     container "${params.containers.logan}"
@@ -463,7 +468,6 @@ process octopus_tn {
         path("${tumorname}_vs_${normalname}_${bed.simpleName}.octopus.vcf.gz")
 
     script:
-
     """
     octopus -R $GENOMEREF -I ${normal} ${tumor} --normal-sample ${normalname} \
     -C cancer \
@@ -471,13 +475,11 @@ process octopus_tn {
     --threads $task.cpus \
     $GERMLINE_FOREST \
     $SOMATIC_FOREST \
-    --target-working-memory 92Gb \
-    -B 90Gb \
+    -B 92Gb \
     -o ${tumorname}_vs_${normalname}_${bed.simpleName}.octopus.vcf.gz
     """
 
     stub:
-
     """
     touch "${tumorname}_vs_${normalname}_${bed.simpleName}.octopus.vcf.gz"
     """
@@ -485,8 +487,40 @@ process octopus_tn {
 }
 
 
+process sage_tn {
+    container "${params.containers.hmftools}"
+    label 'process_somaticcaller'
+
+     input:
+        tuple val(tumorname), path(tumor), path(tumorbai),
+        val(normalname), path(normal), path(normalbai)
+
+ output:
+        tuple val(tumorname), val(normalname),
+        path("${tumorname}_vs_${normalname}.sage.vcf.gz"),
+        path("${tumorname}_vs_${normalname}.sage.vcf.gz.tbi")
+
+script:
+    """
+    java -Xms4G -Xmx32G -cp sage.jar com.hartwig.hmftools.sage.SageApplication \
+    -tumor ${tumorname} -tumor_bam ${tumorbam} \
+    -reference ${normalname} -reference_bam ${normalbam} \
+    -threads $task.cpus \
+    -ref_genome_version $GENOMEVER \
+    -ref_genome $GENOMEREF \
+    $HOTSPOTS $PANELBED $HCBED $ENSEMBLCACHE \
+    -output_vcf ${tumorname}_vs_${normalname}.sage.vcf.gz
+    """
+
+    stub:
+    """
+    touch "${tumorname}_vs_${normalname}.sage.vcf.gz" "${tumorname}_vs_${normalname}.sage.vcf.gz.tbi"
+    """
+}
+
+
 process lofreq_tn {
-    container "${params.containers.lofreq}"
+    container "${params.containers.logan}"
     label 'process_somaticcaller'
 
     input:

@@ -8,8 +8,15 @@ PON=file(params.genomes[params.genome].pon)
 VEPCACHEDIR=file(params.genomes[params.genome].vepcache)
 VEPSPECIES=params.genomes[params.genome].vepspecies
 VEPBUILD=params.genomes[params.genome].vepbuild
+//Octopus
 SOMATIC_FOREST=params.genomes[params.genome].octopus_sforest
 GERMLINE_FOREST=params.genomes[params.genome].octopus_gforest
+//HMFTOOLS
+HOTSPOTS=params.genomes[params.genome].HOTSPOTS
+PANELBED=params.genomes[params.genome].PANELBED
+HCBED=params.genomes[params.genome].HCBED
+ENSEMBLCACHE=params.genomes[params.genome].ENSEMBLCACHE
+GENOMEVER=params.genomes[params.genome].GENOMEVER
 
 
 process pileup_paired_tonly {
@@ -380,6 +387,37 @@ process octopus_convertvcf_tonly {
 }
 
 
+process sage_tonly {
+    container "${params.containers.hmftools}"
+    label 'process_somaticcaller'
+
+    input:
+        tuple val(tumorname), path(tumor), path(tumorbai)
+
+    output:
+        tuple val(tumorname), 
+        path("${tumorname}.tonly.sage.vcf.gz"),
+        path("${tumorname}.tonly.sage.vcf.gz.tbi")
+
+    script:
+    """
+        java -Xms4G -Xmx32G -cp sage.jar com.hartwig.hmftools.sage.SageApplication \
+        -tumor ${tumorname} -tumor_bam ${tumorbam} \
+        -threads $task.cpus \
+        -ref_genome_version $GENOMEVER \
+        -ref_genome $GENOMEREF \
+        $HOTSPOTS $PANELBED $HCBED $ENSEMBLCACHE \
+        -output_vcf ${tumorname}.tonly.sage.vcf.gz
+    """
+
+    stub:
+    """
+        touch "${tumorname}.tonly.sage.vcf.gz" "${tumorname}.tonly.sage.vcf.gz.tbi"
+    """
+
+}
+
+
 process somaticcombine_tonly {
     container "${params.containers.logan}"
     label 'process_medium'
@@ -411,14 +449,14 @@ process somaticcombine_tonly {
     """
 
     stub:
-    
+
     vcfin1=[caller, vcfs].transpose().collect { a, b -> a + " " + b }
     vcfin2="-V:" + vcfin1.join(" -V:")
-
     callerin=caller.join(",").replaceAll("_tonly","")
+    
     """
     touch ${tumorsample}_combined_tonly.vcf.gz ${tumorsample}_combined_tonly.vcf.gz.tbi
-    """
+    """ 
 
 }
 
