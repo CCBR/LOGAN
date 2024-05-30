@@ -520,7 +520,7 @@ script:
 
 
 process lofreq_tn {
-    container "${params.containers.logan}"
+    container "${params.containers.lofreq}"
     label 'process_somaticcaller'
 
     input:
@@ -529,7 +529,6 @@ process lofreq_tn {
 
 
     output:
-
         tuple val(tumorname), val(normalname),
         path("${tumorname}_vs_${normalname}_${bed.simpleName}_somatic_final.snvs.vcf.gz"),
         path("${tumorname}_vs_${normalname}_${bed.simpleName}_somatic_final_minus-dbsnp.snvs.vcf.gz"),
