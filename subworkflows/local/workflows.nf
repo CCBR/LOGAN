@@ -177,7 +177,7 @@ workflow VC {
 
     //Prep Pileups
     call_list = params.callers.split(',') as List
-
+    
     vc_all=Channel.empty()
     vc_tonly=Channel.empty()
 
@@ -265,8 +265,8 @@ workflow VC {
         annotvep_tonly_mut2(mutect2_in_tonly)
 
 
-        vc_all=vc_all|concat(mutect2_in)
-        vc_tonly=vc_tonly|concat(mutect2_in_tonly) 
+        vc_all = vc_all|concat(mutect2_in)
+        vc_tonly = vc_tonly | concat(mutect2_in_tonly) 
 
     }
 
@@ -406,34 +406,28 @@ workflow VC {
 
     //Combine All Variants Using VCF -> Annotate
     if (call_list.size()>1){
-        vc_all | groupTuple(by:[0,1])
+        somaticcall_input=vc_all | groupTuple(by:[0,1])
             | somaticcombine
             | map{tumor,normal,vcf,index ->tuple(tumor,normal,"combined",vcf,index)}
-            | annotvep_tn_combined
+            somaticcall_input | annotvep_tn_combined
     }else if ("octopus" in call_list){
-           somaticcall_input=octopus_in_sc
+        somaticcall_input=octopus_in_sc
     }else if("mutect2" in call_list){
-            somaticcall_input=mutect2_in
+        somaticcall_input=mutect2_in
     }else if("sage" in call_list){
-            somaticcall_input=sage_in
+        somaticcall_input=sage_in
     }
 
     
     if (call_list.size()>1){
-        vc_tonly 
+        vc_tonly | groupTuple() 
             | somaticcombine_tonly
-            | map{tumor,vcf,index ->tuple(tumor,normal,"combined_tonly",vcf,index)}
-            | annotvep_tn_combined
+            | map{tumor,vcf,index ->tuple(tumor,"combined_tonly",vcf,index)}
+            | annotvep_tonly_combined
+    
     }
     
-    
     //Implement PCGR Annotator/CivIC Next
-        if ("octopus" in call_list){
-           somaticcall_input=octopus_in_sc
-        }else if("mutect2" in call_list){
-            somaticcall_input=mutect2_in
-        }
-
     emit:
         somaticcall_input
    
@@ -507,10 +501,10 @@ workflow CNVhuman {
             //Purple
             bamwithsample | amber_tn
             bamwithsample | cobalt_tn
-            purplein=amber_tn.out.join(cobalt_tn.out)
-            purplein.join(somaticcall_input)|
-            map{t1,amber,cobalt,n1,vc,vcf,vcfindex -> tuple(t1,n1,amber,cobalt,vcf,vcfindex)}
-                | purple
+            purplein=amber_tn.out.join(cobalt_tn.out) 
+            purplein.join(somaticcall_input) 
+            | map{t1,amber,cobalt,n1,vc,vcf,vcfindex -> tuple(t1,n1,amber,cobalt,vcf,vcfindex)}
+            | purple
         }
 
         if ("sequenza" in cnvcall_list){

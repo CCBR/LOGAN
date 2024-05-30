@@ -449,14 +449,14 @@ process somaticcombine_tonly {
     """
 
     stub:
-    
+
     vcfin1=[caller, vcfs].transpose().collect { a, b -> a + " " + b }
     vcfin2="-V:" + vcfin1.join(" -V:")
-
     callerin=caller.join(",").replaceAll("_tonly","")
+    
     """
     touch ${tumorsample}_combined_tonly.vcf.gz ${tumorsample}_combined_tonly.vcf.gz.tbi
-    """
+    """ 
 
 }
 

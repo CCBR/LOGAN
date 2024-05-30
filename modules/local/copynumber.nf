@@ -15,10 +15,10 @@ if (params.genome=="mm10"){
 }
 
 if (params.genome=="hg38" | params.genome=="hg19"){
-    GERMLINEHET=file(params.genomes[params.genome].GERMLINEHET)
+    GENOMEVER=params.genomes[params.genome].GENOMEVER
     GCPROFILE=file(params.genomes[params.genome].GCPROFILE)
     DIPLODREG=file(params.genomes[params.genome].DIPLODREG)
-    ENSEMBLCACHE=file(params.genomes[params.genome].ENSEMBLCACHE)
+    ENSEMBLCACHE=params.genomes[params.genome].ENSEMBLCACHE
     DRIVERS=file(params.genomes[params.genome].DRIVERS)
     HOTSPOTS=file(params.genomes[params.genome].HOTSPOTS)
 }
@@ -401,12 +401,14 @@ process purple {
     -amber ${amberin} \
     -cobalt ${cobaltin} \
     -gc_profile $GCPROFILE \
-    -ref_genome_version 38 \
-    -ref_genome $GENOME \
+    -ref_genome_version $GENOMEVER \
+    -ref_genome $GENOMEREF \
     -ensembl_data_dir $ENSEMBLCACHE \
     -somatic_vcf ${somaticvcf} \
+    -run_drivers \
     -driver_gene_panel $DRIVERS \
     -somatic_hotspots $HOTSPOTS \
+    -threads $task.cpus \
     -output_dir ${tumorname}
     """
 
@@ -440,10 +442,12 @@ process purple_novc {
     -amber ${amberin} \
     -cobalt ${cobaltin} \
     -gc_profile $GCPROFILE \
-    -ref_genome_version 38 \
-    -ref_genome $GENOME \
+    -ref_genome_version $GENOMEVER \
+    -ref_genome $GENOMEREF \
     -ensembl_data_dir $ENSEMBLCACHE \
+    -threads $task.cpus \
     -output_dir ${tumorname}
+
     """
 
     stub:
@@ -476,12 +480,14 @@ process purple_tonly {
     -amber ${amberin} \
     -cobalt ${cobaltin} \
     -gc_profile $GCPROFILE \
-    -ref_genome_version 38 \
-    -ref_genome $GENOME \
+    -ref_genome_version $GENOMEVER \
+    -ref_genome $GENOMEREF \
     -ensembl_data_dir $ENSEMBLCACHE \
     -somatic_vcf ${somaticvcf} \
+    -run_drivers \
     -driver_gene_panel $DRIVERS \
     -somatic_hotspots $HOTSPOTS \
+    -threads $task.cpus \
     -output_dir ${tumorname}
     """
 
@@ -514,9 +520,10 @@ process purple_tonly_novc {
     -amber ${amberin} \
     -cobalt ${cobaltin} \
     -gc_profile $GCPROFILE \
-    -ref_genome_version 38 \
-    -ref_genome $GENOME \
+    -ref_genome_version $GENOMEVER \
+    -ref_genome $GENOMEREF \
     -ensembl_data_dir $ENSEMBLCACHE \
+    -threads $task.cpus \
     -output_dir ${tumorname}
     """
 

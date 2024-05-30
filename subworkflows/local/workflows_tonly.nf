@@ -229,28 +229,26 @@ workflow VC_TONLY {
     }
     
 
-    
     //Combined Variants and Annotated
-    if (call_list.size()>1){
-        vc_tonly
-            | groupTuple() | view()
-            | somaticcombine_tonly 
-            | map{tumor,vcf,index ->tuple(tumor,"combined_tonly",vcf,index)} 
-            | annotvep_tonly_combined
-    }
-    
     //Emit for SC downstream, take Oc/Mu2/sage/Vard/Varscan
-        if("octopus" in call_list){
-           somaticcall_input=octopus_in_tonly_sc
-        }else if("mutect2" in call_list){
-            somaticcall_input=mutect2_in_tonly
-        }else if("sage" in call_list){
-            somaticcall_input=sage_in_tonly
-        }else if("vardict" in call_list){
-            somaticcall_input=vardict_in_tonly
-        }else if("varscan" in call_list){
-            somaticcall_input=varscan_in_tonly
-        }
+
+    if (call_list.size()>1){
+        somaticcall_input=vc_tonly
+        | groupTuple() 
+        | somaticcombine_tonly 
+        | map{tumor,vcf,index ->tuple(tumor,"combined_tonly",vcf,index)} 
+        somaticcall_input | annotvep_tonly_combined
+    }else if("octopus" in call_list){
+        somaticcall_input=octopus_in_tonly_sc
+    }else if("mutect2" in call_list){
+        somaticcall_input=mutect2_in_tonly
+    }else if("sage" in call_list){
+        somaticcall_input=sage_in_tonly
+    }else if("vardict" in call_list){
+        somaticcall_input=vardict_in_tonly
+    }else if("varscan" in call_list){
+        somaticcall_input=varscan_in_tonly
+    }
 
     //Emit for SC downstream, take Combined/Oc/Mu2/Vard/Varscan
     emit:
