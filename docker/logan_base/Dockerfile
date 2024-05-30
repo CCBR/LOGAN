@@ -192,16 +192,6 @@ RUN wget -O svaba_1.2.0 https://github.com/walaj/svaba/releases/download/v1.2.0/
 
 ENV PATH="/opt2/svaba:$PATH"
 
-# LOFREQ
-RUN git clone https://github.com/CSB5/lofreq \
-    && cd /opt2/lofreq \
-    && ./bootstrap \
-    && ./configure --prefix=/opt2/lofreq/ \
-    && make \
-    && make install 
-
-ENV PATH="/opt2/lofreq/bin:$PATH"
-
 # MUSE
 RUN wget -O muse_2.0.4.tar.gz https://github.com/wwylab/MuSE/archive/refs/tags/v2.0.4.tar.gz \
     && tar -xzf muse_2.0.4.tar.gz \ 
