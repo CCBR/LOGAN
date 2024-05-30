@@ -1,4 +1,0 @@
-dockerhub_namespace: dnousome
-image_name: ccbr_logan_hmftools
-version: v0.0.1
-container: "$(dockerhub_namespace)/$(image_name):$(version)"
