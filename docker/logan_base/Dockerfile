@@ -20,8 +20,8 @@ WORKDIR /opt2
 RUN apt-get update \
  && apt-get -y upgrade \
  && DEBIAN_FRONTEND=noninteractive apt-get install -y \
-      bc 
-      #openjdk-17-jdk   
+      bc \
+      openjdk-17-jdk   
 
 # Common bioinformatics tools 
 # bwa/0.7.17-4  bowtie/1.2.3  bowtie2/2.3.5.1 
