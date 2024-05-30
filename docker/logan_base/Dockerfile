@@ -20,8 +20,8 @@ WORKDIR /opt2
 RUN apt-get update \
  && apt-get -y upgrade \
  && DEBIAN_FRONTEND=noninteractive apt-get install -y \
-      bc \
-      openjdk-17-jdk   
+      bc 
+      #openjdk-17-jdk   
 
 # Common bioinformatics tools 
 # bwa/0.7.17-4  bowtie/1.2.3  bowtie2/2.3.5.1 
@@ -205,15 +205,15 @@ RUN wget -O muse_2.0.4.tar.gz https://github.com/wwylab/MuSE/archive/refs/tags/v
 ENV PATH="/opt2/MuSE:$PATH"
 
 # HMFtools for PURPLE/COBALT/AMBER
-RUN wget https://github.com/hartwigmedical/hmftools/releases/download/amber-v4.0/amber-4.0.jar \
+RUN wget https://github.com/hartwigmedical/hmftools/releases/download/amber-v4.0/amber_v4.0.jar \
     && wget https://github.com/hartwigmedical/hmftools/releases/download/cobalt-v1.16/cobalt_v1.16.jar \
-    && wget https://github.com/hartwigmedical/hmftools/releases/download/purple-v4.0/purple_v4.0.jar \
-    && wget https://github.com/hartwigmedical/hmftools/releases/download/sage-v3.4/sage_v3.4.jar \ 
+    && wget https://github.com/hartwigmedical/hmftools/releases/download/purple-v4.0.2/purple_v4.0.2.jar \
+    && wget https://github.com/hartwigmedical/hmftools/releases/download/sage-v3.4.3/sage_v3.4.3.jar \ 
     && mkdir hmftools \
-    && mv amber-4.0.jar hmftools/amber.jar \
+    && mv amber_v4.0.jar hmftools/amber.jar \
     && mv cobalt_v1.16.jar hmftools/cobalt.jar \
-    && mv purple_v4.0.jar hmftools/purple.jar \
-    && mv sage.v3.4.jar hmftools/sage.jar \
+    && mv purple_v4.0.2.jar hmftools/purple.jar \
+    && mv sage_v3.4.3.jar hmftools/sage.jar \
     && chmod a+x hmftools/amber.jar
 ENV PATH="/opt2/hmftools:$PATH"
 
