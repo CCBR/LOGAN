@@ -17,6 +17,7 @@ if (params.genome=="mm10"){
 if (params.genome=="hg38" | params.genome=="hg19"){
     GENOMEVER=params.genomes[params.genome].GENOMEVER
     GCPROFILE=file(params.genomes[params.genome].GCPROFILE)
+    GERMLINEHET=file(params.genomes[params.genome].GERMLINEHET)
     DIPLODREG=file(params.genomes[params.genome].DIPLODREG)
     ENSEMBLCACHE=params.genomes[params.genome].ENSEMBLCACHE
     DRIVERS=file(params.genomes[params.genome].DRIVERS)
