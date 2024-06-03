@@ -364,7 +364,7 @@ process cobalt_tn {
 
     """
     java -jar -Xmx8G /opt2/hmftools/cobalt.jar \
-    -tumor ${tumorname} -tumor_bam ${tumorname} \
+    -tumor ${tumorname} -tumor_bam ${tumor} \
     -reference ${normalname} -reference_bam ${normal} \
     -output_dir ${tumorname}_vs_${normalname}_cobalt \
     -threads $task.cpus \

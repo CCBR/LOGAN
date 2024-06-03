@@ -436,7 +436,7 @@ process somaticcombine_tonly {
         vcfin1=[caller, vcfs].transpose().collect { a, b -> a + " " + b }
         vcfin2="-V:" + vcfin1.join(" -V:")
 
-        callerin=caller.join(",").replaceAll("_tonly","")
+        callerin=caller.join(",")//.replaceAll("_tonly","")
 
     """
     /usr/lib/jvm/java-8-openjdk-amd64/bin/java -jar \$GATK_JAR -T CombineVariants  \

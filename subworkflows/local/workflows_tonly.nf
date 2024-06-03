@@ -48,32 +48,26 @@ include {splitinterval} from '../../modules/local/splitbed.nf'
 workflow INPUT_TONLY {
     if(params.fastq_input){
         fastqinput=Channel.fromFilePairs(params.fastq_input)
-
-    }else if(params.fastq_file_input) {
-        fastqinput=Channel.fromPath(params.fastq_file_input)
+    }else if(params.fastq_file_input){
+        fastqinput=Channel.fromPath(params.fastq_file_input).view()
                         .splitCsv(header: false, sep: "\t", strip:true)
                         .map{ sample,fq1,fq2 -> 
-                        tuple(sample, tuple(file(fq1),file(fq2)))
-                                  }
+                            tuple(sample, tuple(file(fq1),file(fq2))) 
+                            }
     }
 
- 
-  if(params.sample_sheet){
+    if(params.sample_sheet){
         sample_sheet=Channel.fromPath(params.sample_sheet, checkIfExists: true)
-                       .ifEmpty { "sample sheet not found" }
+                       .ifEmpty { "Sample sheet not found" }
                        .splitCsv(header:true, sep: "\t")
                        .map { row -> tuple(
                         row.Tumor
-                       )
-                                  }
-
+                        )}
     }else{
         sample_sheet=fastqinput.map{samplename,f1 -> tuple (
              samplename)}
     }
     
-      
-
     emit:
         fastqinput
         sample_sheet
@@ -87,8 +81,12 @@ workflow ALIGN_TONLY {
 
     main:
         fastp(fastqinput)
-        intervalbedin = Channel.fromPath(params.genomes[params.genome].intervals,checkIfExists: true,type: 'file')
-        splitinterval(intervalbedin)
+            if (params.intervals){
+                intervalbedin = Channel.fromPath(params.intervals,checkIfExists: true,type: 'file')
+            }else{
+                intervalbedin = Channel.fromPath(params.genomes[params.genome].intervals,checkIfExists: true,type: 'file')
+            }
+            splitinterval(intervalbedin)
     
     bwamem2(fastp.out)
     //indelrealign(bwamem2.out) Consider indelreaglinement using ABRA?
@@ -428,7 +426,11 @@ workflow INPUT_TONLY_BAM {
         sample_sheet=baminputonly.map{samplename,bam,bai -> tuple (
              samplename)}
     }
-    intervalbedin = Channel.fromPath(params.genomes[params.genome].intervals,checkIfExists: true,type: 'file')
+        if (params.intervals){
+            intervalbedin = Channel.fromPath(params.intervals,checkIfExists: true,type: 'file')
+        }else{
+            intervalbedin = Channel.fromPath(params.genomes[params.genome].intervals,checkIfExists: true,type: 'file')
+        }
     splitinterval(intervalbedin)
     
     bamwithsample=baminputonly

@@ -100,7 +100,12 @@ workflow ALIGN {
     main:
     fastp(fastqinput)
 
-    intervalbedin = Channel.fromPath(params.genomes[params.genome].intervals,checkIfExists: true,type: 'file')
+    if (params.intervals){
+        intervalbedin = Channel.fromPath(params.intervals)
+    }else{
+        intervalbedin = Channel.fromPath(params.genomes[params.genome].intervals,checkIfExists: true,type: 'file')
+    }
+
     splitinterval(intervalbedin)
 
     bwamem2(fastp.out)
@@ -327,8 +332,6 @@ workflow VC {
         vc_tonly=vc_tonly|concat(varscan_in_tonly) 
     }
 
-
-
     //SAGE TN
     if ("sage" in call_list){
         sage_in=sage_tn(bamwithsample)
@@ -350,7 +353,6 @@ workflow VC {
         vc_tonly=vc_tonly | concat(sage_in_tonly) 
 
     }
-
 
     //Lofreq TN
     if ("lofreq" in call_list){
@@ -400,7 +402,7 @@ workflow VC {
             | map{tumor,vcf,vcfindex ->tuple(tumor,"octopus_tonly",vcf,vcfindex)} 
 
         vc_all=vc_all|concat(octopus_in_sc)
-        vc_tonly=vc_tonly|concat(octopus_in_tonly) 
+        vc_tonly=vc_tonly|concat(octopus_in_tonly_sc) 
     }
 
 
@@ -698,7 +700,11 @@ workflow INPUT_BAM {
                         tuple(sample, file(bam),file(bai))
                                   } 
     }
-    intervalbedin = Channel.fromPath(params.genomes[params.genome].intervals,checkIfExists: true,type: 'file')
+    if (params.intervals){
+        intervalbedin = Channel.fromPath(params.intervals,checkIfExists: true,type: 'file')
+    }else{
+        intervalbedin = Channel.fromPath(params.genomes[params.genome].intervals,checkIfExists: true,type: 'file')
+    }
     splitinterval(intervalbedin)
 
     if (params.indelrealign){ 
