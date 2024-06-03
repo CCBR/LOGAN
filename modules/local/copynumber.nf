@@ -1,13 +1,13 @@
-GENOMEREF=file(params.genomes[params.genome].genome)
-SEQUENZAGC=file(params.genomes[params.genome].SEQUENZAGC)
-SEQUENZA_SCRIPT=params.script_sequenza
+GENOMEREF = file(params.genomes[params.genome].genome)
+SEQUENZAGC = file(params.genomes[params.genome].SEQUENZAGC)
+SEQUENZA_SCRIPT = params.script_sequenza
 
 if (params.genome=="mm10"){
-    FREECLENGTHS=file(params.genomes[params.genome].FREEC.FREECLENGTHS)
-    FREECCHROMS=file(params.genomes[params.genome].FREEC.FREECCHROMS)
-    FREECPILEUP=file(params.genomes[params.genome].FREEC.FREECPILEUP)
-    FREECSNPS = file(params.genomes[params.genome].FREEC.FREECSNPS)
-    FREECTARGETS=file(params.genomes[params.genome].intervals)
+    FREECLENGTHS = params.genomes[params.genome].FREEC.FREECLENGTHS
+    FREECCHROMS = params.genomes[params.genome].FREEC.FREECCHROMS
+    FREECPILEUP = params.genomes[params.genome].FREEC.FREECPILEUP
+    FREECSNPS = params.genomes[params.genome].FREEC.FREECSNPS
+    FREECTARGETS = params.genomes[params.genome].intervals
     FREECSCRIPT = params.script_freec
     FREECPAIR_SCRIPT = params.script_freecpaired
     FREECSIGNIFICANCE = params.freec_significance
@@ -15,13 +15,13 @@ if (params.genome=="mm10"){
 }
 
 if (params.genome=="hg38" | params.genome=="hg19"){
-    GENOMEVER=params.genomes[params.genome].GENOMEVER
-    GCPROFILE=file(params.genomes[params.genome].GCPROFILE)
-    GERMLINEHET=file(params.genomes[params.genome].GERMLINEHET)
-    DIPLODREG=file(params.genomes[params.genome].DIPLODREG)
-    ENSEMBLCACHE=params.genomes[params.genome].ENSEMBLCACHE
-    DRIVERS=file(params.genomes[params.genome].DRIVERS)
-    HOTSPOTS=file(params.genomes[params.genome].HOTSPOTS)
+    GENOMEVER = params.genomes[params.genome].GENOMEVER
+    GCPROFILE = file(params.genomes[params.genome].GCPROFILE)
+    GERMLINEHET = file(params.genomes[params.genome].GERMLINEHET)
+    DIPLODREG = file(params.genomes[params.genome].DIPLODREG)
+    ENSEMBLCACHE = params.genomes[params.genome].ENSEMBLCACHE
+    DRIVERS = file(params.genomes[params.genome].DRIVERS)
+    HOTSPOTS = params.genomes[params.genome].HOTSPOTS
 }
 
 //mm10 Paired-Sequenza, FREEC-tumor only
@@ -387,7 +387,7 @@ process purple {
 
     input:
         tuple val(tumorname), val(normalname),
-        path(cobaltin), path(amberin),
+        path(amberin), path(cobaltin),
         path(somaticvcf), path(somaticvcfindex)
 
     output:
@@ -404,11 +404,11 @@ process purple {
     -gc_profile $GCPROFILE \
     -ref_genome_version $GENOMEVER \
     -ref_genome $GENOMEREF \
-    -ensembl_data_dir $ENSEMBLCACHE \
+    $ENSEMBLCACHE \
     -somatic_vcf ${somaticvcf} \
     -run_drivers \
     -driver_gene_panel $DRIVERS \
-    -somatic_hotspots $HOTSPOTS \
+    $HOTSPOTS \
     -threads $task.cpus \
     -output_dir ${tumorname}
     """
@@ -445,7 +445,7 @@ process purple_novc {
     -gc_profile $GCPROFILE \
     -ref_genome_version $GENOMEVER \
     -ref_genome $GENOMEREF \
-    -ensembl_data_dir $ENSEMBLCACHE \
+    $ENSEMBLCACHE \
     -threads $task.cpus \
     -output_dir ${tumorname}
 
@@ -483,11 +483,11 @@ process purple_tonly {
     -gc_profile $GCPROFILE \
     -ref_genome_version $GENOMEVER \
     -ref_genome $GENOMEREF \
-    -ensembl_data_dir $ENSEMBLCACHE \
+    $ENSEMBLCACHE \
     -somatic_vcf ${somaticvcf} \
     -run_drivers \
     -driver_gene_panel $DRIVERS \
-    -somatic_hotspots $HOTSPOTS \
+    $HOTSPOTS \
     -threads $task.cpus \
     -output_dir ${tumorname}
     """
@@ -523,7 +523,7 @@ process purple_tonly_novc {
     -gc_profile $GCPROFILE \
     -ref_genome_version $GENOMEVER \
     -ref_genome $GENOMEREF \
-    -ensembl_data_dir $ENSEMBLCACHE \
+    $ENSEMBLCACHE \
     -threads $task.cpus \
     -output_dir ${tumorname}
     """
