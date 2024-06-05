@@ -95,7 +95,7 @@ workflow {
     }
 
     ///Tumor Only Pipelines
-    if ([params.fastq_input,params.file_input].any() && !params.sample_sheet){
+    if ([params.fastq_input,params.fastq_file_input].any() && !params.sample_sheet){
         println "Tumor-Only FASTQ"
         INPUT_TONLY()
         ALIGN_TONLY(INPUT_TONLY.out.fastqinput,INPUT_TONLY.out.sample_sheet)
