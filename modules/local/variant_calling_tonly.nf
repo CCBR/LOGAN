@@ -388,11 +388,11 @@ process octopus_convertvcf_tonly {
 
 
 process sage_tonly {
-    container "${params.containers.hmftools}"
+    container "${params.containers.logan}"
     label 'process_somaticcaller'
 
     input:
-        tuple val(tumorname), path(tumor), path(tumorbai)
+        tuple val(tumorname), path(tumorbam), path(tumorbai)
 
     output:
         tuple val(tumorname), 
@@ -401,12 +401,13 @@ process sage_tonly {
 
     script:
     """
-        java -Xms4G -Xmx32G -cp sage.jar com.hartwig.hmftools.sage.SageApplication \
+        java -Xms4G -Xmx32G -cp /opt2/hmftools/sage.jar com.hartwig.hmftools.sage.SageApplication \
         -tumor ${tumorname} -tumor_bam ${tumorbam} \
         -threads $task.cpus \
         -ref_genome_version $GENOMEVER \
         -ref_genome $GENOMEREF \
-        $HOTSPOTS $PANELBED $HCBED $ENSEMBLCACHE \
+        -hotspots $HOTSPOTS \
+        $PANELBED $HCBED $ENSEMBLCACHE \
         -output_vcf ${tumorname}.tonly.sage.vcf.gz
     """
 

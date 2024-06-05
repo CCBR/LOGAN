@@ -488,12 +488,12 @@ process octopus_tn {
 
 
 process sage_tn {
-    container "${params.containers.hmftools}"
+    container "${params.containers.logan}"
     label 'process_somaticcaller'
 
      input:
-        tuple val(tumorname), path(tumor), path(tumorbai),
-        val(normalname), path(normal), path(normalbai)
+        tuple val(tumorname), path(tumorbam), path(tumorbai),
+        val(normalname), path(normalbam), path(normalbai)
 
  output:
         tuple val(tumorname), val(normalname),
@@ -502,13 +502,14 @@ process sage_tn {
 
 script:
     """
-    java -Xms4G -Xmx32G -cp sage.jar com.hartwig.hmftools.sage.SageApplication \
+    java -Xms4G -Xmx32G -cp /opt2/hmftools/sage.jar com.hartwig.hmftools.sage.SageApplication \
     -tumor ${tumorname} -tumor_bam ${tumorbam} \
     -reference ${normalname} -reference_bam ${normalbam} \
     -threads $task.cpus \
     -ref_genome_version $GENOMEVER \
     -ref_genome $GENOMEREF \
-    $HOTSPOTS $PANELBED $HCBED $ENSEMBLCACHE \
+    -hotspots $HOTSPOTS \
+    $PANELBED $HCBED $ENSEMBLCACHE \
     -output_vcf ${tumorname}_vs_${normalname}.sage.vcf.gz
     """
 
@@ -682,22 +683,46 @@ process combineVariants_alternative {
     script:
     vcfin = vcfs.join(" ")
 
-    """
-    mkdir ${vc}
-    bcftools concat $vcfin -a -Oz -o ${sample}.${vc}.temp1.vcf.gz
-    bcftools reheader -f $GENOMEFAI ${sample}.${vc}.temp1.vcf.gz -o ${sample}.${vc}.temp.vcf
-    bcftools sort ${sample}.${vc}.temp.vcf -Oz -o ${sample}.${vc}.marked.vcf.gz
-    bcftools norm ${sample}.${vc}.marked.vcf.gz -m- --threads $task.cpus --check-ref s -f $GENOMEREF -O v |\
+
+    if (vc.contains("octopus")) {
+        """
+        mkdir ${vc}
+        bcftools concat $vcfin -a -Oz -o ${sample}.${vc}.temp1.vcf.gz
+        bcftools reheader -f $GENOMEFAI ${sample}.${vc}.temp1.vcf.gz -o ${sample}.${vc}.temp.vcf
+        bcftools sort ${sample}.${vc}.temp.vcf | bcftools view - -i "INFO/SOMATIC==1" -Oz -o ${sample}.${vc}.marked.vcf.gz
+        bcftools norm ${sample}.${vc}.marked.vcf.gz -m- --threads $task.cpus --check-ref s -f $GENOMEREF -O v |\
         awk '{{gsub(/\\y[W|K|Y|R|S|M|B|D|H|V]\\y/,"N",\$4); OFS = "\t"; print}}' |\
         sed '/^\$/d' > ${sample}.${vc}.temp.vcf
 
-    bcftools view ${sample}.${vc}.temp.vcf -f PASS -Oz -o ${vc}/${sample}.${vc}.norm.vcf.gz
+        bcftools view ${sample}.${vc}.temp.vcf -f PASS -Oz -o ${vc}/${sample}.${vc}.norm.vcf.gz
+        mv ${sample}.${vc}.marked.vcf.gz ${vc}
 
-    mv ${sample}.${vc}.marked.vcf.gz ${vc}
+        bcftools index ${vc}/${sample}.${vc}.marked.vcf.gz -t
+        bcftools index ${vc}/${sample}.${vc}.norm.vcf.gz -t
+        """
+    
+    }else{
+        """
+        mkdir ${vc}
+        bcftools concat $vcfin -a -Oz -o ${sample}.${vc}.temp1.vcf.gz
+        bcftools reheader -f $GENOMEFAI ${sample}.${vc}.temp1.vcf.gz -o ${sample}.${vc}.temp.vcf
+        bcftools sort ${sample}.${vc}.temp.vcf -Oz -o ${sample}.${vc}.marked.vcf.gz
+        bcftools norm ${sample}.${vc}.marked.vcf.gz -m- --threads $task.cpus --check-ref s -f $GENOMEREF -O v |\
+        awk '{{gsub(/\\y[W|K|Y|R|S|M|B|D|H|V]\\y/,"N",\$4); OFS = "\t"; print}}' |\
+        sed '/^\$/d' > ${sample}.${vc}.temp.vcf
 
-    bcftools index ${vc}/${sample}.${vc}.marked.vcf.gz -t
-    bcftools index ${vc}/${sample}.${vc}.norm.vcf.gz -t
-    """
+        bcftools view ${sample}.${vc}.temp.vcf -f PASS -Oz -o ${vc}/${sample}.${vc}.norm.vcf.gz
+        mv ${sample}.${vc}.marked.vcf.gz ${vc}
+
+        bcftools index ${vc}/${sample}.${vc}.marked.vcf.gz -t
+        bcftools index ${vc}/${sample}.${vc}.norm.vcf.gz -t
+        """
+    }
+
+
+   
+   
+   
 
     stub:
 
@@ -831,7 +856,33 @@ process somaticcombine {
 }
 
 
+process ffpe_1 {
 
+    container "${params.containers.logan}"
+    label 'process_medium'
+
+    input:
+    tuple val(tumorsample), val(normal),
+        path("${tumorsample}_vs_${normal}_combined.vcf.gz"),
+        path("${tumorsample}_vs_${normal}_combined.vcf.gz.tbi"),
+        bam, bamindex
+        tuple val(tumorsample), val(normal),
+        val(caller),
+        path(vcfs), path(vcfindex)
+
+    output:
+        tuple val(tumorsample), val(normal),
+        path("${tumorsample}_vs_${normal}_combined.vcf.gz"),
+        path("${tumorsample}_vs_${normal}_combined.vcf.gz.tbi")
+
+    script:
+
+
+    stub:
+    """
+    touch "${tumorsample}_vs_${normal}_combined_ffpolish.vcf.gz"
+    """
+}
 /*DISCVR
 process somaticcombine {
     container "${params.containers.logan}"
