@@ -21,13 +21,13 @@ if (params.genome=="hg38" | params.genome=="hg19"){
     DIPLODREG = file(params.genomes[params.genome].DIPLODREG)
     ENSEMBLCACHE = params.genomes[params.genome].ENSEMBLCACHE
     DRIVERS = file(params.genomes[params.genome].DRIVERS)
-    HOTSPOTS = params.genomes[params.genome].HOTSPOTS
+    HOTSPOTS = file(params.genomes[params.genome].HOTSPOTS)
 }
 
 //mm10 Paired-Sequenza, FREEC-tumor only
 process seqz_sequenza_bychr {
     container = "${params.containers.logan}"
-    label 'process_low'
+    label 'process_long'
 
     input:
         tuple val(pairid), val(tumorname), path(tumor), path(tumorbai),
@@ -53,13 +53,93 @@ process seqz_sequenza_bychr {
     """
 }
 
+process pileup_sequenza {
+    container = "${params.containers.logan}"
+    label 'process_low'
+
+    input:
+        tuple val(pairid), val(name), 
+        path(bam), path(bai), path(bed)
+
+    output:
+        tuple val(pairid), path("${name}_${bed}.mpileup.gz"), path("${name}_${bed}.mpileup.gz.tbi") 
+
+    script:
+    //Q20 is default in sequenza
+    """
+        samtools mpileup -f $GENOMEREF -R ${bed} -Q 20 ${bam} |gzip > ${name}_${bed}.mpileup.gz
+        tabix -s1 -b2 -e2 ${name}_${bed}.mpileup.gz
+    """
+
+    stub:
+    """
+    touch "${name}_${bed}.mpileup.gz"
+    touch "${name}_${bed}.mpileup.gz.tbi"
+    """
+}
+
+process seqz_sequenza_reg {
+    container = "${params.containers.logan}"
+    label 'process_low'
+
+    input:
+        tuple val(pairid), val(tumorname), path(tumor), path(tumorbai),
+        val(normalname), path(normal), path(normalbai), path(bed)
+
+    output:
+        tuple val(pairid), path("${tumorname}_${normalname}_${chr}.seqz.gz")
+
+    script:
+    """
+        sequenza-utils bam2seqz \
+        -gc ${SEQUENZAGC} \
+        -p \
+        -F $GENOMEREF \
+        -n ${normal} \
+        -t ${tumor} | gzip > "${tumorname}_${normalname}_${bed}.seqz.gz"
+
+    """
+
+    stub:
+    """
+    touch "${tumorname}_${normalname}_${chr}.seqz.gz"
+    """
+}
+
+process seqz_sequenza {
+    container = "${params.containers.logan}"
+    label 'process_low'
+
+    input:
+        tuple val(pairid), val(tumorname), path(tumor), path(tumorbai),
+        val(normalname), path(normal), path(normalbai), path(bed)
+
+    output:
+        tuple val(pairid), path("${tumorname}_${normalname}_${chr}.seqz.gz")
+
+    script:
+    """
+        sequenza-utils bam2seqz \
+        -gc ${SEQUENZAGC} \
+        -p \
+        -F $GENOMEREF \
+        -n ${normal} \
+        -t ${tumor} | gzip > "${tumorname}_${normalname}_${bed}.seqz.gz"
+
+    """
+
+    stub:
+    """
+    touch "${tumorname}_${normalname}_${chr}.seqz.gz"
+    """
+}
+
 
 
 
 process sequenza {
     container = "${params.containers.logan}"
-
-    label 'process_highcpu'
+    label 'process_medium'
 
     input:
         tuple val(pairid), path(seqz)
@@ -123,7 +203,7 @@ process sequenza {
 
 process freec_paired {
     container = "${params.containers.logan}"
-    label 'process_highcpu'
+    label 'process_long'
 
     input:
         tuple val(tumorname), path(tumor), path(tumorbai),
@@ -406,9 +486,8 @@ process purple {
     -ref_genome $GENOMEREF \
     $ENSEMBLCACHE \
     -somatic_vcf ${somaticvcf} \
-    -run_drivers \
     -driver_gene_panel $DRIVERS \
-    $HOTSPOTS \
+    -somatic_hotspots $HOTSPOTS \
     -threads $task.cpus \
     -output_dir ${tumorname}
     """
@@ -485,9 +564,8 @@ process purple_tonly {
     -ref_genome $GENOMEREF \
     $ENSEMBLCACHE \
     -somatic_vcf ${somaticvcf} \
-    -run_drivers \
     -driver_gene_panel $DRIVERS \
-    $HOTSPOTS \
+    -somatic_hotspots $HOTSPOTS \
     -threads $task.cpus \
     -output_dir ${tumorname}
     """
