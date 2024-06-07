@@ -304,7 +304,7 @@ process mutect2filter {
 
 process strelka_tn {
     container "${params.containers.logan}"
-    label 'process_highcpu'
+    label 'process_high'
     input:
         tuple val(tumorname), path(tumor), path(tumorbai),
         val(normalname), path(normal), path(normalbai), path(bed)
@@ -489,7 +489,7 @@ process octopus_tn {
 
 process sage_tn {
     container "${params.containers.logan}"
-    label 'process_somaticcaller'
+    label 'process_high'
 
      input:
         tuple val(tumorname), path(tumorbam), path(tumorbai),

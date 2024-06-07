@@ -123,7 +123,6 @@ process learnreadorientationmodel_tonly {
 
 process mergemut2stats_tonly {
     container "${params.containers.logan}"
-
     label 'process_low'
 
     input:

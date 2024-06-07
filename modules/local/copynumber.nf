@@ -398,7 +398,6 @@ process amber_tn {
 
 process cobalt_tonly {
     container = "${params.containers.logan}"
-
     label 'process_medium'
 
     input:
@@ -430,7 +429,6 @@ process cobalt_tonly {
 
 process cobalt_tn {
     container = "${params.containers.logan}"
-
     label 'process_medium'
 
     input:
