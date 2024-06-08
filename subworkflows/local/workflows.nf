@@ -182,7 +182,9 @@ workflow VC {
 
     //Prep Pileups
     call_list = params.callers.split(',') as List
-    
+    call_list_tonly = params.tonlycallers.split(',') as List
+    call_list_tonly = call_list.intersect(call_list_tonly)
+
     vc_all=Channel.empty()
     vc_tonly=Channel.empty()
 
@@ -194,18 +196,18 @@ workflow VC {
         pileup_paired_t.out.groupTuple(by:[0,1]) 
             | multiMap { samplename, normalname, pileups -> 
                 tout: tuple( samplename, normalname,
-                    pileups.toSorted{ it -> (it.name =~ /${samplename}_(.*?).tumor.pileup.table/)[0][1].toInteger() } )
+                    pileups.toSorted{ it -> (it.name =~ /${samplename}_(.*?).tpileup.table/)[0][1].toInteger() } )
                 tonly: tuple( samplename,
-                    pileups.toSorted{ it -> (it.name =~ /${samplename}_(.*?).tumor.pileup.table/)[0][1].toInteger() } )
+                    pileups.toSorted{ it -> (it.name =~ /${samplename}_(.*?).tpileup.table/)[0][1].toInteger() } )
                     }
             | set{pileup_paired_tout}
         
         pileup_paired_n.out.groupTuple(by:[0,1])
             | multiMap { samplename, normalname, pileups-> 
                 nout: tuple (samplename,normalname,
-                    pileups.toSorted{ it -> (it.name =~ /${normalname}_(.*?).normal.pileup.table/)[0][1].toInteger() } )
+                    pileups.toSorted{ it -> (it.name =~ /${normalname}_(.*?).npileup.table/)[0][1].toInteger() } )
                 nonly: tuple (normalname,
-                    pileups.toSorted{ it -> (it.name =~ /${normalname}_(.*?).normal.pileup.table/)[0][1].toInteger() } )
+                    pileups.toSorted{ it -> (it.name =~ /${normalname}_(.*?).npileup.table/)[0][1].toInteger() } )
                     }
                 | set{pileup_paired_nout}
 
@@ -251,14 +253,14 @@ workflow VC {
     //Mutect2 Tumor Only
     if (!params.no_tonly){
         mutect2_t_tonly(bambyinterval_t)
-        mutect2_t_tonly.out.groupTuple()
-        | multiMap { tumor,vcfs,f1r2,stats ->
-        mut2tout_lor: tuple(tumor,
-                f1r2.toSorted{ it -> (it.name =~ /${tumor}_(.*?).f1r2.tar.gz/)[0][1].toInteger() } )
-        mut2tonly_mstats:  tuple( tumor,
-                stats.toSorted{ it -> (it.name =~ /${tumor}_(.*?).tonly.mut2.vcf.gz.stats/)[0][1].toInteger() })
-        allmut2tonly: tuple(tumor,
-                vcfs.toSorted{ it -> (it.name =~ /${tumor}_(.*?).tonly.mut2.vcf.gz/)[0][1].toInteger() } )
+        | groupTuple()
+        | multiMap { tumorid,vcfs,f1r2,stats ->
+        mut2tout_lor: tuple(tumorid,
+                f1r2.toSorted{ it -> (it.name =~ /${tumorid}_(.*?).f1r2.tar.gz/)[0][1].toInteger() } )
+        mut2tonly_mstats:  tuple( tumorid,
+                stats.toSorted{ it -> (it.name =~ /${tumorid}_(.*?).tonly.mut2.vcf.gz.stats/)[0][1].toInteger() })
+        allmut2tonly: tuple(tumorid,
+                vcfs.toSorted{ it -> (it.name =~ /${tumorid}_(.*?).tonly.mut2.vcf.gz/)[0][1].toInteger() } )
         }
         | set{mut2tonlyout}
 
@@ -431,7 +433,7 @@ workflow VC {
             | map{tumor,normal,vcf,index ->tuple(tumor,normal,"combined",vcf,index)}
             | annotvep_tn_combined
 
-        if (!params.no_tonly){
+        if (!params.no_tonly & call_list_tonly.size()>1){
         vc_tonly | groupTuple() 
             | somaticcombine_tonly
             | map{tumor,vcf,index ->tuple(tumor,"combined_tonly",vcf,index)}

@@ -132,7 +132,10 @@ workflow VC_TONLY {
     bambyinterval=bamwithsample.combine(splitout.flatten())
 
     //Common steps
+    //Ensure that Tumor Only callers are included
     call_list = params.callers.split(',') as List
+    call_list_tonly = params.tonlycallers.split(',') as List
+    call_list = call_list.intersect(call_list_tonly)
 
     vc_tonly=Channel.empty()
 
@@ -140,7 +143,7 @@ workflow VC_TONLY {
         pileup_paired_tonly(bambyinterval)
         pileup_paired_tout=pileup_paired_tonly.out.groupTuple()
         .map{samplename,pileups-> tuple( samplename,
-        pileups.toSorted{ it -> (it.name =~ /${samplename}_(.*?).tumor.pileup.table/)[0][1].toInteger() } ,
+        pileups.toSorted{ it -> (it.name =~ /${samplename}_(.*?).tpileup.table/)[0][1].toInteger() } ,
             )}
         contamination_tumoronly(pileup_paired_tout)
     }
