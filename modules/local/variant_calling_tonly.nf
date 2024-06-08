@@ -29,7 +29,7 @@ process pileup_paired_tonly {
 
     output:
         tuple val(tumorname),
-        path("${tumor.simpleName}_${bed.simpleName}.tumor.pileup.table")
+        path("${tumorname}_${bed.simpleName}.tpileup.table")
 
     script:
 
@@ -38,13 +38,13 @@ process pileup_paired_tonly {
         -I ${tumor} \
         -V $KGPGERMLINE \
         -L ${bed} \
-        -O ${tumor.simpleName}_${bed.simpleName}.tumor.pileup.table
+        -O ${tumorname}_${bed.simpleName}.tpileup.table
 
     """
 
     stub:
     """
-    touch ${tumor.simpleName}_${bed.simpleName}.tumor.pileup.table
+    touch ${tumorname}_${bed.simpleName}.tpileup.table
 
     """
 
@@ -158,9 +158,9 @@ process mutect2_t_tonly {
 
     output:
         tuple val(tumorname),
-        path("${tumor.simpleName}_${bed.simpleName}.tonly.mut2.vcf.gz"),
-        path("${tumor.simpleName}_${bed.simpleName}.f1r2.tar.gz"),
-        path("${tumor.simpleName}_${bed.simpleName}.tonly.mut2.vcf.gz.stats")
+        path("${tumorname}_${bed.simpleName}.tonly.mut2.vcf.gz"),
+        path("${tumorname}_${bed.simpleName}.f1r2.tar.gz"),
+        path("${tumorname}_${bed.simpleName}.tonly.mut2.vcf.gz.stats")
 
     script:
 
@@ -169,19 +169,19 @@ process mutect2_t_tonly {
     --reference $GENOMEREF \
     --intervals ${bed} \
     --input ${tumor} \
-    --tumor-sample ${tumor.simpleName} \
+    --tumor-sample ${tumorname} \
     $GNOMADGERMLINE \
     --panel-of-normals $PON \
-    --output ${tumor.simpleName}_${bed.simpleName}.tonly.mut2.vcf.gz \
-    --f1r2-tar-gz ${tumor.simpleName}_${bed.simpleName}.f1r2.tar.gz \
+    --output ${tumorname}_${bed.simpleName}.tonly.mut2.vcf.gz \
+    --f1r2-tar-gz ${tumorname}_${bed.simpleName}.f1r2.tar.gz \
     --independent-mates
     """
 
     stub:
     """
-    touch ${tumor.simpleName}_${bed.simpleName}.tonly.mut2.vcf.gz
-    touch ${tumor.simpleName}_${bed.simpleName}.f1r2.tar.gz
-    touch ${tumor.simpleName}_${bed.simpleName}.tonly.mut2.vcf.gz.stats
+    touch ${tumorname}_${bed.simpleName}.tonly.mut2.vcf.gz
+    touch ${tumorname}_${bed.simpleName}.f1r2.tar.gz
+    touch ${tumorname}_${bed.simpleName}.tonly.mut2.vcf.gz.stats
     """
 
 
@@ -252,7 +252,7 @@ process varscan_tonly {
 
     output:
         tuple val(tumorname),
-        path("${tumor.simpleName}_${bed.simpleName}.tonly.varscan.vcf.gz")
+        path("${tumorname}_${bed.simpleName}.tonly.varscan.vcf.gz")
 
     shell:
 
@@ -275,7 +275,7 @@ process varscan_tonly {
 
     stub:
     """
-    touch ${tumor.simpleName}_${bed.simpleName}.tonly.varscan.vcf.gz
+    touch ${tumorname}_${bed.simpleName}.tonly.varscan.vcf.gz
     """
 
 }
@@ -290,7 +290,7 @@ process vardict_tonly {
 
     output:
         tuple val(tumorname),
-        path("${tumor.simpleName}_${bed.simpleName}.tonly.vardict.vcf.gz")
+        path("${tumorname}_${bed.simpleName}.tonly.vardict.vcf.gz")
 
     script:
 
@@ -450,9 +450,9 @@ process somaticcombine_tonly {
 
     stub:
 
-    vcfin1=[caller, vcfs].transpose().collect { a, b -> a + " " + b }
-    vcfin2="-V:" + vcfin1.join(" -V:")
-    callerin=caller.join(",").replaceAll("_tonly","")
+        vcfin1=[caller, vcfs].transpose().collect { a, b -> a + " " + b }
+        vcfin2="-V:" + vcfin1.join(" -V:")
+        callerin=caller.join(",")//.replaceAll("_tonly","")
     
     """
     touch ${tumorsample}_combined_tonly.vcf.gz ${tumorsample}_combined_tonly.vcf.gz.tbi
