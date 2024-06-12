@@ -1,9 +1,9 @@
 GENOMEREF=file(params.genomes[params.genome].genome)
 GENOMEFAI=file(params.genomes[params.genome].genomefai)
 GENOMEDICT=file(params.genomes[params.genome].genomedict)
-KGPGERMLINE=params.genomes[params.genome].kgp
-DBSNP=file(params.genomes[params.genome].dbsnp)
+GERMLINE_RESOURCE=file(params.genomes[params.genome].germline_resource)
 GNOMADGERMLINE=params.genomes[params.genome].gnomad
+DBSNP=file(params.genomes[params.genome].dbsnp)
 PON=file(params.genomes[params.genome].pon)
 VEPCACHEDIR=file(params.genomes[params.genome].vepcache)
 VEPSPECIES=params.genomes[params.genome].vepspecies
@@ -29,22 +29,22 @@ process pileup_paired_tonly {
 
     output:
         tuple val(tumorname),
-        path("${tumor.simpleName}_${bed.simpleName}.tumor.pileup.table")
+        path("${tumorname}_${bed.simpleName}.tpileup.table")
 
     script:
 
     """
     gatk --java-options -Xmx48g GetPileupSummaries \
         -I ${tumor} \
-        -V $KGPGERMLINE \
+        -V $GERMLINE_RESOURCE \
         -L ${bed} \
-        -O ${tumor.simpleName}_${bed.simpleName}.tumor.pileup.table
+        -O ${tumorname}_${bed.simpleName}.tpileup.table
 
     """
 
     stub:
     """
-    touch ${tumor.simpleName}_${bed.simpleName}.tumor.pileup.table
+    touch ${tumorname}_${bed.simpleName}.tpileup.table
 
     """
 
@@ -123,7 +123,6 @@ process learnreadorientationmodel_tonly {
 
 process mergemut2stats_tonly {
     container "${params.containers.logan}"
-
     label 'process_low'
 
     input:
@@ -159,9 +158,9 @@ process mutect2_t_tonly {
 
     output:
         tuple val(tumorname),
-        path("${tumor.simpleName}_${bed.simpleName}.tonly.mut2.vcf.gz"),
-        path("${tumor.simpleName}_${bed.simpleName}.f1r2.tar.gz"),
-        path("${tumor.simpleName}_${bed.simpleName}.tonly.mut2.vcf.gz.stats")
+        path("${tumorname}_${bed.simpleName}.tonly.mut2.vcf.gz"),
+        path("${tumorname}_${bed.simpleName}.f1r2.tar.gz"),
+        path("${tumorname}_${bed.simpleName}.tonly.mut2.vcf.gz.stats")
 
     script:
 
@@ -170,19 +169,19 @@ process mutect2_t_tonly {
     --reference $GENOMEREF \
     --intervals ${bed} \
     --input ${tumor} \
-    --tumor-sample ${tumor.simpleName} \
+    --tumor-sample ${tumorname} \
     $GNOMADGERMLINE \
     --panel-of-normals $PON \
-    --output ${tumor.simpleName}_${bed.simpleName}.tonly.mut2.vcf.gz \
-    --f1r2-tar-gz ${tumor.simpleName}_${bed.simpleName}.f1r2.tar.gz \
+    --output ${tumorname}_${bed.simpleName}.tonly.mut2.vcf.gz \
+    --f1r2-tar-gz ${tumorname}_${bed.simpleName}.f1r2.tar.gz \
     --independent-mates
     """
 
     stub:
     """
-    touch ${tumor.simpleName}_${bed.simpleName}.tonly.mut2.vcf.gz
-    touch ${tumor.simpleName}_${bed.simpleName}.f1r2.tar.gz
-    touch ${tumor.simpleName}_${bed.simpleName}.tonly.mut2.vcf.gz.stats
+    touch ${tumorname}_${bed.simpleName}.tonly.mut2.vcf.gz
+    touch ${tumorname}_${bed.simpleName}.f1r2.tar.gz
+    touch ${tumorname}_${bed.simpleName}.tonly.mut2.vcf.gz.stats
     """
 
 
@@ -208,8 +207,7 @@ process mutect2filter_tonly {
 
 
     """
-    gatk GatherVcfs -I ${mut2in} -O ${sample}.tonly.concat.vcf.gz
-    gatk IndexFeatureFile -I ${sample}.tonly.concat.vcf.gz
+    gatk SortVcf -I ${mut2in} -O ${sample}.tonly.concat.vcf.gz --CREATE_INDEX
     gatk FilterMutectCalls \
         -R $GENOMEREF \
         -V ${sample}.tonly.concat.vcf.gz \
@@ -253,7 +251,7 @@ process varscan_tonly {
 
     output:
         tuple val(tumorname),
-        path("${tumor.simpleName}_${bed.simpleName}.tonly.varscan.vcf.gz")
+        path("${tumorname}_${bed.simpleName}.tonly.varscan.vcf.gz")
 
     shell:
 
@@ -276,7 +274,7 @@ process varscan_tonly {
 
     stub:
     """
-    touch ${tumor.simpleName}_${bed.simpleName}.tonly.varscan.vcf.gz
+    touch ${tumorname}_${bed.simpleName}.tonly.varscan.vcf.gz
     """
 
 }
@@ -291,7 +289,7 @@ process vardict_tonly {
 
     output:
         tuple val(tumorname),
-        path("${tumor.simpleName}_${bed.simpleName}.tonly.vardict.vcf.gz")
+        path("${tumorname}_${bed.simpleName}.tonly.vardict.vcf.gz")
 
     script:
 
@@ -388,11 +386,11 @@ process octopus_convertvcf_tonly {
 
 
 process sage_tonly {
-    container "${params.containers.hmftools}"
+    container "${params.containers.logan}"
     label 'process_somaticcaller'
 
     input:
-        tuple val(tumorname), path(tumor), path(tumorbai)
+        tuple val(tumorname), path(tumorbam), path(tumorbai)
 
     output:
         tuple val(tumorname), 
@@ -401,12 +399,13 @@ process sage_tonly {
 
     script:
     """
-        java -Xms4G -Xmx32G -cp sage.jar com.hartwig.hmftools.sage.SageApplication \
+        java -Xms4G -Xmx32G -cp /opt2/hmftools/sage.jar com.hartwig.hmftools.sage.SageApplication \
         -tumor ${tumorname} -tumor_bam ${tumorbam} \
         -threads $task.cpus \
         -ref_genome_version $GENOMEVER \
         -ref_genome $GENOMEREF \
-        $HOTSPOTS $PANELBED $HCBED $ENSEMBLCACHE \
+        -hotspots $HOTSPOTS \
+        $PANELBED $HCBED $ENSEMBLCACHE \
         -output_vcf ${tumorname}.tonly.sage.vcf.gz
     """
 
@@ -436,7 +435,7 @@ process somaticcombine_tonly {
         vcfin1=[caller, vcfs].transpose().collect { a, b -> a + " " + b }
         vcfin2="-V:" + vcfin1.join(" -V:")
 
-        callerin=caller.join(",").replaceAll("_tonly","")
+        callerin=caller.join(",")//.replaceAll("_tonly","")
 
     """
     /usr/lib/jvm/java-8-openjdk-amd64/bin/java -jar \$GATK_JAR -T CombineVariants  \
@@ -450,9 +449,9 @@ process somaticcombine_tonly {
 
     stub:
 
-    vcfin1=[caller, vcfs].transpose().collect { a, b -> a + " " + b }
-    vcfin2="-V:" + vcfin1.join(" -V:")
-    callerin=caller.join(",").replaceAll("_tonly","")
+        vcfin1=[caller, vcfs].transpose().collect { a, b -> a + " " + b }
+        vcfin2="-V:" + vcfin1.join(" -V:")
+        callerin=caller.join(",")//.replaceAll("_tonly","")
     
     """
     touch ${tumorsample}_combined_tonly.vcf.gz ${tumorsample}_combined_tonly.vcf.gz.tbi

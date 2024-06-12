@@ -7,7 +7,7 @@ INDELREF=file(params.genomes[params.genome].INDELREF)
 
 process svaba_somatic {
     container = "${params.containers.logan}"
-    label 'process_highcpu'
+    label 'process_high'
 
     input:
         tuple val(tumorname), path(tumor), path(tumorbai), val(normalname), path(normal), path(normalbai)
@@ -58,7 +58,7 @@ process svaba_somatic {
 
 process manta_somatic {
     container = "${params.containers.logan}"
-    label 'process_highcpu'
+    label 'process_high'
 
     input:
         tuple val(tumorname), path(tumor), path(tumorbai),val(normalname), path(normal), path(normalbai)
@@ -80,7 +80,7 @@ process manta_somatic {
         --referenceFasta=$GENOMEREF \
         --runDir=wd
 
-    wd/runWorkflow.py -m local -j 10 -g 10
+    wd/runWorkflow.py -m local -j $task.cpus
 
     mv wd/results/variants/diploidSV.vcf.gz ${tumor.simpleName}.diplodSV.vcf.gz
     mv wd/results/variants/somaticSV.vcf.gz ${tumor.simpleName}.somaticSV.vcf.gz
@@ -104,7 +104,7 @@ process annotsv_tn {
      //AnnotSV for Manta/Svaba works with either vcf.gz or .vcf files
      //Requires bedtools,bcftools
     container = "${params.containers.annotcnvsv}"
-    process
+
     input:
         tuple val(tumorname), path(somaticvcf), val(sv)
 
@@ -137,7 +137,7 @@ process annotsv_tn {
 
 process manta_tonly {
     container = "${params.containers.logan}"
-    label 'process_highcpu'
+    label 'process_high'
 
     input:
         tuple val(tumorname), path(tumor), path(tumorbai)
@@ -158,7 +158,7 @@ process manta_tonly {
         --referenceFasta=$GENOMEREF \
         --runDir=wd
 
-    wd/runWorkflow.py -m local -j 10 -g 10
+    wd/runWorkflow.py -m local -j $task.cpus
 
     mv wd/results/variants/candidateSV.vcf.gz ${tumor.simpleName}.candidateSV.vcf.gz
     mv wd/results/variants/candidateSmallIndels.vcf.gz ${tumor.simpleName}.candidateSmallIndels.vcf.gz
@@ -180,7 +180,7 @@ process manta_tonly {
 
 process svaba_tonly {
     container = "${params.containers.logan}"
-    label 'process_highcpu'
+    label 'process_high'
 
     input:
         tuple val(tumorname), path(tumor), path(tumorbai)

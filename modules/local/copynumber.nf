@@ -1,13 +1,13 @@
-GENOMEREF=file(params.genomes[params.genome].genome)
-SEQUENZAGC=file(params.genomes[params.genome].SEQUENZAGC)
-SEQUENZA_SCRIPT=params.script_sequenza
+GENOMEREF = file(params.genomes[params.genome].genome)
+SEQUENZAGC = file(params.genomes[params.genome].SEQUENZAGC)
+SEQUENZA_SCRIPT = params.script_sequenza
 
 if (params.genome=="mm10"){
-    FREECLENGTHS=file(params.genomes[params.genome].FREEC.FREECLENGTHS)
-    FREECCHROMS=file(params.genomes[params.genome].FREEC.FREECCHROMS)
-    FREECPILEUP=file(params.genomes[params.genome].FREEC.FREECPILEUP)
-    FREECSNPS = file(params.genomes[params.genome].FREEC.FREECSNPS)
-    FREECTARGETS=file(params.genomes[params.genome].intervals)
+    FREECLENGTHS = params.genomes[params.genome].FREEC.FREECLENGTHS
+    FREECCHROMS = params.genomes[params.genome].FREEC.FREECCHROMS
+    FREECPILEUP = params.genomes[params.genome].FREEC.FREECPILEUP
+    FREECSNPS = params.genomes[params.genome].FREEC.FREECSNPS
+    FREECTARGETS = params.genomes[params.genome].intervals
     FREECSCRIPT = params.script_freec
     FREECPAIR_SCRIPT = params.script_freecpaired
     FREECSIGNIFICANCE = params.freec_significance
@@ -15,19 +15,19 @@ if (params.genome=="mm10"){
 }
 
 if (params.genome=="hg38" | params.genome=="hg19"){
-    GENOMEVER=params.genomes[params.genome].GENOMEVER
-    GCPROFILE=file(params.genomes[params.genome].GCPROFILE)
-    GERMLINEHET=file(params.genomes[params.genome].GERMLINEHET)
-    DIPLODREG=file(params.genomes[params.genome].DIPLODREG)
-    ENSEMBLCACHE=params.genomes[params.genome].ENSEMBLCACHE
-    DRIVERS=file(params.genomes[params.genome].DRIVERS)
-    HOTSPOTS=file(params.genomes[params.genome].HOTSPOTS)
+    GENOMEVER = params.genomes[params.genome].GENOMEVER
+    GCPROFILE = file(params.genomes[params.genome].GCPROFILE)
+    GERMLINEHET = file(params.genomes[params.genome].GERMLINEHET)
+    DIPLODREG = file(params.genomes[params.genome].DIPLODREG)
+    ENSEMBLCACHE = params.genomes[params.genome].ENSEMBLCACHE
+    DRIVERS = file(params.genomes[params.genome].DRIVERS)
+    HOTSPOTS = file(params.genomes[params.genome].HOTSPOTS)
 }
 
 //mm10 Paired-Sequenza, FREEC-tumor only
 process seqz_sequenza_bychr {
     container = "${params.containers.logan}"
-    label 'process_low'
+    label 'process_long'
 
     input:
         tuple val(pairid), val(tumorname), path(tumor), path(tumorbai),
@@ -53,13 +53,93 @@ process seqz_sequenza_bychr {
     """
 }
 
+process pileup_sequenza {
+    container = "${params.containers.logan}"
+    label 'process_low'
+
+    input:
+        tuple val(pairid), val(name), 
+        path(bam), path(bai), path(bed)
+
+    output:
+        tuple val(pairid), path("${name}_${bed}.mpileup.gz"), path("${name}_${bed}.mpileup.gz.tbi") 
+
+    script:
+    //Q20 is default in sequenza
+    """
+        samtools mpileup -f $GENOMEREF -R ${bed} -Q 20 ${bam} |gzip > ${name}_${bed}.mpileup.gz
+        tabix -s1 -b2 -e2 ${name}_${bed}.mpileup.gz
+    """
+
+    stub:
+    """
+    touch "${name}_${bed}.mpileup.gz"
+    touch "${name}_${bed}.mpileup.gz.tbi"
+    """
+}
+
+process seqz_sequenza_reg {
+    container = "${params.containers.logan}"
+    label 'process_low'
+
+    input:
+        tuple val(pairid), val(tumorname), path(tumor), path(tumorbai),
+        val(normalname), path(normal), path(normalbai), path(bed)
+
+    output:
+        tuple val(pairid), path("${tumorname}_${normalname}_${chr}.seqz.gz")
+
+    script:
+    """
+        sequenza-utils bam2seqz \
+        -gc ${SEQUENZAGC} \
+        -p \
+        -F $GENOMEREF \
+        -n ${normal} \
+        -t ${tumor} | gzip > "${tumorname}_${normalname}_${bed}.seqz.gz"
+
+    """
+
+    stub:
+    """
+    touch "${tumorname}_${normalname}_${chr}.seqz.gz"
+    """
+}
+
+process seqz_sequenza {
+    container = "${params.containers.logan}"
+    label 'process_low'
+
+    input:
+        tuple val(pairid), val(tumorname), path(tumor), path(tumorbai),
+        val(normalname), path(normal), path(normalbai), path(bed)
+
+    output:
+        tuple val(pairid), path("${tumorname}_${normalname}_${chr}.seqz.gz")
+
+    script:
+    """
+        sequenza-utils bam2seqz \
+        -gc ${SEQUENZAGC} \
+        -p \
+        -F $GENOMEREF \
+        -n ${normal} \
+        -t ${tumor} | gzip > "${tumorname}_${normalname}_${bed}.seqz.gz"
+
+    """
+
+    stub:
+    """
+    touch "${tumorname}_${normalname}_${chr}.seqz.gz"
+    """
+}
+
 
 
 
 process sequenza {
     container = "${params.containers.logan}"
-
-    label 'process_highcpu'
+    label 'process_medium'
 
     input:
         tuple val(pairid), path(seqz)
@@ -123,7 +203,7 @@ process sequenza {
 
 process freec_paired {
     container = "${params.containers.logan}"
-    label 'process_highcpu'
+    label 'process_long'
 
     input:
         tuple val(tumorname), path(tumor), path(tumorbai),
@@ -318,7 +398,6 @@ process amber_tn {
 
 process cobalt_tonly {
     container = "${params.containers.logan}"
-
     label 'process_medium'
 
     input:
@@ -350,7 +429,6 @@ process cobalt_tonly {
 
 process cobalt_tn {
     container = "${params.containers.logan}"
-
     label 'process_medium'
 
     input:
@@ -364,7 +442,7 @@ process cobalt_tn {
 
     """
     java -jar -Xmx8G /opt2/hmftools/cobalt.jar \
-    -tumor ${tumorname} -tumor_bam ${tumorname} \
+    -tumor ${tumorname} -tumor_bam ${tumor} \
     -reference ${normalname} -reference_bam ${normal} \
     -output_dir ${tumorname}_vs_${normalname}_cobalt \
     -threads $task.cpus \
@@ -387,7 +465,7 @@ process purple {
 
     input:
         tuple val(tumorname), val(normalname),
-        path(cobaltin), path(amberin),
+        path(amberin), path(cobaltin),
         path(somaticvcf), path(somaticvcfindex)
 
     output:
@@ -404,9 +482,8 @@ process purple {
     -gc_profile $GCPROFILE \
     -ref_genome_version $GENOMEVER \
     -ref_genome $GENOMEREF \
-    -ensembl_data_dir $ENSEMBLCACHE \
+    $ENSEMBLCACHE \
     -somatic_vcf ${somaticvcf} \
-    -run_drivers \
     -driver_gene_panel $DRIVERS \
     -somatic_hotspots $HOTSPOTS \
     -threads $task.cpus \
@@ -445,7 +522,7 @@ process purple_novc {
     -gc_profile $GCPROFILE \
     -ref_genome_version $GENOMEVER \
     -ref_genome $GENOMEREF \
-    -ensembl_data_dir $ENSEMBLCACHE \
+    $ENSEMBLCACHE \
     -threads $task.cpus \
     -output_dir ${tumorname}
 
@@ -483,9 +560,8 @@ process purple_tonly {
     -gc_profile $GCPROFILE \
     -ref_genome_version $GENOMEVER \
     -ref_genome $GENOMEREF \
-    -ensembl_data_dir $ENSEMBLCACHE \
+    $ENSEMBLCACHE \
     -somatic_vcf ${somaticvcf} \
-    -run_drivers \
     -driver_gene_panel $DRIVERS \
     -somatic_hotspots $HOTSPOTS \
     -threads $task.cpus \
@@ -523,7 +599,7 @@ process purple_tonly_novc {
     -gc_profile $GCPROFILE \
     -ref_genome_version $GENOMEVER \
     -ref_genome $GENOMEREF \
-    -ensembl_data_dir $ENSEMBLCACHE \
+    $ENSEMBLCACHE \
     -threads $task.cpus \
     -output_dir ${tumorname}
     """

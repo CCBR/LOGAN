@@ -1,9 +1,9 @@
 GENOMEREF=file(params.genomes[params.genome].genome)
 GENOMEFAI=file(params.genomes[params.genome].genomefai)
 GENOMEDICT=file(params.genomes[params.genome].genomedict)
-KGPGERMLINE=params.genomes[params.genome].kgp
-DBSNP=file(params.genomes[params.genome].dbsnp)
+GERMLINE_RESOURCE=file(params.genomes[params.genome].germline_resource)
 GNOMADGERMLINE=params.genomes[params.genome].gnomad
+DBSNP=file(params.genomes[params.genome].dbsnp)
 PON=file(params.genomes[params.genome].pon)
 VEPCACHEDIR=file(params.genomes[params.genome].vepcache)
 VEPSPECIES=params.genomes[params.genome].vepspecies
@@ -30,9 +30,9 @@ process mutect2 {
 
     output:
         tuple val(tumorname), val(normalname),
-        path("${tumor.simpleName}_vs_${normal.simpleName}_${bed.simpleName}.mut2.vcf.gz"),
-        path("${tumor.simpleName}_vs_${normal.simpleName}_${bed.simpleName}.f1r2.tar.gz"),
-        path("${tumor.simpleName}_vs_${normal.simpleName}_${bed.simpleName}.mut2.vcf.gz.stats")
+        path("${tumorname}_vs_${normalname}_${bed.simpleName}.mut2.vcf.gz"),
+        path("${tumorname}_vs_${normalname}_${bed.simpleName}.f1r2.tar.gz"),
+        path("${tumorname}_vs_${normalname}_${bed.simpleName}.mut2.vcf.gz.stats")
 
 
     script:
@@ -42,20 +42,20 @@ process mutect2 {
     --intervals ${bed} \
     --input ${tumor} \
     --input ${normal} \
-    --normal-sample ${normal.simpleName} \
-    --tumor-sample ${tumor.simpleName} \
+    --normal-sample ${normalname} \
+    --tumor-sample ${tumorname} \
     $GNOMADGERMLINE \
     --panel-of-normals ${PON} \
-    --output ${tumor.simpleName}_vs_${normal.simpleName}_${bed.simpleName}.mut2.vcf.gz \
-    --f1r2-tar-gz ${tumor.simpleName}_vs_${normal.simpleName}_${bed.simpleName}.f1r2.tar.gz \
+    --output ${tumorname}_vs_${normalname}_${bed.simpleName}.mut2.vcf.gz \
+    --f1r2-tar-gz ${tumorname}_vs_${normalname}_${bed.simpleName}.f1r2.tar.gz \
     --independent-mates
     """
 
     stub:
     """
-    touch ${tumor.simpleName}_vs_${normal.simpleName}_${bed.simpleName}.mut2.vcf.gz
-    touch ${tumor.simpleName}_vs_${normal.simpleName}_${bed.simpleName}.f1r2.tar.gz
-    touch ${tumor.simpleName}_vs_${normal.simpleName}_${bed.simpleName}.mut2.vcf.gz.stats
+    touch ${tumorname}_vs_${normalname}_${bed.simpleName}.mut2.vcf.gz
+    touch ${tumorname}_vs_${normalname}_${bed.simpleName}.f1r2.tar.gz
+    touch ${tumorname}_vs_${normalname}_${bed.simpleName}.mut2.vcf.gz.stats
     """
 }
 
@@ -69,21 +69,21 @@ process pileup_paired_t {
 
     output:
         tuple val(tumorname), val(normalname),
-        path("${tumor.simpleName}_${bed.simpleName}.tumor.pileup.table")
+        path("${tumorname}_${bed.simpleName}.tpileup.table")
 
     script:
     """
     gatk --java-options -Xmx48g GetPileupSummaries \
         -I ${tumor} \
-        -V $KGPGERMLINE \
+        -V $GERMLINE_RESOURCE \
         -L ${bed} \
-        -O ${tumor.simpleName}_${bed.simpleName}.tumor.pileup.table
+        -O ${tumorname}_${bed.simpleName}.tpileup.table
 
     """
 
     stub:
     """
-    touch ${tumor.simpleName}_${bed.simpleName}.tumor.pileup.table
+    touch ${tumorname}_${bed.simpleName}.tpileup.table
     """
 
 }
@@ -99,21 +99,21 @@ process pileup_paired_n {
     output:
         tuple val(tumorname),
         val(normalname),
-        path("${normal.simpleName}_${bed.simpleName}.normal.pileup.table")
+        path("${normalname}_${bed.simpleName}.npileup.table")
 
     script:
     """
     gatk --java-options -Xmx48g GetPileupSummaries \
         -I ${normal} \
-        -V $KGPGERMLINE \
+        -V $GERMLINE_RESOURCE \
         -L ${bed} \
-        -O ${normalname}_${bed.simpleName}.normal.pileup.table
+        -O ${normalname}_${bed.simpleName}.npileup.table
 
     """
 
     stub:
     """
-    touch ${normalname}_${bed.simpleName}.normal.pileup.table
+    touch ${normalname}_${bed.simpleName}.npileup.table
     """
 }
 
@@ -263,7 +263,8 @@ process mutect2filter {
         tuple val("${tumor}_vs_${normal}"),
         path("${tumor}_vs_${normal}.mut2.marked.vcf.gz"),
         path("${tumor}_vs_${normal}.mut2.marked.vcf.gz.tbi"),
-        path("${tumor}_vs_${normal}.mut2.norm.vcf.gz"), path("${tumor}_vs_${normal}.mut2.norm.vcf.gz.tbi"),
+        path("${tumor}_vs_${normal}.mut2.norm.vcf.gz"), 
+        path("${tumor}_vs_${normal}.mut2.norm.vcf.gz.tbi"),
         path("${tumor}_vs_${normal}.mut2.marked.vcf.gz.filteringStats.tsv")
 
     script:
@@ -304,17 +305,17 @@ process mutect2filter {
 
 process strelka_tn {
     container "${params.containers.logan}"
-    label 'process_highcpu'
+    label 'process_high'
     input:
         tuple val(tumorname), path(tumor), path(tumorbai),
         val(normalname), path(normal), path(normalbai), path(bed)
 
     output:
         tuple val(tumorname), val(normalname),
-        path("${tumor.simpleName}_vs_${normal.simpleName}_${bed.simpleName}.somatic.snvs.vcf.gz"),
-        path("${tumor.simpleName}_vs_${normal.simpleName}_${bed.simpleName}.somatic.snvs.vcf.gz.tbi"),
-        path("${tumor.simpleName}_vs_${normal.simpleName}_${bed.simpleName}.somatic.indels.vcf.gz"),
-        path("${tumor.simpleName}_vs_${normal.simpleName}_${bed.simpleName}.somatic.indels.vcf.gz.tbi")
+        path("${tumorname}_vs_${normalname}_${bed.simpleName}.somatic.snvs.vcf.gz"),
+        path("${tumorname}_vs_${normalname}_${bed.simpleName}.somatic.snvs.vcf.gz.tbi"),
+        path("${tumorname}_vs_${normalname}_${bed.simpleName}.somatic.indels.vcf.gz"),
+        path("${tumorname}_vs_${normalname}_${bed.simpleName}.somatic.indels.vcf.gz.tbi")
 
     script:
 
@@ -331,26 +332,26 @@ process strelka_tn {
         --runDir=wd \
         --callRegions ${bed}.gz
     ./wd/runWorkflow.py -m local -j $task.cpus
-    mv wd/results/variants/somatic.snvs.vcf.gz  ${tumor.simpleName}_vs_${normal.simpleName}_${bed.simpleName}.somatic_temp.snvs.vcf.gz
-    mv wd/results/variants/somatic.indels.vcf.gz  ${tumor.simpleName}_vs_${normal.simpleName}_${bed.simpleName}.somatic_temp.indels.vcf.gz
+    mv wd/results/variants/somatic.snvs.vcf.gz  ${tumorname}_vs_${normalname}_${bed.simpleName}.somatic_temp.snvs.vcf.gz
+    mv wd/results/variants/somatic.indels.vcf.gz  ${tumorname}_vs_${normalname}_${bed.simpleName}.somatic_temp.indels.vcf.gz
 
     printf "NORMAL\t${normalname}\nTUMOR\t${tumorname}\n" >sampname
 
-    bcftools reheader -s sampname ${tumor.simpleName}_vs_${normal.simpleName}_${bed.simpleName}.somatic_temp.snvs.vcf.gz \
-        | bcftools view -Oz -o ${tumor.simpleName}_vs_${normal.simpleName}_${bed.simpleName}.somatic.snvs.vcf.gz
-    bcftools reheader -s sampname ${tumor.simpleName}_vs_${normal.simpleName}_${bed.simpleName}.somatic_temp.indels.vcf.gz \
-        | bcftools view -Oz -o ${tumor.simpleName}_vs_${normal.simpleName}_${bed.simpleName}.somatic.indels.vcf.gz
+    bcftools reheader -s sampname ${tumorname}_vs_${normalname}_${bed.simpleName}.somatic_temp.snvs.vcf.gz \
+        | bcftools view -Oz -o ${tumorname}_vs_${normalname}_${bed.simpleName}.somatic.snvs.vcf.gz
+    bcftools reheader -s sampname ${tumorname}_vs_${normalname}_${bed.simpleName}.somatic_temp.indels.vcf.gz \
+        | bcftools view -Oz -o ${tumorname}_vs_${normalname}_${bed.simpleName}.somatic.indels.vcf.gz
 
-    bcftools index -t ${tumor.simpleName}_vs_${normal.simpleName}_${bed.simpleName}.somatic.snvs.vcf.gz
-    bcftools index -t ${tumor.simpleName}_vs_${normal.simpleName}_${bed.simpleName}.somatic.indels.vcf.gz
+    bcftools index -t ${tumorname}_vs_${normalname}_${bed.simpleName}.somatic.snvs.vcf.gz
+    bcftools index -t ${tumorname}_vs_${normalname}_${bed.simpleName}.somatic.indels.vcf.gz
 
     """
 
     stub:
 
     """
-    touch ${tumor.simpleName}_vs_${normal.simpleName}_${bed.simpleName}.somatic.snvs.vcf.gz  ${tumor.simpleName}_vs_${normal.simpleName}_${bed.simpleName}.somatic.snvs.vcf.gz.tbi
-    touch ${tumor.simpleName}_vs_${normal.simpleName}_${bed.simpleName}.somatic.indels.vcf.gz ${tumor.simpleName}_vs_${normal.simpleName}_${bed.simpleName}.somatic.indels.vcf.gz.tbi
+    touch ${tumorname}_vs_${normalname}_${bed.simpleName}.somatic.snvs.vcf.gz  ${tumorname}_vs_${normalname}_${bed.simpleName}.somatic.snvs.vcf.gz.tbi
+    touch ${tumorname}_vs_${normalname}_${bed.simpleName}.somatic.indels.vcf.gz ${tumorname}_vs_${normalname}_${bed.simpleName}.somatic.indels.vcf.gz.tbi
 
     """
 
@@ -366,7 +367,7 @@ process vardict_tn {
 
     output:
         tuple val(tumorname), val(normalname),
-        path("${tumor.simpleName}_vs_${normal.simpleName}_${bed.simpleName}.vardict.vcf.gz")
+        path("${tumorname}_vs_${normalname}_${bed.simpleName}.vardict.vcf.gz")
     //bcbio notes of vardict filtering var2vcf_paired.pl -P 0.9 -m 4.25 -f 0.01 -M” and
     //filtered with “((AF*DP < 6) && ((MQ < 55.0 && NM > 1.0) || (MQ < 60.0 && NM > 2.0) || (DP < 10) || (QUAL < 45)))”
     script:
@@ -386,12 +387,12 @@ process vardict_tn {
             -d 10 \
             -v 6 \
             -S \
-            -f 0.05 >  ${tumor.simpleName}_vs_${normal.simpleName}_${bed.simpleName}.vardict.vcf
+            -f 0.05 >  ${tumorname}_vs_${normalname}_${bed.simpleName}.vardict.vcf
 
     printf "${normal.Name}\t${normalname}\n${tumor.Name}\t${tumorname}\n" > sampname
 
-    bcftools reheader -s sampname ${tumor.simpleName}_vs_${normal.simpleName}_${bed.simpleName}.vardict.vcf \
-        | bcftools view -Oz -o ${tumor.simpleName}_vs_${normal.simpleName}_${bed.simpleName}.vardict.vcf.gz
+    bcftools reheader -s sampname ${tumorname}_vs_${normalname}_${bed.simpleName}.vardict.vcf \
+        | bcftools view -Oz -o ${tumorname}_vs_${normalname}_${bed.simpleName}.vardict.vcf.gz
 
 
     """
@@ -399,7 +400,7 @@ process vardict_tn {
     stub:
 
     """
-    touch ${tumor.simpleName}_vs_${normal.simpleName}_${bed.simpleName}.vardict.vcf.gz
+    touch ${tumorname}_vs_${normalname}_${bed.simpleName}.vardict.vcf.gz
 
     """
 
@@ -419,7 +420,7 @@ process varscan_tn {
 
     output:
         tuple val(tumorname), val(normalname),
-        path("${tumor.simpleName}_vs_${normal.simpleName}_${bed.simpleName}.varscan.vcf.gz")
+        path("${tumorname}_vs_${normalname}_${bed.simpleName}.varscan.vcf.gz")
 
     shell:
     '''
@@ -427,29 +428,29 @@ process varscan_tn {
     normal_purity=$( echo "1-$(printf '%.6f' $(tail -n -1 !{normal_con_table} | cut -f2 ))" | bc -l)
     dual_pileup="samtools mpileup -d 10000 -q 15 -Q 15 -f !{GENOMEREF} -l !{bed} !{normal} !{tumor}"
     varscan_opts="--strand-filter 1 --min-var-freq 0.01 --min-avg-qual 30 --somatic-p-value 0.05 --output-vcf 1 --normal-purity $normal_purity --tumor-purity $tumor_purity"
-    varscan_cmd="varscan somatic <($dual_pileup) !{tumor.simpleName}_vs_!{normal.simpleName}_!{bed.simpleName}.varscan.vcf $varscan_opts --mpileup 1"
+    varscan_cmd="varscan somatic <($dual_pileup) !{tumorname}_vs_!{normalname}_!{bed.simpleName}.varscan.vcf $varscan_opts --mpileup 1"
     eval "$varscan_cmd"
 
-    awk '{{gsub(/\\y[W|K|Y|R|S|M|B|D|H|V]\\y/,"N",\$4); OFS = "\t"; print}}' !{tumor.simpleName}_vs_!{normal.simpleName}_!{bed.simpleName}.varscan.vcf.indel \
-        | sed '/^$/d' | bcftools view - -Oz -o !{tumor.simpleName}_vs_!{normal.simpleName}_!{bed.simpleName}.varscan.indel_temp.vcf.gz
-    awk '{{gsub(/\\y[W|K|Y|R|S|M|B|D|H|V]\\y/,"N",\$4); OFS = "\t"; print}}' !{tumor.simpleName}_vs_!{normal.simpleName}_!{bed.simpleName}.varscan.vcf.snp \
-        | sed '/^$/d' | bcftools view - -Oz -o !{tumor.simpleName}_vs_!{normal.simpleName}_!{bed.simpleName}.varscan.snp_temp.vcf.gz
+    awk '{{gsub(/\\y[W|K|Y|R|S|M|B|D|H|V]\\y/,"N",\$4); OFS = "\t"; print}}' !{tumorname}_vs_!{normalname}_!{bed.simpleName}.varscan.vcf.indel \
+        | sed '/^$/d' | bcftools view - -Oz -o !{tumorname}_vs_!{normalname}_!{bed.simpleName}.varscan.indel_temp.vcf.gz
+    awk '{{gsub(/\\y[W|K|Y|R|S|M|B|D|H|V]\\y/,"N",\$4); OFS = "\t"; print}}' !{tumorname}_vs_!{normalname}_!{bed.simpleName}.varscan.vcf.snp \
+        | sed '/^$/d' | bcftools view - -Oz -o !{tumorname}_vs_!{normalname}_!{bed.simpleName}.varscan.snp_temp.vcf.gz
 
-    gatk SortVcf -I !{tumor.simpleName}_vs_!{normal.simpleName}_!{bed.simpleName}.varscan.snp_temp.vcf.gz \
-    -I !{tumor.simpleName}_vs_!{normal.simpleName}_!{bed.simpleName}.varscan.indel_temp.vcf.gz \
+    gatk SortVcf -I !{tumorname}_vs_!{normalname}_!{bed.simpleName}.varscan.snp_temp.vcf.gz \
+    -I !{tumorname}_vs_!{normalname}_!{bed.simpleName}.varscan.indel_temp.vcf.gz \
     -R !{GENOMEREF} -SD !{GENOMEDICT} \
-    -O !{tumor.simpleName}_vs_!{normal.simpleName}_!{bed.simpleName}_temp.varscan.vcf
+    -O !{tumorname}_vs_!{normalname}_!{bed.simpleName}_temp.varscan.vcf
 
     printf "NORMAL\t!{normalname}\nTUMOR\t!{tumorname}\n" > sampname
 
-    bcftools reheader -s sampname !{tumor.simpleName}_vs_!{normal.simpleName}_!{bed.simpleName}_temp.varscan.vcf \
-       | bcftools view -Oz -o !{tumor.simpleName}_vs_!{normal.simpleName}_!{bed.simpleName}.varscan.vcf.gz
+    bcftools reheader -s sampname !{tumorname}_vs_!{normalname}_!{bed.simpleName}_temp.varscan.vcf \
+       | bcftools view -Oz -o !{tumorname}_vs_!{normalname}_!{bed.simpleName}.varscan.vcf.gz
 
     '''
 
     stub:
     """
-    touch ${tumor.simpleName}_vs_${normal.simpleName}_${bed.simpleName}.varscan.vcf.gz
+    touch ${tumorname}_vs_${normalname}_${bed.simpleName}.varscan.vcf.gz
     """
 
 }
@@ -488,12 +489,12 @@ process octopus_tn {
 
 
 process sage_tn {
-    container "${params.containers.hmftools}"
-    label 'process_somaticcaller'
+    container "${params.containers.logan}"
+    label 'process_high'
 
      input:
-        tuple val(tumorname), path(tumor), path(tumorbai),
-        val(normalname), path(normal), path(normalbai)
+        tuple val(tumorname), path(tumorbam), path(tumorbai),
+        val(normalname), path(normalbam), path(normalbai)
 
  output:
         tuple val(tumorname), val(normalname),
@@ -502,13 +503,14 @@ process sage_tn {
 
 script:
     """
-    java -Xms4G -Xmx32G -cp sage.jar com.hartwig.hmftools.sage.SageApplication \
+    java -Xms4G -Xmx32G -cp /opt2/hmftools/sage.jar com.hartwig.hmftools.sage.SageApplication \
     -tumor ${tumorname} -tumor_bam ${tumorbam} \
     -reference ${normalname} -reference_bam ${normalbam} \
     -threads $task.cpus \
     -ref_genome_version $GENOMEVER \
     -ref_genome $GENOMEREF \
-    $HOTSPOTS $PANELBED $HCBED $ENSEMBLCACHE \
+    -hotspots $HOTSPOTS \
+    $PANELBED $HCBED $ENSEMBLCACHE \
     -output_vcf ${tumorname}_vs_${normalname}.sage.vcf.gz
     """
 
@@ -682,22 +684,46 @@ process combineVariants_alternative {
     script:
     vcfin = vcfs.join(" ")
 
-    """
-    mkdir ${vc}
-    bcftools concat $vcfin -a -Oz -o ${sample}.${vc}.temp1.vcf.gz
-    bcftools reheader -f $GENOMEFAI ${sample}.${vc}.temp1.vcf.gz -o ${sample}.${vc}.temp.vcf
-    bcftools sort ${sample}.${vc}.temp.vcf -Oz -o ${sample}.${vc}.marked.vcf.gz
-    bcftools norm ${sample}.${vc}.marked.vcf.gz -m- --threads $task.cpus --check-ref s -f $GENOMEREF -O v |\
+
+    if (vc.contains("octopus")) {
+        """
+        mkdir ${vc}
+        bcftools concat $vcfin -a -Oz -o ${sample}.${vc}.temp1.vcf.gz
+        bcftools reheader -f $GENOMEFAI ${sample}.${vc}.temp1.vcf.gz -o ${sample}.${vc}.temp.vcf
+        bcftools sort ${sample}.${vc}.temp.vcf | bcftools view - -i "INFO/SOMATIC==1" -Oz -o ${sample}.${vc}.marked.vcf.gz
+        bcftools norm ${sample}.${vc}.marked.vcf.gz -m- --threads $task.cpus --check-ref s -f $GENOMEREF -O v |\
         awk '{{gsub(/\\y[W|K|Y|R|S|M|B|D|H|V]\\y/,"N",\$4); OFS = "\t"; print}}' |\
         sed '/^\$/d' > ${sample}.${vc}.temp.vcf
 
-    bcftools view ${sample}.${vc}.temp.vcf -f PASS -Oz -o ${vc}/${sample}.${vc}.norm.vcf.gz
+        bcftools view ${sample}.${vc}.temp.vcf -f PASS -Oz -o ${vc}/${sample}.${vc}.norm.vcf.gz
+        mv ${sample}.${vc}.marked.vcf.gz ${vc}
 
-    mv ${sample}.${vc}.marked.vcf.gz ${vc}
+        bcftools index ${vc}/${sample}.${vc}.marked.vcf.gz -t
+        bcftools index ${vc}/${sample}.${vc}.norm.vcf.gz -t
+        """
+    
+    }else{
+        """
+        mkdir ${vc}
+        bcftools concat $vcfin -a -Oz -o ${sample}.${vc}.temp1.vcf.gz
+        bcftools reheader -f $GENOMEFAI ${sample}.${vc}.temp1.vcf.gz -o ${sample}.${vc}.temp.vcf
+        bcftools sort ${sample}.${vc}.temp.vcf -Oz -o ${sample}.${vc}.marked.vcf.gz
+        bcftools norm ${sample}.${vc}.marked.vcf.gz -m- --threads $task.cpus --check-ref s -f $GENOMEREF -O v |\
+        awk '{{gsub(/\\y[W|K|Y|R|S|M|B|D|H|V]\\y/,"N",\$4); OFS = "\t"; print}}' |\
+        sed '/^\$/d' > ${sample}.${vc}.temp.vcf
 
-    bcftools index ${vc}/${sample}.${vc}.marked.vcf.gz -t
-    bcftools index ${vc}/${sample}.${vc}.norm.vcf.gz -t
-    """
+        bcftools view ${sample}.${vc}.temp.vcf -f PASS -Oz -o ${vc}/${sample}.${vc}.norm.vcf.gz
+        mv ${sample}.${vc}.marked.vcf.gz ${vc}
+
+        bcftools index ${vc}/${sample}.${vc}.marked.vcf.gz -t
+        bcftools index ${vc}/${sample}.${vc}.norm.vcf.gz -t
+        """
+    }
+
+
+   
+   
+   
 
     stub:
 
@@ -831,7 +857,33 @@ process somaticcombine {
 }
 
 
+process ffpe_1 {
 
+    container "${params.containers.logan}"
+    label 'process_medium'
+
+    input:
+    tuple val(tumorsample), val(normal),
+        path("${tumorsample}_vs_${normal}_combined.vcf.gz"),
+        path("${tumorsample}_vs_${normal}_combined.vcf.gz.tbi"),
+        bam, bamindex
+        tuple val(tumorsample), val(normal),
+        val(caller),
+        path(vcfs), path(vcfindex)
+
+    output:
+        tuple val(tumorsample), val(normal),
+        path("${tumorsample}_vs_${normal}_combined.vcf.gz"),
+        path("${tumorsample}_vs_${normal}_combined.vcf.gz.tbi")
+
+    script:
+
+
+    stub:
+    """
+    touch "${tumorsample}_vs_${normal}_combined_ffpolish.vcf.gz"
+    """
+}
 /*DISCVR
 process somaticcombine {
     container "${params.containers.logan}"

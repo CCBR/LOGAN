@@ -12,13 +12,18 @@ LABEL maintainer <nousomedr@nih.gov>
 
 # Create Container filesystem specific 
 # working directory and opt directories 
+RUN apt-get update \
+ && apt-get -y upgrade \
+ && DEBIAN_FRONTEND=noninteractive apt-get install -y \
+    tclsh
+
 WORKDIR /opt2 
 
 ###Create AnnotSV 
-RUN wget https://github.com/lgmgeo/AnnotSV/archive/refs/tags/v3.3.6.tar.gz \
-    && tar -xvzf /opt2/v3.3.6.tar.gz \
-    && rm /opt2/v3.3.6.tar.gz
-ENV PATH="/opt2/AnnotSV-3.3.6/bin:$PATH"
+RUN wget https://github.com/lgmgeo/AnnotSV/archive/refs/tags/v3.4.2.tar.gz \
+    && tar -xvzf /opt2/v3.4.2.tar.gz \
+    && rm /opt2/v3.4.2.tar.gz
+ENV PATH="/opt2/AnnotSV-3.4.2/bin:$PATH"
 
 ##ClassifyCNV
 ##Update the resources for ClassifyCNV

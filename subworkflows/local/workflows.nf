@@ -100,7 +100,12 @@ workflow ALIGN {
     main:
     fastp(fastqinput)
 
-    intervalbedin = Channel.fromPath(params.genomes[params.genome].intervals,checkIfExists: true,type: 'file')
+    if (params.intervals){
+        intervalbedin = Channel.fromPath(params.intervals)
+    }else{
+        intervalbedin = Channel.fromPath(params.genomes[params.genome].intervals,checkIfExists: true,type: 'file')
+    }
+
     splitinterval(intervalbedin)
 
     bwamem2(fastp.out)
@@ -177,7 +182,9 @@ workflow VC {
 
     //Prep Pileups
     call_list = params.callers.split(',') as List
-    
+    call_list_tonly = params.tonlycallers.split(',') as List
+    call_list_tonly = call_list.intersect(call_list_tonly)
+
     vc_all=Channel.empty()
     vc_tonly=Channel.empty()
 
@@ -189,26 +196,28 @@ workflow VC {
         pileup_paired_t.out.groupTuple(by:[0,1]) 
             | multiMap { samplename, normalname, pileups -> 
                 tout: tuple( samplename, normalname,
-                    pileups.toSorted{ it -> (it.name =~ /${samplename}_(.*?).tumor.pileup.table/)[0][1].toInteger() } )
+                    pileups.toSorted{ it -> (it.name =~ /${samplename}_(.*?).tpileup.table/)[0][1].toInteger() } )
                 tonly: tuple( samplename,
-                    pileups.toSorted{ it -> (it.name =~ /${samplename}_(.*?).tumor.pileup.table/)[0][1].toInteger() } )
+                    pileups.toSorted{ it -> (it.name =~ /${samplename}_(.*?).tpileup.table/)[0][1].toInteger() } )
                     }
             | set{pileup_paired_tout}
         
         pileup_paired_n.out.groupTuple(by:[0,1])
             | multiMap { samplename, normalname, pileups-> 
                 nout: tuple (samplename,normalname,
-                    pileups.toSorted{ it -> (it.name =~ /${normalname}_(.*?).normal.pileup.table/)[0][1].toInteger() } )
+                    pileups.toSorted{ it -> (it.name =~ /${normalname}_(.*?).npileup.table/)[0][1].toInteger() } )
                 nonly: tuple (normalname,
-                    pileups.toSorted{ it -> (it.name =~ /${normalname}_(.*?).normal.pileup.table/)[0][1].toInteger() } )
+                    pileups.toSorted{ it -> (it.name =~ /${normalname}_(.*?).npileup.table/)[0][1].toInteger() } )
                     }
                 | set{pileup_paired_nout}
 
         pileup_paired_match=pileup_paired_tout.tout.join(pileup_paired_nout.nout,by:[0,1])
         contamination_paired(pileup_paired_match)
 
+        if (!params.no_tonly){
         pileup_all=pileup_paired_tout.tonly.concat(pileup_paired_nout.nonly) 
         contamination_tumoronly(pileup_all) 
+        }
     }
 
     if ("mutect2" in call_list){
@@ -238,17 +247,20 @@ workflow VC {
     | map{sample,markedvcf,markedindex,normvcf,normindex,stats,tumor,normal -> tuple(tumor,normal,"mutect2",normvcf,normindex)}
 
     annotvep_tn_mut2(mutect2_in)
+    vc_all = vc_all|concat(mutect2_in)
+
 
     //Mutect2 Tumor Only
+    if (!params.no_tonly){
         mutect2_t_tonly(bambyinterval_t)
-        mutect2_t_tonly.out.groupTuple()
-        | multiMap { tumor,vcfs,f1r2,stats ->
-        mut2tout_lor: tuple(tumor,
-                f1r2.toSorted{ it -> (it.name =~ /${tumor}_(.*?).f1r2.tar.gz/)[0][1].toInteger() } )
-        mut2tonly_mstats:  tuple( tumor,
-                stats.toSorted{ it -> (it.name =~ /${tumor}_(.*?).tonly.mut2.vcf.gz.stats/)[0][1].toInteger() })
-        allmut2tonly: tuple(tumor,
-                vcfs.toSorted{ it -> (it.name =~ /${tumor}_(.*?).tonly.mut2.vcf.gz/)[0][1].toInteger() } )
+        | groupTuple()
+        | multiMap { tumorid,vcfs,f1r2,stats ->
+        mut2tout_lor: tuple(tumorid,
+                f1r2.toSorted{ it -> (it.name =~ /${tumorid}_(.*?).f1r2.tar.gz/)[0][1].toInteger() } )
+        mut2tonly_mstats:  tuple( tumorid,
+                stats.toSorted{ it -> (it.name =~ /${tumorid}_(.*?).tonly.mut2.vcf.gz.stats/)[0][1].toInteger() })
+        allmut2tonly: tuple(tumorid,
+                vcfs.toSorted{ it -> (it.name =~ /${tumorid}_(.*?).tonly.mut2.vcf.gz/)[0][1].toInteger() } )
         }
         | set{mut2tonlyout}
 
@@ -264,10 +276,10 @@ workflow VC {
         | map{tumor,markedvcf,markedindex,normvcf,normindex,stats,normal -> tuple(tumor,"mutect2_tonly",normvcf,normindex)}
         annotvep_tonly_mut2(mutect2_in_tonly)
 
-
-        vc_all = vc_all|concat(mutect2_in)
         vc_tonly = vc_tonly | concat(mutect2_in_tonly) 
-
+        }
+        
+        
     }
 
     if ("strelka" in call_list){
@@ -293,7 +305,10 @@ workflow VC {
         | map{sample,marked,markedindex,normvcf,normindex,tumor,normal ->tuple(tumor,normal,"vardict",normvcf,normindex)}
         annotvep_tn_vardict(vardict_in)
 
+        vc_all=vc_all|concat(vardict_in)
+
         //VarDict TOnly
+        if (!params.no_tonly){
         vardict_in_tonly=vardict_tonly(bambyinterval_t) 
         | groupTuple()
         | map{tumor,vcf-> tuple(tumor,vcf.toSorted{it -> (it.name =~ /${tumor}_(.*?).tonly.vardict.vcf/)[0][1].toInteger()},"vardict_tonly")}
@@ -301,8 +316,9 @@ workflow VC {
         | map{tumor,marked,markedindex,normvcf,normindex,normal ->tuple(tumor,"vardict_tonly",normvcf,normindex)}
         annotvep_tonly_vardict(vardict_in_tonly)
 
-        vc_all=vc_all|concat(vardict_in)
         vc_tonly=vc_tonly|concat(vardict_in_tonly) 
+        }
+
     }
 
     if ("varscan" in call_list){
@@ -314,6 +330,10 @@ workflow VC {
         | map{sample,marked,markedindex,normvcf,normindex,tumor,normal ->tuple(tumor,normal,"varscan",normvcf,normindex)}
         annotvep_tn_varscan(varscan_in)
 
+        vc_all=vc_all|concat(varscan_in)
+
+
+        if (!params.no_tonly){
         //VarScan TOnly
         varscan_in_tonly=bambyinterval_t.combine(contamination_tumoronly.out,by:0) 
         | varscan_tonly  | groupTuple 
@@ -323,11 +343,11 @@ workflow VC {
         | map{tumor,marked,markedindex,normvcf,normindex,normal ->tuple(tumor,"varscan_tonly",normvcf,normindex)}
         annotvep_tonly_varscan(varscan_in_tonly)
 
-        vc_all=vc_all|concat(varscan_in)
         vc_tonly=vc_tonly|concat(varscan_in_tonly) 
+        }
+
+        
     }
-
-
 
     //SAGE TN
     if ("sage" in call_list){
@@ -338,6 +358,9 @@ workflow VC {
             | map{sample,marked,markedindex,normvcf,normindex,tumor,normal->tuple(tumor,normal,"sage",normvcf,normindex)}
         annotvep_tn_sage(sage_in)
 
+        vc_all=vc_all | concat(sage_in)
+
+        if (!params.no_tonly){ 
         sage_in_tonly=bamwithsample | map{tumor,tbam,tbai,norm,nbam,nbai -> tuple(tumor,tbam,tbai)} 
             | sage_tonly 
             | map{samplename,vcf,vcfindex->tuple(samplename,vcf,"sage_tonly")} 
@@ -345,12 +368,9 @@ workflow VC {
             | join(sample_sheet) 
             | map{tumor,marked,markedindex,normvcf,normindex,normal ->tuple(tumor,"sage_tonly",normvcf,normindex)}
         annotvep_tonly_sage(sage_in_tonly)
-        
-        vc_all=vc_all | concat(sage_in)
         vc_tonly=vc_tonly | concat(sage_in_tonly) 
-
+        }
     }
-
 
     //Lofreq TN
     if ("lofreq" in call_list){
@@ -386,8 +406,10 @@ workflow VC {
         annotvep_tn_octopus(octopus_in)
         octopus_in_sc = octopus_in | octopus_convertvcf 
             |  map{tumor,normal,vcf,vcfindex ->tuple(tumor,normal,"octopus",vcf,vcfindex)} 
+        vc_all=vc_all|concat(octopus_in_sc)
 
     //Octopus TOnly
+        if (!params.no_tonly){ 
         octopus_in_tonly=octopus_tonly(bambyinterval_t)
             | bcftools_index_octopus_tonly
             | groupTuple() 
@@ -398,34 +420,35 @@ workflow VC {
         annotvep_tonly_octopus(octopus_in_tonly)
         octopus_in_tonly_sc=octopus_in_tonly | octopus_convertvcf_tonly
             | map{tumor,vcf,vcfindex ->tuple(tumor,"octopus_tonly",vcf,vcfindex)} 
-
-        vc_all=vc_all|concat(octopus_in_sc)
-        vc_tonly=vc_tonly|concat(octopus_in_tonly) 
+        vc_tonly=vc_tonly|concat(octopus_in_tonly_sc) 
+        }
+        
     }
 
 
     //Combine All Variants Using VCF -> Annotate
     if (call_list.size()>1){
-        somaticcall_input=vc_all | groupTuple(by:[0,1])
+        vc_all | groupTuple(by:[0,1])
             | somaticcombine
             | map{tumor,normal,vcf,index ->tuple(tumor,normal,"combined",vcf,index)}
-            somaticcall_input | annotvep_tn_combined
-    }else if ("octopus" in call_list){
-        somaticcall_input=octopus_in_sc
-    }else if("mutect2" in call_list){
-        somaticcall_input=mutect2_in
-    }else if("sage" in call_list){
-        somaticcall_input=sage_in
-    }
+            | annotvep_tn_combined
 
-    
-    if (call_list.size()>1){
+        if (!params.no_tonly & call_list_tonly.size()>1){
         vc_tonly | groupTuple() 
             | somaticcombine_tonly
             | map{tumor,vcf,index ->tuple(tumor,"combined_tonly",vcf,index)}
             | annotvep_tonly_combined
-    
+        }
     }
+    
+    if("sage" in call_list){
+        somaticcall_input=sage_in
+    }else if("mutect2" in call_list){
+        somaticcall_input=mutect2_in
+    }else{
+        somaticcall_input=Channel.empty()
+    }
+    
     
     //Implement PCGR Annotator/CivIC Next
     emit:
@@ -439,24 +462,29 @@ workflow SV {
         bamwithsample
 
     main:
-        //Svaba
-        svaba_out=svaba_somatic(bamwithsample)
-        .map{ tumor,bps,contigs,discord,alignents,gindel,gsv,so_indel,so_sv,unfil_gindel,unfil_gsv,unfil_so_indel,unfil_sv,log ->
-            tuple(tumor,so_sv,"svaba")}
-        annotsv_svaba(svaba_out).ifEmpty("Empty SV input--No SV annotated")
+        svcall_list = params.svcallers.split(',') as List
 
+        if ("svaba" in svcall_list){
+        //Svaba
+            svaba_out=svaba_somatic(bamwithsample)
+            .map{ tumor,bps,contigs,discord,alignents,gindel,gsv,so_indel,so_sv,unfil_gindel,unfil_gsv,unfil_so_indel,unfil_sv,log ->
+                tuple(tumor,so_sv,"svaba")}
+            annotsv_svaba(svaba_out).ifEmpty("Empty SV input--No SV annotated")
+        }
+        if ("manta" in svcall_list){
         //Manta
         manta_out=manta_somatic(bamwithsample)
             .map{tumor,gsv,so_sv,unfil_sv,unfil_indel ->
             tuple(tumor,so_sv,"manta")}
         annotsv_manta(manta_out).ifEmpty("Empty SV input--No SV annotated")
-
+        }
         //Delly-WIP
 
-        //Survivor
-        gunzip(manta_out).concat(svaba_out).groupTuple()
-            | survivor_sv | annotsv_survivor_tn | ifEmpty("Empty SV input--No SV annotated")
-
+         if ("manta" in svcall_list & "svaba" in svcall_list){
+            //Survivor
+            gunzip(manta_out).concat(svaba_out).groupTuple()
+                | survivor_sv | annotsv_survivor_tn | ifEmpty("Empty SV input--No SV annotated")
+         }
 }
 
 workflow CNVmouse {
@@ -698,11 +726,15 @@ workflow INPUT_BAM {
                         tuple(sample, file(bam),file(bai))
                                   } 
     }
-    intervalbedin = Channel.fromPath(params.genomes[params.genome].intervals,checkIfExists: true,type: 'file')
+    if (params.intervals){
+        intervalbedin = Channel.fromPath(params.intervals,checkIfExists: true,type: 'file')
+    }else{
+        intervalbedin = Channel.fromPath(params.genomes[params.genome].intervals,checkIfExists: true,type: 'file')
+    }
     splitinterval(intervalbedin)
 
     if (params.indelrealign){ 
-        bqsrs= baminputonly | indelrealign | combine(splitinterval.out.flatten()) 
+        bqsrs = baminputonly | indelrealign | combine(splitinterval.out.flatten()) 
             | bqsr_ir 
             | groupTuple 
             | map { samplename,beds -> 

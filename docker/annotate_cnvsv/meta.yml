@@ -1,4 +1,4 @@
 dockerhub_namespace: dnousome
 image_name: ccbr_annotate_cnvsv
-version: v0.0.1
+version: v0.0.2
 container: "$(dockerhub_namespace)/$(image_name):$(version)"

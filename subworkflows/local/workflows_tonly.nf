@@ -48,32 +48,26 @@ include {splitinterval} from '../../modules/local/splitbed.nf'
 workflow INPUT_TONLY {
     if(params.fastq_input){
         fastqinput=Channel.fromFilePairs(params.fastq_input)
-
-    }else if(params.fastq_file_input) {
-        fastqinput=Channel.fromPath(params.fastq_file_input)
+    }else if(params.fastq_file_input){
+        fastqinput=Channel.fromPath(params.fastq_file_input).view()
                         .splitCsv(header: false, sep: "\t", strip:true)
                         .map{ sample,fq1,fq2 -> 
-                        tuple(sample, tuple(file(fq1),file(fq2)))
-                                  }
+                            tuple(sample, tuple(file(fq1),file(fq2))) 
+                            }
     }
 
- 
-  if(params.sample_sheet){
+    if(params.sample_sheet){
         sample_sheet=Channel.fromPath(params.sample_sheet, checkIfExists: true)
-                       .ifEmpty { "sample sheet not found" }
+                       .ifEmpty { "Sample sheet not found" }
                        .splitCsv(header:true, sep: "\t")
                        .map { row -> tuple(
                         row.Tumor
-                       )
-                                  }
-
+                        )}
     }else{
         sample_sheet=fastqinput.map{samplename,f1 -> tuple (
              samplename)}
     }
     
-      
-
     emit:
         fastqinput
         sample_sheet
@@ -87,8 +81,12 @@ workflow ALIGN_TONLY {
 
     main:
         fastp(fastqinput)
-        intervalbedin = Channel.fromPath(params.genomes[params.genome].intervals,checkIfExists: true,type: 'file')
-        splitinterval(intervalbedin)
+            if (params.intervals){
+                intervalbedin = Channel.fromPath(params.intervals,checkIfExists: true,type: 'file')
+            }else{
+                intervalbedin = Channel.fromPath(params.genomes[params.genome].intervals,checkIfExists: true,type: 'file')
+            }
+            splitinterval(intervalbedin)
     
     bwamem2(fastp.out)
     //indelrealign(bwamem2.out) Consider indelreaglinement using ABRA?
@@ -134,7 +132,10 @@ workflow VC_TONLY {
     bambyinterval=bamwithsample.combine(splitout.flatten())
 
     //Common steps
+    //Ensure that Tumor Only callers are included
     call_list = params.callers.split(',') as List
+    call_list_tonly = params.tonlycallers.split(',') as List
+    call_list = call_list.intersect(call_list_tonly)
 
     vc_tonly=Channel.empty()
 
@@ -142,7 +143,7 @@ workflow VC_TONLY {
         pileup_paired_tonly(bambyinterval)
         pileup_paired_tout=pileup_paired_tonly.out.groupTuple()
         .map{samplename,pileups-> tuple( samplename,
-        pileups.toSorted{ it -> (it.name =~ /${samplename}_(.*?).tumor.pileup.table/)[0][1].toInteger() } ,
+        pileups.toSorted{ it -> (it.name =~ /${samplename}_(.*?).tpileup.table/)[0][1].toInteger() } ,
             )}
         contamination_tumoronly(pileup_paired_tout)
     }
@@ -233,24 +234,21 @@ workflow VC_TONLY {
     //Emit for SC downstream, take Oc/Mu2/sage/Vard/Varscan
 
     if (call_list.size()>1){
-        somaticcall_input=vc_tonly
+        vc_tonly
         | groupTuple() 
         | somaticcombine_tonly 
         | map{tumor,vcf,index ->tuple(tumor,"combined_tonly",vcf,index)} 
-        somaticcall_input | annotvep_tonly_combined
-    }else if("octopus" in call_list){
-        somaticcall_input=octopus_in_tonly_sc
-    }else if("mutect2" in call_list){
-        somaticcall_input=mutect2_in_tonly
-    }else if("sage" in call_list){
-        somaticcall_input=sage_in_tonly
-    }else if("vardict" in call_list){
-        somaticcall_input=vardict_in_tonly
-    }else if("varscan" in call_list){
-        somaticcall_input=varscan_in_tonly
+        | annotvep_tonly_combined
     }
 
-    //Emit for SC downstream, take Combined/Oc/Mu2/Vard/Varscan
+    if("sage" in call_list){
+        somaticcall_input=sage_in_tonly
+    }else if("mutect2" in call_list){
+        somaticcall_input=mutect2_in_tonly
+    }else{
+        somaticcall_input=Channel.empty()
+    }
+   
     emit:
         somaticcall_input
 }
@@ -428,7 +426,11 @@ workflow INPUT_TONLY_BAM {
         sample_sheet=baminputonly.map{samplename,bam,bai -> tuple (
              samplename)}
     }
-    intervalbedin = Channel.fromPath(params.genomes[params.genome].intervals,checkIfExists: true,type: 'file')
+        if (params.intervals){
+            intervalbedin = Channel.fromPath(params.intervals,checkIfExists: true,type: 'file')
+        }else{
+            intervalbedin = Channel.fromPath(params.genomes[params.genome].intervals,checkIfExists: true,type: 'file')
+        }
     splitinterval(intervalbedin)
     
     bamwithsample=baminputonly

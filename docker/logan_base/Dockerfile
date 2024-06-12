@@ -86,7 +86,7 @@ RUN apt-key adv --keyserver keyserver.ubuntu.com --recv-keys E298A3A825C0D65DFD5
     && apt-get -y install r-base r-base-core r-recommended r-base-dev \
     && apt-get -y install libcurl4-openssl-dev libssl-dev libboost-dev libxml2-dev 
 RUN apt-get -y install r-cran-tidyverse r-cran-plyr r-cran-knitr 
-RUN apt-get -y install r-cran-plotly r-cran-rcolorbrewer r-cran-htmlwidgets r-cran-shiny r-cran-rmarkdown r-cran-crosstalk r-cran-dt r-cran-reshape2 r-cran-circlize r-cran-viridis r-cran-gridextra r-cran-rcurl
+RUN apt-get -y install r-cran-plotly r-cran-rcolorbrewer r-cran-htmlwidgets r-cran-shiny r-cran-rmarkdown r-cran-crosstalk r-cran-dt r-cran-reshape2 r-cran-circlize r-cran-viridis r-cran-gridextra r-cran-rcurl r-cran-cowplot
 RUN apt-get -y install r-cran-biocmanager r-cran-devtools r-cran-snow r-bioc-limma r-bioc-edger r-bioc-complexheatmap r-bioc-genomicranges r-bioc-summarizedexperiment r-bioc-biocparallel
 RUN Rscript -e 'install.packages(c("argparse"), repos="http://cran.r-project.org")'
 RUN Rscript -e 'install.packages(c("flexdashboard"), repos="http://cran.r-project.org")'
