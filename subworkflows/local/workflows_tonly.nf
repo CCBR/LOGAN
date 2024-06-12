@@ -245,6 +245,8 @@ workflow VC_TONLY {
         somaticcall_input=sage_in_tonly
     }else if("mutect2" in call_list){
         somaticcall_input=mutect2_in_tonly
+    }else{
+        somaticcall_input=Channel.empty()
     }
    
     emit:

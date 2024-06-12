@@ -445,7 +445,9 @@ workflow VC {
         somaticcall_input=sage_in
     }else if("mutect2" in call_list){
         somaticcall_input=mutect2_in
-    }  
+    }else{
+        somaticcall_input=Channel.empty()
+    }
     
     
     //Implement PCGR Annotator/CivIC Next
@@ -460,24 +462,29 @@ workflow SV {
         bamwithsample
 
     main:
-        //Svaba
-        svaba_out=svaba_somatic(bamwithsample)
-        .map{ tumor,bps,contigs,discord,alignents,gindel,gsv,so_indel,so_sv,unfil_gindel,unfil_gsv,unfil_so_indel,unfil_sv,log ->
-            tuple(tumor,so_sv,"svaba")}
-        annotsv_svaba(svaba_out).ifEmpty("Empty SV input--No SV annotated")
+        svcall_list = params.svcallers.split(',') as List
 
+        if ("svaba" in svcall_list){
+        //Svaba
+            svaba_out=svaba_somatic(bamwithsample)
+            .map{ tumor,bps,contigs,discord,alignents,gindel,gsv,so_indel,so_sv,unfil_gindel,unfil_gsv,unfil_so_indel,unfil_sv,log ->
+                tuple(tumor,so_sv,"svaba")}
+            annotsv_svaba(svaba_out).ifEmpty("Empty SV input--No SV annotated")
+        }
+        if ("manta" in svcall_list){
         //Manta
         manta_out=manta_somatic(bamwithsample)
             .map{tumor,gsv,so_sv,unfil_sv,unfil_indel ->
             tuple(tumor,so_sv,"manta")}
         annotsv_manta(manta_out).ifEmpty("Empty SV input--No SV annotated")
-
+        }
         //Delly-WIP
 
-        //Survivor
-        gunzip(manta_out).concat(svaba_out).groupTuple()
-            | survivor_sv | annotsv_survivor_tn | ifEmpty("Empty SV input--No SV annotated")
-
+         if ("manta" in svcall_list & "svaba" in svcall_list){
+            //Survivor
+            gunzip(manta_out).concat(svaba_out).groupTuple()
+                | survivor_sv | annotsv_survivor_tn | ifEmpty("Empty SV input--No SV annotated")
+         }
 }
 
 workflow CNVmouse {

@@ -1,9 +1,9 @@
 GENOMEREF=file(params.genomes[params.genome].genome)
 GENOMEFAI=file(params.genomes[params.genome].genomefai)
 GENOMEDICT=file(params.genomes[params.genome].genomedict)
-KGPGERMLINE=params.genomes[params.genome].kgp
-DBSNP=file(params.genomes[params.genome].dbsnp)
+GERMLINE_RESOURCE=file(params.genomes[params.genome].germline_resource)
 GNOMADGERMLINE=params.genomes[params.genome].gnomad
+DBSNP=file(params.genomes[params.genome].dbsnp)
 PON=file(params.genomes[params.genome].pon)
 VEPCACHEDIR=file(params.genomes[params.genome].vepcache)
 VEPSPECIES=params.genomes[params.genome].vepspecies
@@ -75,7 +75,7 @@ process pileup_paired_t {
     """
     gatk --java-options -Xmx48g GetPileupSummaries \
         -I ${tumor} \
-        -V $KGPGERMLINE \
+        -V $GERMLINE_RESOURCE \
         -L ${bed} \
         -O ${tumorname}_${bed.simpleName}.tpileup.table
 
@@ -105,7 +105,7 @@ process pileup_paired_n {
     """
     gatk --java-options -Xmx48g GetPileupSummaries \
         -I ${normal} \
-        -V $KGPGERMLINE \
+        -V $GERMLINE_RESOURCE \
         -L ${bed} \
         -O ${normalname}_${bed.simpleName}.npileup.table
 
