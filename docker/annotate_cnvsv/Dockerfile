@@ -12,6 +12,11 @@ LABEL maintainer <nousomedr@nih.gov>
 
 # Create Container filesystem specific 
 # working directory and opt directories 
+RUN apt-get update \
+ && apt-get -y upgrade \
+ && DEBIAN_FRONTEND=noninteractive apt-get install -y \
+    tclsh
+    
 WORKDIR /opt2 
 
 ###Create AnnotSV 
