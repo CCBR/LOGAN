@@ -1,5 +1,5 @@
 GENOMEREF=file(params.genomes[params.genome].genome)
-ANNOTSVGENOME=file(params.genomes[params.genome].annotsvgenome)
+ANNOTSVGENOME=params.genomes[params.genome].annotsvgenome
 BWAGENOME=file(params.genomes[params.genome].bwagenome)
 INDELREF=file(params.genomes[params.genome].INDELREF)
 
