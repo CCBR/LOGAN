@@ -288,7 +288,7 @@ workflow VC {
         | map { tumor,normal,vcfs,vcfindex,indels,indelindex -> tuple("${tumor}_vs_${normal}",
         vcfs.toSorted{ it -> (it.name =~ /${tumor}_vs_${normal}_(.*?).somatic.snvs.vcf.gz/)[0][1].toInteger() },vcfindex,
         indels.toSorted{ it -> (it.name =~ /${tumor}_vs_${normal}_(.*?).somatic.indels.vcf.gz/)[0][1].toInteger() } ,indelindex)}
-        | combineVariants_strelka |  join(sample_sheet_paired)
+        | combineVariants_strelka | join(sample_sheet_paired)
         | map{sample,markedvcf,markedindex,finalvcf,finalindex,tumor,normal -> tuple(tumor,normal,"strelka",finalvcf,finalindex)}
         annotvep_tn_strelka(strelka_in)
 
@@ -469,21 +469,21 @@ workflow SV {
             svaba_out=svaba_somatic(bamwithsample)
             .map{ tumor,bps,contigs,discord,alignents,gindel,gsv,so_indel,so_sv,unfil_gindel,unfil_gsv,unfil_so_indel,unfil_sv,log ->
                 tuple(tumor,so_sv,"svaba")}
-            annotsv_svaba(svaba_out).ifEmpty("Empty SV input--No SV annotated")
+            //annotsv_svaba(svaba_out).ifEmpty("Empty SV input--No SV annotated")
         }
         if ("manta" in svcall_list){
         //Manta
         manta_out=manta_somatic(bamwithsample)
             .map{tumor,gsv,so_sv,unfil_sv,unfil_indel ->
             tuple(tumor,so_sv,"manta")}
-        annotsv_manta(manta_out).ifEmpty("Empty SV input--No SV annotated")
+        //annotsv_manta(manta_out).ifEmpty("Empty SV input--No SV annotated")
         }
-        //Delly-WIP
 
-         if ("manta" in svcall_list & "svaba" in svcall_list){
+        if ("manta" in svcall_list & "svaba" in svcall_list){
             //Survivor
             gunzip(manta_out).concat(svaba_out).groupTuple()
-                | survivor_sv | annotsv_survivor_tn | ifEmpty("Empty SV input--No SV annotated")
+                | survivor_sv 
+                | annotsv_survivor_tn | ifEmpty("Empty SV input--No SV annotated")
          }
 }
 
@@ -524,14 +524,14 @@ workflow CNVhuman {
 
     main:  
         cnvcall_list = params.cnvcallers.split(',') as List
-
+        scinput = somaticcall_input|map{t1,n1,cal,vcf,ind -> tuple("${t1}_vs_${n1}",cal,vcf,ind)}
         if ("purple" in cnvcall_list){
             //Purple
             bamwithsample | amber_tn
             bamwithsample | cobalt_tn
-            purplein=amber_tn.out.join(cobalt_tn.out) 
-            purplein.join(somaticcall_input) 
-            | map{t1,amber,cobalt,n1,vc,vcf,vcfindex -> tuple(t1,n1,amber,cobalt,vcf,vcfindex)}
+            purplein=amber_tn.out.join(cobalt_tn.out,by:[0,1,2]) 
+            purplein.join(scinput) 
+            | map{id,t1,n1,amber,cobalt,vc,vcf,vcfindex -> tuple(id,t1,n1,amber,cobalt,vcf,vcfindex)}
             | purple
         }
 
@@ -558,10 +558,10 @@ workflow CNVhuman_novc {
 
         if ("purple" in cnvcall_list){
             //Purple
-            bamwithsample | amber_tn
-            bamwithsample | cobalt_tn
-            purplein=amber_tn.out |join(cobalt_tn.out) 
-            purplein | map{t1,amber,cobalt,n1 -> tuple(t1,n1,amber,cobalt)}
+            bamwithsample | amber_tn 
+            bamwithsample | cobalt_tn 
+            purplein=amber_tn.out |join(cobalt_tn.out)  
+            purplein | map{id,t1,n1,amber,t2,n2,cobalt -> tuple(id,t1,n1,amber,cobalt)}
                 | purple_novc
         }
 
