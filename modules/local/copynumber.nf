@@ -15,13 +15,15 @@ if (params.genome=="mm10"){
 }
 
 if (params.genome=="hg38" | params.genome=="hg19"){
+    HMFGENOMEREF = file(params.genomes[params.genome].HMFGENOME)
     GENOMEVER = params.genomes[params.genome].GENOMEVER
     GCPROFILE = file(params.genomes[params.genome].GCPROFILE)
     GERMLINEHET = file(params.genomes[params.genome].GERMLINEHET)
     DIPLODREG = file(params.genomes[params.genome].DIPLODREG)
     ENSEMBLCACHE = params.genomes[params.genome].ENSEMBLCACHE
     DRIVERS = file(params.genomes[params.genome].DRIVERS)
-    HOTSPOTS = file(params.genomes[params.genome].HOTSPOTS)
+    SOMATICHOTSPOTS = file(params.genomes[params.genome].SOMATICHOTSPOTS)
+    GERMLINEHOTSPOTS = file(params.genomes[params.genome].GERMLINEHOTSPOTS)
 }
 
 //mm10 Paired-Sequenza, FREEC-tumor only
@@ -349,7 +351,7 @@ process amber_tonly {
     -tumor ${tumorname} -tumor_bam ${tumor} \
     -output_dir ${tumorname}_amber \
     -threads $task.cpus \
-    -ref_genome_version V38 \
+    -ref_genome_version $HMFGENOMEREF \
     -loci $GERMLINEHET
 
     """
@@ -372,7 +374,8 @@ process amber_tn {
         val(normalname), path(normal), path(normalbai)
 
     output:
-        tuple val(tumorname), path("${tumorname}_vs_${normalname}_amber")
+        tuple val("${tumorname}_vs_${normalname}"),
+        val(tumorname), val(normalname), path("${tumorname}_vs_${normalname}_amber")
       
     script:
 
@@ -383,7 +386,7 @@ process amber_tn {
     -reference ${normalname} -reference_bam ${normal} \
     -output_dir ${tumorname}_vs_${normalname}_amber \
     -threads $task.cpus \
-    -ref_genome_version V38 \
+    -ref_genome_version $HMFGENOMEREF \
     -loci $GERMLINEHET
 
     """
@@ -436,7 +439,8 @@ process cobalt_tn {
         val(normalname), path(normal), path(normalbai)
 
     output:
-        tuple val(tumorname), path("${tumorname}_vs_${normalname}_cobalt")
+        tuple val("${tumorname}_vs_${normalname}"),
+        val(tumorname), val(normalname), path("${tumorname}_vs_${normalname}_cobalt")
 
     script:
 
@@ -464,12 +468,12 @@ process purple {
     label 'process_medium'
 
     input:
-        tuple val(tumorname), val(normalname),
+        tuple val(id), val(tumorname), val(normalname),
         path(amberin), path(cobaltin),
         path(somaticvcf), path(somaticvcfindex)
 
     output:
-        tuple val(tumorname), path("${tumorname}")
+        tuple val(id), path("${id}")
 
     script:
 
@@ -485,16 +489,16 @@ process purple {
     $ENSEMBLCACHE \
     -somatic_vcf ${somaticvcf} \
     -driver_gene_panel $DRIVERS \
-    -somatic_hotspots $HOTSPOTS \
+    -somatic_hotspots $SOMATICHOTSPOTS \
     -threads $task.cpus \
-    -output_dir ${tumorname}
+    -output_dir ${id}
     """
 
     stub:
 
     """
-    mkdir ${tumorname}
-    touch ${tumorname}/${tumorname}.purple.cnv.somatic.tsv ${tumorname}/${tumorname}.purple.cnv.gene.tsv ${tumorname}/${tumorname}.driver.catalog.somatic.tsv
+    mkdir ${id}
+    touch ${id}/${id}.purple.cnv.somatic.tsv ${id}/${id}.purple.cnv.gene.tsv ${id}/${id}.driver.catalog.somatic.tsv
     """
 
 }
@@ -505,7 +509,7 @@ process purple_novc {
     label 'process_medium'
 
     input:
-        tuple val(tumorname), val(normalname),
+        tuple val(id), val(tumorname), val(normalname),
         path(cobaltin), path(amberin)
 
     output:
@@ -521,10 +525,10 @@ process purple_novc {
     -cobalt ${cobaltin} \
     -gc_profile $GCPROFILE \
     -ref_genome_version $GENOMEVER \
-    -ref_genome $GENOMEREF \
+    -ref_genome $HMFGENOMEREF \
     $ENSEMBLCACHE \
     -threads $task.cpus \
-    -output_dir ${tumorname}
+    -output_dir ${tvn}
 
     """
 
