@@ -351,7 +351,7 @@ process amber_tonly {
     -tumor ${tumorname} -tumor_bam ${tumor} \
     -output_dir ${tumorname}_amber \
     -threads $task.cpus \
-    -ref_genome_version $HMFGENOMEREF \
+    -ref_genome_version $GENOMEVER \
     -loci $GERMLINEHET
 
     """
@@ -386,7 +386,7 @@ process amber_tn {
     -reference ${normalname} -reference_bam ${normal} \
     -output_dir ${tumorname}_vs_${normalname}_amber \
     -threads $task.cpus \
-    -ref_genome_version $HMFGENOMEREF \
+    -ref_genome_version $GENOMEVER \
     -loci $GERMLINEHET
 
     """
