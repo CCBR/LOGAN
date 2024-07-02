@@ -510,10 +510,10 @@ process purple_novc {
 
     input:
         tuple val(id), val(tumorname), val(normalname),
-        path(cobaltin), path(amberin)
+        path(amberin), path(cobaltin)
 
     output:
-        tuple val(tumorname), path("${tumorname}")
+        tuple val(id), val(tumorname), val(normalname), path("${id}")
 
     script:
 
@@ -528,7 +528,7 @@ process purple_novc {
     -ref_genome $HMFGENOMEREF \
     $ENSEMBLCACHE \
     -threads $task.cpus \
-    -output_dir ${tvn}
+    -output_dir ${id}
 
     """
 
@@ -548,7 +548,7 @@ process purple_tonly {
 
     input:
         tuple val(tumorname), 
-        path(cobaltin), path(amberin),
+        path(amberin), path(cobaltin),
         path(somaticvcf), path(somaticvcfindex)
 
     output:
