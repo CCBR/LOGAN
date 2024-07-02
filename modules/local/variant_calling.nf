@@ -472,7 +472,7 @@ process octopus_tn {
     """
     octopus -R $GENOMEREF -I ${normal} ${tumor} --normal-sample ${normalname} \
     -C cancer \
-    --annotations AF AC AD DP -t ${bed} \
+    --annotations AF AC AD DP SB -t ${bed} \
     --threads $task.cpus \
     $GERMLINE_FOREST \
     $SOMATIC_FOREST \

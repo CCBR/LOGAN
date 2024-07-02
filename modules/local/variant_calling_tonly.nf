@@ -342,7 +342,7 @@ process octopus_tonly {
     script:
     """
     octopus -R $GENOMEREF -C cancer -I ${tumor} \
-    --annotations AF AC AD DP \
+    --annotations AF AC AD DP SB \
     -B 92Gb \
     -t ${bed} \
     --threads ${task.cpus}\
