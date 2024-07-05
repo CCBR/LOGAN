@@ -17,7 +17,7 @@ include {pileup_paired_t; pileup_paired_n;
     strelka_tn; 
     varscan_tn; vardict_tn; lofreq_tn; muse_tn; sage_tn;
     octopus_tn; bcftools_index_octopus; bcftools_index_octopus as bcftools_index_octopus_tonly; octopus_convertvcf; 
-    combineVariants_strelka;
+    combineVariants_strelka; convert_strelka;
     combineVariants as combineVariants_vardict; combineVariants as combineVariants_vardict_tonly;
     combineVariants as combineVariants_varscan; combineVariants as combineVariants_varscan_tonly;
     combineVariants as combineVariants_sage; combineVariants as combineVariants_sage_tonly;
@@ -290,6 +290,7 @@ workflow VC {
         indels.toSorted{ it -> (it.name =~ /${tumor}_vs_${normal}_(.*?).somatic.indels.vcf.gz/)[0][1].toInteger() } ,indelindex)}
         | combineVariants_strelka | join(sample_sheet_paired)
         | map{sample,markedvcf,markedindex,finalvcf,finalindex,tumor,normal -> tuple(tumor,normal,"strelka",finalvcf,finalindex)}
+        | convert_strelka
         annotvep_tn_strelka(strelka_in)
 
         vc_all=vc_all|concat(strelka_in)
