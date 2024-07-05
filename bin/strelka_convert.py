@@ -3,6 +3,7 @@ import numpy as np
 import cyvcf2
 import sys 
 import gzip 
+import os 
 
 def _tumor_normal_genotypes(ref, alt, info):
     """Retrieve standard 0/0, 0/1, 1/1 style genotypes from INFO field.
@@ -92,15 +93,15 @@ def _af_annotate_and_filter(in_file,out_file):
                 writer.write_record(rec)
     writer.close()
 
-def is_gzipped(path):
-    return path.endswith(".gz")
+#def is_gzipped(path):
+#    return path.endswith(".gz")
 
 def _add_gt(in_file):
         ##Set genotypes now
-        out_file = in_file.replace(".vcf.gz", "-fixed.vcf")
+        out_file = os.path.basename(in_file).replace(".vcf.gz", "-fixed.vcf")
         #open_fn = gzip.open if is_gzipped(in_file) else open
         with gzip.open(in_file,'rt') as in_handle: 
-            with open(out_file,"w") as out_handle:
+            with open(out_file,"wt") as out_handle:
                 added_gt = False
                 for line in in_handle:
                     if line.startswith("##FORMAT") and not added_gt:
@@ -121,10 +122,11 @@ def _add_gt(in_file):
                         parts[10] = "%s:%s" % (tumor_gt, parts[10])
                         out_handle.write("\t".join(parts) + "\n")
 
-
 if __name__ == '__main__':
     filename = sys.argv[1]
     outname = sys.argv[2]
-    _af_annotate_and_filter(filename, outname)
-    _add_gt(outname)
+    _add_gt(filename)
+    newname = os.path.basename(filename).replace(".vcf.gz", "-fixed.vcf")
+    _af_annotate_and_filter(newname,outname)
+    os.remove(newname)
 
