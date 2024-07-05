@@ -194,7 +194,7 @@ process mutect2filter_tonly {
     label 'process_medium'
 
     input:
-        tuple val(sample), path(mutvcfs), path(stats), path(obs), path(pileups),path(tumorcontamination)
+        tuple val(sample), path(mutvcfs), path(stats), path(obs), path(pileups), path(tumorcontamination)
     output:
         tuple val(sample),
         path("${sample}.tonly.mut2.marked.vcf.gz"),path("${sample}.tonly.mut2.marked.vcf.gz.tbi"),
@@ -204,7 +204,6 @@ process mutect2filter_tonly {
     script:
     //Include the stats and  concat ${mutvcfs} -Oz -o ${sample}.concat.vcf.gz
     mut2in = mutvcfs.join(" -I ")
-
 
     """
     gatk SortVcf -I ${mut2in} -O ${sample}.tonly.concat.vcf.gz --CREATE_INDEX

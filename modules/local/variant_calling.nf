@@ -257,14 +257,12 @@ process mutect2filter {
 
     input:
         tuple val(tumor), val(normal),path(mutvcfs), path(stats), path(obs),
-        path(pileups), path(normal_pileups),path(tumorcontamination),path(normalcontamination)
+        path(pileups), path(normal_pileups), path(tumorcontamination), path(normalcontamination)
 
     output:
         tuple val("${tumor}_vs_${normal}"),
-        path("${tumor}_vs_${normal}.mut2.marked.vcf.gz"),
-        path("${tumor}_vs_${normal}.mut2.marked.vcf.gz.tbi"),
-        path("${tumor}_vs_${normal}.mut2.norm.vcf.gz"), 
-        path("${tumor}_vs_${normal}.mut2.norm.vcf.gz.tbi"),
+        path("${tumor}_vs_${normal}.mut2.marked.vcf.gz"), path("${tumor}_vs_${normal}.mut2.marked.vcf.gz.tbi"),
+        path("${tumor}_vs_${normal}.mut2.norm.vcf.gz"), path("${tumor}_vs_${normal}.mut2.norm.vcf.gz.tbi"),
         path("${tumor}_vs_${normal}.mut2.marked.vcf.gz.filteringStats.tsv")
 
     script:
@@ -812,6 +810,36 @@ process combineVariants_strelka {
 
 }
 
+
+process convert_strelka {
+    //Add GT column to 
+    conda 'bioconda::cyvcf2 bioconda::bcftools numpy'
+    label 'process_medium'
+
+    input:
+        tuple val(tumor), val(normal), val(vc),
+        path(strelkavcf), path(strelkaindex)
+
+    output:
+        tuple val(tumor), val(normal), val("strelka"),
+        path("${tumor}_vs_${normal}.filtered.strelka-fixed.vcf.gz"), 
+        path("${tumor}_vs_${normal}.filtered.strelka-fixed.vcf.gz.tbi")
+
+
+    script:
+
+    """
+    python /data/nousomedr/wgs/LOGAN/bin/strelka_convert.py ${strelkavcf} ${tumor}_vs_${normal}.filtered.strelka-fixed.vcf.gz
+    bcftools index -t ${tumor}_vs_${normal}.filtered.strelka-fixed.vcf.gz
+    """
+
+    stub:
+
+    """
+    touch ${tumor}.filtered.strelka-fixed.vcf.gz ${tumor}.filtered.strelka-fixed.vcf.gz.tbi
+    """
+
+}
 
 process somaticcombine {
     container "${params.containers.logan}"
