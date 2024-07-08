@@ -1,4 +1,4 @@
-FROM --platform=linux/amd64 nciccbr/ccbr_ubuntu_base_20.04:v5
+FROM --platform=linux/amd64 nciccbr/ccbr_ubuntu_base_20.04:v6
 
 # build time variables
 ARG BUILD_DATE="000000"
@@ -21,7 +21,7 @@ RUN apt-get update \
  && apt-get -y upgrade \
  && DEBIAN_FRONTEND=noninteractive apt-get install -y \
       bc \
-      openjdk-17-jdk   
+      openjdk-17-jdk   #Needed for GATK >4
 
 # Common bioinformatics tools 
 # bwa/0.7.17-4  bowtie/1.2.3  bowtie2/2.3.5.1 
@@ -48,11 +48,11 @@ RUN wget https://github.com/biod/sambamba/releases/download/v0.8.1/sambamba-0.8.
 
 # Install GATK4 (GATK/4.5.0.0)
 # Requires Java17 
-RUN wget https://github.com/broadinstitute/gatk/releases/download/4.5.0.0/gatk-4.5.0.0.zip \
-    && unzip /opt2/gatk-4.5.0.0.zip \
-    && rm /opt2/gatk-4.5.0.0.zip \
-    && /opt2/gatk-4.5.0.0/gatk --list
-ENV PATH="/opt2/gatk-4.5.0.0:$PATH"
+RUN wget https://github.com/broadinstitute/gatk/releases/download/4.6.0.0/gatk-4.6.0.0.zip \
+    && unzip /opt2/gatk-4.6.0.0.zip \
+    && rm /opt2/gatk-4.6.0.0.zip \
+    && /opt2/gatk-4.6.0.0/gatk --list
+ENV PATH="/opt2/gatk-4.6.0.0:$PATH"
 
 
 #Use DISCVRSeq For CombineVariants Replacement
@@ -96,11 +96,14 @@ RUN Rscript -e 'BiocManager::install(c("rtracklayer"))'
 # Install Sequenza-Utils/3.0.0 and Sequenza
 # Requires R, Python, SAMtools, tabix (already satisfied)
 # https://cran.r-project.org/web/packages/sequenza/vignettes/sequenza.html#getting-started
-##Install Old version of IOtools for parallel processing
+# Install Old version of IOtools for parallel processing
 RUN pip3 install --upgrade pip \
 	  && pip3 install sequenza-utils \
       && Rscript -e 'remotes::install_github("ShixiangWang/copynumber"); remotes::install_github("cran/sequenza")' \
       && Rscript -e 'remotes::install_version("iotools",version="0.3-2")'
+
+##Install cyvcf2 for processing vcfs in python
+RUN pip3 install cyvcf2
 
 # Install Control-FREEC/v11.6 and additional dependencies
 # Requires R, samtools, bedtools, sambamba (already satisfied)
@@ -114,10 +117,10 @@ ENV PATH="/opt2/FREEC-11.6/src:$PATH"
 WORKDIR /opt2 
 
 
-# Install Somalier/v0.2.16
+# Install Somalier/v0.2.19
 # download static binary
 RUN mkdir somalier  \
-    && wget -O somalier/somalier https://github.com/brentp/somalier/releases/download/v0.2.16/somalier \
+    && wget -O somalier/somalier https://github.com/brentp/somalier/releases/download/v0.2.19/somalier \
     && chmod a+rx /opt2/somalier/somalier
 ENV PATH="/opt2/somalier:$PATH"
 
@@ -189,31 +192,26 @@ RUN wget -O svaba_1.2.0 https://github.com/walaj/svaba/releases/download/v1.2.0/
     && mkdir svaba \ 
     && mv svaba_1.2.0 svaba/svaba \
     && chmod a+x svaba/svaba
-
 ENV PATH="/opt2/svaba:$PATH"
 
-# MUSE
-RUN wget -O muse_2.0.4.tar.gz https://github.com/wwylab/MuSE/archive/refs/tags/v2.0.4.tar.gz \
-    && tar -xzf muse_2.0.4.tar.gz \ 
-    && cd MuSE-2.0.4 \
+# MUSE-Use Cloned Version due to -ldeflate option needed
+RUN git clone https://github.com/dnousome/MuSE \
+    && cd MuSE \
     && ./install_muse.sh \
-    && mv MuSE /opt2/ \
-    && chmod a+x /opt2/MuSE \
-    && rm -R /opt2/MuSE-2.0.4 \
-    && rm /opt2/muse_2.0.4.tar.gz
-
+    && chmod a+rX /opt2/MuSE/MuSE
 ENV PATH="/opt2/MuSE:$PATH"
+WORKDIR /opt2
 
 # HMFtools for PURPLE/COBALT/AMBER
-RUN wget https://github.com/hartwigmedical/hmftools/releases/download/amber-v4.0/amber_v4.0.jar \
+RUN wget https://github.com/hartwigmedical/hmftools/releases/download/amber-v4.0.1/amber_v4.0.1.jar \
     && wget https://github.com/hartwigmedical/hmftools/releases/download/cobalt-v1.16/cobalt_v1.16.jar \
     && wget https://github.com/hartwigmedical/hmftools/releases/download/purple-v4.0.2/purple_v4.0.2.jar \
-    && wget https://github.com/hartwigmedical/hmftools/releases/download/sage-v3.4.3/sage_v3.4.3.jar \ 
+    && wget https://github.com/hartwigmedical/hmftools/releases/download/sage-v3.4.4/sage_v3.4.4.jar \ 
     && mkdir hmftools \
-    && mv amber_v4.0.jar hmftools/amber.jar \
+    && mv amber_v4.0.1.jar hmftools/amber.jar \
     && mv cobalt_v1.16.jar hmftools/cobalt.jar \
     && mv purple_v4.0.2.jar hmftools/purple.jar \
-    && mv sage_v3.4.3.jar hmftools/sage.jar \
+    && mv sage_v3.4.4.jar hmftools/sage.jar \
     && chmod a+x hmftools/amber.jar
 ENV PATH="/opt2/hmftools:$PATH"
 
