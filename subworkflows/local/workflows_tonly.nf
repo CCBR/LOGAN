@@ -49,7 +49,7 @@ workflow INPUT_TONLY {
     if(params.fastq_input){
         fastqinput=Channel.fromFilePairs(params.fastq_input)
     }else if(params.fastq_file_input){
-        fastqinput=Channel.fromPath(params.fastq_file_input).view()
+        fastqinput=Channel.fromPath(params.fastq_file_input)
                         .splitCsv(header: false, sep: "\t", strip:true)
                         .map{ sample,fq1,fq2 -> 
                             tuple(sample, tuple(file(fq1),file(fq2))) 
@@ -80,14 +80,15 @@ workflow ALIGN_TONLY {
         sample_sheet
 
     main:
-        fastp(fastqinput)
-            if (params.intervals){
-                intervalbedin = Channel.fromPath(params.intervals,checkIfExists: true,type: 'file')
-            }else{
-                intervalbedin = Channel.fromPath(params.genomes[params.genome].intervals,checkIfExists: true,type: 'file')
-            }
-            splitinterval(intervalbedin)
+
+    if (params.intervals){
+        intervalbedin = Channel.fromPath(params.intervals,checkIfExists: true,type: 'file')
+    }else{
+        intervalbedin = Channel.fromPath(params.genomes[params.genome].intervals,checkIfExists: true,type: 'file')
+        }
     
+    splitinterval(intervalbedin)
+    fastp(fastqinput)
     bwamem2(fastp.out)
     //indelrealign(bwamem2.out) Consider indelreaglinement using ABRA?
 

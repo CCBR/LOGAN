@@ -97,21 +97,19 @@ workflow ALIGN {
     take:
         fastqinput
         sample_sheet
-    main:
-    fastp(fastqinput)
 
+    main:
     if (params.intervals){
         intervalbedin = Channel.fromPath(params.intervals)
     }else{
         intervalbedin = Channel.fromPath(params.genomes[params.genome].intervals,checkIfExists: true,type: 'file')
     }
-
     splitinterval(intervalbedin)
 
+    fastp(fastqinput)
     bwamem2(fastp.out)
     bqsrbambyinterval=bwamem2.out.combine(splitinterval.out.flatten())
     bambyinterval=bwamem2.out.combine(splitinterval.out.flatten())
-
 
     bqsr(bqsrbambyinterval)
     bqsrs=bqsr.out.groupTuple()
@@ -123,7 +121,6 @@ workflow ALIGN {
     tobqsr=bwamem2.out.combine(gatherbqsr.out,by:0)
     applybqsr(tobqsr)
 
-    //sample_sheet.view()
     bamwithsample=applybqsr.out.combine(sample_sheet,by:0).map{it.swap(3,0)}.combine(applybqsr.out,by:0).map{it.swap(3,0)}
 
     emit:
@@ -287,7 +284,7 @@ workflow VC {
         strelka_in=strelka_tn(bambyinterval) | groupTuple(by:[0,1])
         | map { tumor,normal,vcfs,vcfindex,indels,indelindex -> tuple("${tumor}_vs_${normal}",
         vcfs.toSorted{ it -> (it.name =~ /${tumor}_vs_${normal}_(.*?).somatic.snvs.vcf.gz/)[0][1].toInteger() },vcfindex,
-        indels.toSorted{ it -> (it.name =~ /${tumor}_vs_${normal}_(.*?).somatic.indels.vcf.gz/)[0][1].toInteger() } ,indelindex)}
+        indels.toSorted{ it -> (it.name =~ /${tumor}_vs_${normal}_(.*?).somatic.indels.vcf.gz/)[0][1].toInteger() },indelindex)}
         | combineVariants_strelka | join(sample_sheet_paired)
         | map{sample,markedvcf,markedindex,finalvcf,finalindex,tumor,normal -> tuple(tumor,normal,"strelka",finalvcf,finalindex)}
         | convert_strelka
@@ -308,7 +305,7 @@ workflow VC {
 
         vc_all=vc_all|concat(vardict_in)
 
-        //VarDict TOnly
+        //Vardict TOnly
         if (!params.no_tonly){
         vardict_in_tonly=vardict_tonly(bambyinterval_t) 
         | groupTuple()
