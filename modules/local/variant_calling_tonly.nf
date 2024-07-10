@@ -194,7 +194,7 @@ process mutect2filter_tonly {
     label 'process_medium'
 
     input:
-        tuple val(sample), path(mutvcfs), path(stats), path(obs), path(pileups),path(tumorcontamination)
+        tuple val(sample), path(mutvcfs), path(stats), path(obs), path(pileups), path(tumorcontamination)
     output:
         tuple val(sample),
         path("${sample}.tonly.mut2.marked.vcf.gz"),path("${sample}.tonly.mut2.marked.vcf.gz.tbi"),
@@ -204,7 +204,6 @@ process mutect2filter_tonly {
     script:
     //Include the stats and  concat ${mutvcfs} -Oz -o ${sample}.concat.vcf.gz
     mut2in = mutvcfs.join(" -I ")
-
 
     """
     gatk SortVcf -I ${mut2in} -O ${sample}.tonly.concat.vcf.gz --CREATE_INDEX
@@ -265,7 +264,7 @@ process varscan_tonly {
     awk '{{gsub(/\\y[W|K|Y|R|S|M|B|D|H|V]\\y/,"N",\$4); OFS = "\t"; print}}' !{tumor.simpleName}_!{bed.simpleName}.tonly.varscan.vcf_temp \
         | sed '/^$/d' | bcftools view - -Oz -o !{tumor.simpleName}_!{bed.simpleName}.tonly.varscan.vcf
 
-    printf "TUMOR\t!{tumorname}\n" > sampname
+    printf "Sample1\t!{tumorname}\n" > sampname
 
     bcftools reheader -s sampname !{tumor.simpleName}_!{bed.simpleName}.tonly.varscan.vcf \
         | bcftools view -Oz -o !{tumor.simpleName}_!{bed.simpleName}.tonly.varscan.vcf.gz
@@ -342,7 +341,7 @@ process octopus_tonly {
     script:
     """
     octopus -R $GENOMEREF -C cancer -I ${tumor} \
-    --annotations AF AC AD DP \
+    --annotations AF AC AD DP SB \
     -B 92Gb \
     -t ${bed} \
     --threads ${task.cpus}\

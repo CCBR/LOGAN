@@ -1,8 +1,9 @@
 #!/usr/bin/env python
-import os
 import numpy as np
-import vcfpy
+import cyvcf2
 import sys 
+import gzip 
+import os 
 
 def _tumor_normal_genotypes(ref, alt, info):
     """Retrieve standard 0/0, 0/1, 1/1 style genotypes from INFO field.
@@ -33,7 +34,7 @@ def _tumor_normal_genotypes(ref, alt, info):
             # print(fname, coords, ref, alt, info, val)
             return "0/1"
     def alleles_to_gt(val):
-        gt_indices = {gt.upper(): i for i, gt in enumerate([ref] + [alt])}
+        gt_indices = {gt.upper(): i for i, gt in enumerate([ref] + alt)}
         tumor_gts = [gt_indices[x.upper()] for x in val if x in gt_indices]
         if tumor_gts and val not in known_names:
             if max(tumor_gts) == 0:
@@ -45,13 +46,13 @@ def _tumor_normal_genotypes(ref, alt, info):
         else:
             tumor_gt = name_to_gt(val)
         return tumor_gt
-    nt_val = info.get('NT').split("=")[-1]
+    nt_val = [x.split("=")[-1] for x in info if x.startswith("NT=")][0]
     normal_gt = name_to_gt(nt_val)
-    sgt_val = info.get('SGT').split("=")[-1]
+    sgt_val = [x.split("=")[-1] for x in info if x.startswith("SGT=")]
     if not sgt_val:
         tumor_gt = "0/0"
     else:
-        sgt_val = sgt_val.split("->")[-1]
+        sgt_val = sgt_val[0].split("->")[-1]
         tumor_gt = alleles_to_gt(sgt_val)
     return normal_gt, tumor_gt
 
@@ -70,47 +71,62 @@ def _af_annotate_and_filter(in_file,out_file):
     #data = paired.tumor_data if paired else items[0]
     #min_freq = float(utils.get_in(data["config"], ("algorithm", "min_allele_fraction"), 10)) / 100.0
     #logger.debug("Filtering Strelka2 calls with allele fraction threshold of %s" % min_freq)
-    vcf = vcfpy.Reader.from_path(in_file)
-    vcf.header.add_format_line(vcfpy.OrderedDict([
-        ('ID', 'AF'), 
-        ('Description', 'Allele frequency, as calculated in bcbio: AD/DP (germline), <ALT>U/DP (somatic snps), TIR/DPI (somatic indels)'),
-        ('Type','Float'),
-        ('Number', '.')
-    ]))
-    vcf.header.add_format_line(vcfpy.OrderedDict([
-        ('ID', 'GT'), 
-        ('Description', 'Genotype'),
-        ('Type','String'),
-        ('Number', '1')
-    ]))
-    writer = vcfpy.Writer.from_path(out_file, vcf.header)
+    vcf = cyvcf2.VCF(in_file)
+    vcf.add_format_to_header(dict(
+        ID='AF', Number='1',Type='Float',
+        Description='Allele frequency, as calculated in bcbio: AD/DP (germline), <ALT>U/DP (somatic snps), TIR/DPI (somatic indels)'
+        ))
+    writer = cyvcf2.Writer(out_file, vcf)
     for rec in vcf:
         #print(rec)
-        if rec.is_snv():  # snps?
-            alt_counts_n = rec.calls[0].data[rec.ALT[0].value + "U"]  # {ALT}U=tier1_depth,tier2_depth
-            alt_counts_t = rec.calls[1].data[rec.ALT[0].value + "U"]  # {ALT}U=tier1_depth,tier2_depth
+        if rec.is_snp:  # snps?
+            alt_counts = rec.format(rec.ALT[0] +'U')[:,0]  # {ALT}U=tier1_depth,tier2_depth
         else:  # indels
-            alt_counts_n = rec.calls[0].data['TIR']  # TIR=tier1_depth,tier2_depth
-            alt_counts_t = rec.calls[1].data['TIR']
-        DP_n=rec.calls[0].data["DP"]
-        DP_t=rec.calls[1].data["DP"]
-        if DP_n is not None and DP_t is not None:
+            alt_counts = rec.format('TIR')[:,0]  # TIR=tier1_depth,tier2_depth
+        dp = rec.format('DP')[:,0]
+        if dp is not None :
             with np.errstate(divide='ignore', invalid='ignore'):  # ignore division by zero and put AF=.0
                 #alt_n = alt_counts_n[0]/DP_n
                 #alt_t = alt_counts_t[0]/DP_t
-                af_n = np.true_divide(alt_counts_n[0], DP_n)
-                af_t = np.true_divide(alt_counts_t[0], DP_t)
-                rec.add_format('AF',0)
-                rec.calls[0].data["AF"]= [round(af_n,5)]
-                rec.calls[1].data["AF"]= [round(af_t,5)]
-        normal_gt, tumor_gt= _tumor_normal_genotypes(rec.REF,rec.ALT[0].value,rec.INFO)
-        rec.add_format('GT',"1/0")
-        rec.calls[0].data["GT"]=normal_gt
-        rec.calls[1].data["GT"]=tumor_gt
-        writer.write_record(rec)
+                af = np.true_divide(alt_counts, dp)
+                rec.set_format('AF',np.round(af,5))
+                writer.write_record(rec)
+    writer.close()
+
+#def is_gzipped(path):
+#    return path.endswith(".gz")
+
+def _add_gt(in_file):
+        ##Set genotypes now
+        out_file = os.path.basename(in_file).replace(".vcf.gz", "-fixed.vcf")
+        #open_fn = gzip.open if is_gzipped(in_file) else open
+        with gzip.open(in_file,'rt') as in_handle: 
+            with open(out_file,"wt") as out_handle:
+                added_gt = False
+                for line in in_handle:
+                    if line.startswith("##FORMAT") and not added_gt:
+                        added_gt = True
+                        out_handle.write('##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">\n')
+                        out_handle.write(line)
+                    elif line.startswith("#CHROM"):
+                        assert added_gt
+                        out_handle.write(line)
+                    elif line.startswith("#"):
+                        out_handle.write(line)
+                    else:
+                        parts = line.rstrip().split("\t")
+                        normal_gt,tumor_gt = _tumor_normal_genotypes(parts[3], parts[4].split(","),
+                                                                        parts[7].split(";"))
+                        parts[8] = "GT:%s" % parts[8]
+                        parts[9] = "%s:%s" % (normal_gt, parts[9])
+                        parts[10] = "%s:%s" % (tumor_gt, parts[10])
+                        out_handle.write("\t".join(parts) + "\n")
 
 if __name__ == '__main__':
     filename = sys.argv[1]
     outname = sys.argv[2]
-    _af_annotate_and_filter(filename, outname)
-    
+    _add_gt(filename)
+    newname = os.path.basename(filename).replace(".vcf.gz", "-fixed.vcf")
+    _af_annotate_and_filter(newname,outname)
+    os.remove(newname)
+

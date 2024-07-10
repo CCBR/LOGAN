@@ -42,7 +42,6 @@ process fastp {
 
 process bwamem2 {
     container = "${params.containers.logan}"
-    label 'process_high'
     tag { name }
 
 
