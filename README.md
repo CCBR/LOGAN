@@ -29,7 +29,7 @@ module load ccbrpipeliner
 ```
 
 ## Usage
-LOGAN supports either
+LOGAN supports 
 
 ### Input Files
 LOGAN supports inputs of either 
@@ -46,6 +46,18 @@ LOGAN supports inputs of either
 `--fastq_file_input`-  A headerless tab delimited sheet that has the sample name, R1, and R2 file locations
 
 `--bam_file_input` -  A headerless tab delimited sheet that has the sample name, bam, and bam index (bai) file locations
+
+### Genome
+`--genome` - A flag to indicate which genome to run for alignment/variant calling/etc. Like `--genome hg38` to run the hg38 genome
+
+`--genome hg19` and `--genome mm10` are also supported 
+
+#### hg38 has options for either  
+`--genome hg38` - Based off the GRCh38.d1.vd1.fa which is consistent with TCGA and other GDC processing pipelines  
+
+`--genome hg38_sf` - Based off the Homo_sapiens_assembly38.fasta which is derived from the Broad Institute/NCI Sequencing Facility
+The biggest difference between the two is that GRCh38.d1.vd1.fa has fewer contigs (especially related to HLA regions), so reads should map to chr6 vs the HLA contig directly
+
 
 ### Operating Modes
 
@@ -64,8 +76,7 @@ No flags are required
 
 Adding flags determines SNV (germline and/or somatic), SV, and/or CNV calling modes
 
-`--vc`- Enables somatic SNV calling using mutect2, vardict, varscan, octopus, sage, MUSE (TN only), and lofreq (TN only)
-  
+`--vc`- Enables somatic SNV calling using mutect2, vardict, varscan, octopus, strelka (TN only), MUSE (TN only), and lofreq (TN only)
 
 `--germline`- Enables germline using DV
 
@@ -109,8 +120,6 @@ logan run --mode local -profile ci_stub --genome hg38 --outdir out --fastq_input
 # launch a logan run on slurm with the test dataset
 logan run --mode slurm -profile biowulf,slurm --genome hg38 --outdir out --fastq_input "*R{1,2}.fastq.gz" --callers octopus,mutect2 --vc --sv --cnv
 ```
-
-We currently support the hg38, hg19 (in progress), and mm10 genomes. 
 
 
 
