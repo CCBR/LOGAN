@@ -5,6 +5,7 @@ import sys
 import gzip 
 import os 
 
+##Adapted from https://github.com/bcbio/bcbio-nextgen/blob/72f42706faa5cfe4f0680119bf148e0bdf2b78ba/bcbio/variation/strelka2.py#L30
 def _tumor_normal_genotypes(ref, alt, info):
     """Retrieve standard 0/0, 0/1, 1/1 style genotypes from INFO field.
 
@@ -76,25 +77,30 @@ def _af_annotate_and_filter(in_file,out_file):
         ID='AF', Number='1',Type='Float',
         Description='Allele frequency, as calculated in bcbio: AD/DP (germline), <ALT>U/DP (somatic snps), TIR/DPI (somatic indels)'
         ))
+    vcf.add_format_to_header(dict(
+        ID='AD', Number='.',Type='Integer',
+        Description='Depth of reads supporting alleles'
+        ))
     writer = cyvcf2.Writer(out_file, vcf)
     for rec in vcf:
-        #print(rec)
         if rec.is_snp:  # snps?
             alt_counts = rec.format(rec.ALT[0] +'U')[:,0]  # {ALT}U=tier1_depth,tier2_depth
+            ref_counts = rec.format(rec.REF + 'U')[:,0]
         else:  # indels
             alt_counts = rec.format('TIR')[:,0]  # TIR=tier1_depth,tier2_depth
+            ref_counts = rec.format('TAR')[:,0]
         dp = rec.format('DP')[:,0]
         if dp is not None :
             with np.errstate(divide='ignore', invalid='ignore'):  # ignore division by zero and put AF=.0
                 #alt_n = alt_counts_n[0]/DP_n
                 #alt_t = alt_counts_t[0]/DP_t
+                ad = [ref_counts[0],alt_counts[0],ref_counts[1],alt_counts[1]]
                 af = np.true_divide(alt_counts, dp)
                 rec.set_format('AF',np.round(af,5))
+                rec.set_format('AD',np.array(ad))
                 writer.write_record(rec)
     writer.close()
 
-#def is_gzipped(path):
-#    return path.endswith(".gz")
 
 def _add_gt(in_file):
         ##Set genotypes now

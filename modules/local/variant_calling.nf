@@ -632,8 +632,8 @@ process combineVariants {
     script:
     vcfin = inputvcf.join(" -I ")
     //Create Tumor Normal here
-    samplist=sample.tokenize('_vs_')
-    if(samplist.size>1){
+    samplist=sample.split('_vs_')
+    if(samplist.size()>1){
         samporder = samplist.join(",")
     }else{
         samporder = sample
@@ -647,16 +647,18 @@ process combineVariants {
         -I $vcfin
     
     bcftools view ${sample}.${vc}.markedtemp.vcf.gz -s $samporder -Oz -o ${sample}.${vc}.marked.vcf.gz 
+    bcftools index -t ${sample}.${vc}.marked.vcf.gz 
+
     bcftools norm ${sample}.${vc}.marked.vcf.gz -m- --threads $task.cpus --check-ref s -f $GENOMEREF -O v |\
         awk '{{gsub(/\\y[W|K|Y|R|S|M|B|D|H|V]\\y/,"N",\$4); OFS = "\t"; print}}' |\
         sed '/^\$/d' > ${sample}.${vc}.temp.vcf
 
     bcftools view ${sample}.${vc}.temp.vcf -f PASS -s $samporder -Oz -o ${vc}/${sample}.${vc}.norm.vcf.gz
+    bcftools index ${vc}/${sample}.${vc}.norm.vcf.gz -t
 
     mv ${sample}.${vc}.marked.vcf.gz ${vc}
     mv ${sample}.${vc}.marked.vcf.gz.tbi ${vc}
 
-    bcftools index ${vc}/${sample}.${vc}.norm.vcf.gz -t
     """
 
     stub:
@@ -690,8 +692,10 @@ process combineVariants_alternative {
 
     script:
     vcfin = vcfs.join(" ")
-    samplist=sample.tokenize('_vs_')
-    if(samplist.size>1){
+    samplist=sample.split('_vs_')
+    if (vc.contains("lofreq")) {
+        samporder = samplist[0]
+    }else if(samplist.size()>1){
         samporder = samplist.join(",")
     }else{
         samporder = sample
@@ -793,8 +797,8 @@ process combineVariants_strelka {
 
     vcfin = strelkasnvs.join(" ")
     indelsin = strelkaindels.join(" ")
-    samplist=sample.tokenize('_vs_')
-    if(samplist.size>1){
+    samplist=sample.split('_vs_')
+    if(samplist.size()>1){
         samporder = samplist.join(",")
     }else{
         samporder = sample
@@ -849,7 +853,7 @@ process convert_strelka {
     stub:
 
     """
-    touch ${tumor}.filtered.strelka-fixed.vcf.gz ${tumor}.filtered.strelka-fixed.vcf.gz.tbi
+    touch ${tumor}_vs_${normal}.filtered.strelka-fixed.vcf.gz ${tumor}_vs_${normal}.filtered.strelka-fixed.vcf.gz.tbi
     """
 
 }
