@@ -45,7 +45,20 @@ LOGAN supports inputs of either
 
 `--fastq_file_input`-  A headerless tab delimited sheet that has the sample name, R1, and R2 file locations
 
+Example
+```bash
+c130863309_TUMOR   /data/nousomedr/c130863309_TUMOR.R1_001.fastq.gz  /data/nousomedr/c130863309_TUMOR.R2_001.fastq.gz
+c130889189_PBMC  /data/nousomedr/c130889189_PBMC.R1_001.fastq.gz  /data/nousomedr/c130889189_PBMC.R2_001.fastq.gz
+```
+
+
 `--bam_file_input` -  A headerless tab delimited sheet that has the sample name, bam, and bam index (bai) file locations
+
+Example
+```bash
+c130863309_TUMOR   /data/nousomedr/c130863309_TUMOR.bam  /data/nousomedr/c130863309_TUMOR.bam.bai
+c130889189_PBMC  /data/nousomedr/c130889189_PBMC.bam  /data/nousomedr/c130889189_PBMC.bam.bai
+```
 
 ### Genome
 `--genome` - A flag to indicate which genome to run for alignment/variant calling/etc. Like `--genome hg38` to run the hg38 genome
@@ -65,8 +78,14 @@ The biggest difference between the two is that GRCh38.d1.vd1.fa has fewer contig
 
 Required for Paired Tumor/Normal Mode
 
-`--sample_sheet` In Paired mode a sample sheet must be provided with the basename of the Tumor and Normal samples. This sheet must be Tab separated with a header for Tumor and Normal.
+`--sample_sheet` In Paired mode a sample sheet must be provided with the basename of the Tumor and Normal samples. This sheet must be Tab separated with a header for Tumor and Normal.  
 
+Example
+```bash
+Tumor  Normal
+c130863309_TUMOR  c130863309_PBMC
+c130889189_TUMOR  c130889189_PBMC
+```
 
 #### 2.  Tumor only mode
 
@@ -82,7 +101,7 @@ Adding flags determines SNV (germline and/or somatic), SV, and/or CNV calling mo
 
 `--sv`- Enables somatic SV calling using Manta and SVABA
 
-`--cnv`- Enables somatic CNV calling using FREEC, Sequenza, and Purple (hg38 only)
+`--cnv`- Enables somatic CNV calling using FREEC, Sequenza, and Purple (hg19/hg38 only)
 
 
 
