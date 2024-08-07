@@ -84,7 +84,7 @@ workflow {
         if (params.cnv){
             if (params.genome == "mm10"){
                 CNVmouse(INPUT_BAM.out.bamwithsample)
-            } else if (params.genome == "hg38"|params.genome== "hg19"){
+            } else if (params.genome.matches("hg38(.*)")| params.genome.matches("hg19(.*)")){
                 if (!params.vc){
                     CNVhuman_novc(INPUT_BAM.out.bamwithsample)
                 }else {
@@ -108,7 +108,7 @@ workflow {
         if (params.cnv){
             if (params.genome == "mm10"){
                 CNVmouse_tonly(ALIGN_TONLY.out.bamwithsample)
-            } else if (params.genome== "hg38"|params.genome== "hg19"){
+            } else if (params.genome.matches("hg38(.*)") | params.genome.matches("hg19(.*)")){
                 if (!params.vc){
                     VC_TONLY(ALIGN_TONLY.out.bamwithsample,ALIGN_TONLY.out.splitout,ALIGN_TONLY.out.sample_sheet)
                     CNVhuman_tonly(ALIGN_TONLY.out.bamwithsample,VC_TONLY.out.somaticcall_input)
@@ -135,7 +135,7 @@ workflow {
         if (params.cnv){
             if (params.genome == "mm10"){
                 CNVmouse_tonly(INPUT_TONLY_BAM.out.bamwithsample)
-            } else if (params.genome== "hg38" | params.genome== "hg19"){
+            } else if (params.genome.matches("hg38(.*)")| params.genome.matches("hg19(.*)")){
                 if (!params.vc){
                     VC_TONLY(INPUT_TONLY_BAM.out.bamwithsample,INPUT_TONLY_BAM.out.splitout,INPUT_TONLY_BAM.out.sample_sheet)
                     CNVhuman_tonly(INPUT_TONLY_BAM.out.bamwithsample,VC_TONLY.out.somaticcall_input)
