@@ -551,7 +551,7 @@ workflow CNVhuman_novc {
     take:
         bamwithsample
 
-    main:  
+    main:   
         cnvcall_list = params.cnvcallers.split(',') as List
 
         if ("purple" in cnvcall_list){
@@ -695,8 +695,7 @@ workflow INPUT_BAM {
                         row.Normal
                        )
                                   } 
-    }
-
+    }  
     //Either BAM Input or File sheet input
     if(params.bam_input){
         //Check if Index is .bai or .bam.bai
@@ -743,9 +742,10 @@ workflow INPUT_BAM {
             |applybqsr
 
         bamwithsample=baminput2.combine(sample_sheet,by:0).map{it.swap(3,0)}.combine(baminputonly,by:0).map{it.swap(3,0)} 
-
+       
     } else {
         bamwithsample=baminputonly.combine(sample_sheet,by:0).map{it.swap(3,0)}.combine(baminputonly,by:0).map{it.swap(3,0)}
+        
     }
 
     emit:

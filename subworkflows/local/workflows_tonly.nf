@@ -47,7 +47,7 @@ include {splitinterval} from '../../modules/local/splitbed.nf'
 
 workflow INPUT_TONLY {
     if(params.fastq_input){
-        fastqinput=Channel.fromFilePairs(params.fastq_input)
+        fastqinput=Channel.fromFilePairs(params.fastq_input) 
     }else if(params.fastq_file_input){
         fastqinput=Channel.fromPath(params.fastq_file_input)
                         .splitCsv(header: false, sep: "\t", strip:true)

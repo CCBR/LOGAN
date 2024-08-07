@@ -4,10 +4,8 @@ SPLIT_REGIONS=params.split_regions
 
 // Split Bed Step to create the path 
 process splitinterval {
-    //Keep Process Local
-    executor="local"
-    cpus= '2'
-    memory=2.GB
+    container = "${params.containers.logan}"
+    label "process_single"
 
     input:
     path(BED_IN)

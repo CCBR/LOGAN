@@ -14,7 +14,7 @@ if (params.genome=="mm10"){
     FREECPLOT = params.freec_plot
 }
 
-if (params.genome=="hg38" | params.genome=="hg19"){
+if (params.genome.matches("hg38(.*)")| params.genome.matches("hg19(.*)")){
     HMFGENOMEREF = file(params.genomes[params.genome].HMFGENOME)
     GENOMEVER = params.genomes[params.genome].GENOMEVER
     GCPROFILE = file(params.genomes[params.genome].GCPROFILE)
