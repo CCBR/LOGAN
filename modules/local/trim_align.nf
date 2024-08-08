@@ -56,15 +56,16 @@ process bwamem2 {
         tuple val(samplename), path("${samplename}.bam"), path("${samplename}.bai")
 
     script:
-    """
+    sub_cpus = "$task.cpus".toInteger()/2
 
+    """
      bwa-mem2 mem -M \
         -R '@RG\\tID:${samplename}\\tSM:${samplename}\\tPL:illumina\\tLB:${samplename}\\tPU:${samplename}\\tCN:hgsc\\tDS:wgs' \
         -t $task.cpus \
         ${GENOMEREF} \
         ${samplename}.R1.trimmed.fastq.gz ${samplename}.R2.trimmed.fastq.gz | \
     samblaster -M | \
-    samtools sort -@ 12 -m 10G - -o ${samplename}.bam --write-index
+    samtools sort -@ $sub_cpus -m 10G - --write-index -o ${samplename}.bam##idx##${samplename}.bai
 
 
     """
@@ -127,7 +128,7 @@ process bqsr_ir {
 
     script:
     """
-    gatk --java-options '-Xmx16g' BaseRecalibrator \
+    gatk --java-options '-Xmx10g' BaseRecalibrator \
     --input ${samplename}.ir.bam \
     --reference ${GENOMEREF} \
     ${KNOWNRECAL} \
@@ -145,17 +146,18 @@ process bqsr {
     /*
     Base quality recalibration for all samples
     */
+    errorStrategy 'ignore'
     container = "${params.containers.logan}"
     label 'process_low'
     input:
         tuple val(samplename), path("${samplename}.bam"), path("${samplename}.bai"), path(bed)
 
     output:
-        tuple val(samplename),path("${samplename}_${bed.simpleName}.recal_data.grp"), emit: bqsrby
+        tuple val(samplename), path("${samplename}_${bed.simpleName}.recal_data.grp"), optional: true
 
     script:
     """
-    gatk --java-options '-Xmx16g' BaseRecalibrator \
+    gatk --java-options '-Xmx10g' BaseRecalibrator \
     --input ${samplename}.bam \
     --reference ${GENOMEREF} \
     ${KNOWNRECAL} \
@@ -181,7 +183,7 @@ process gatherbqsr {
     strin = recalgroups.join(" --input ")
 
     """
-    gatk --java-options '-Xmx32g' GatherBQSRReports \
+    gatk --java-options '-Xmx10g' GatherBQSRReports \
     --input ${strin} \
     --output ${samplename}.recal_data.grp
 
@@ -210,7 +212,7 @@ process applybqsr {
     script:
 
     """
-    gatk --java-options '-Xmx32g' ApplyBQSR \
+    gatk --java-options '-Xmx16g' ApplyBQSR \
         --reference ${GENOMEREF} \
         --input ${bam} \
         --bqsr-recal-file ${samplename}.recal_data.grp \
