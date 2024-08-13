@@ -3,6 +3,7 @@ include {fc_lane; fastq_screen;kraken;qualimap_bamqc;fastqc;
     bcftools_stats;gatk_varianteval;
     snpeff;
     somalier_extract;somalier_analysis_human;somalier_analysis_mouse;
+    mosdepth; 
     multiqc} from  '../../modules/local/qc.nf'
 
 include {fastp; bwamem2; indelrealign; bqsr_ir;
@@ -592,6 +593,7 @@ workflow QC_NOGL {
     qualimap_bamqc(applybqsr)
     samtools_flagstats(applybqsr)
     fastqc(applybqsr)
+    mosdepth(applybqsr)
 
     //Somalier
     somalier_extract(applybqsr)
@@ -603,6 +605,7 @@ workflow QC_NOGL {
 
     kraken_out=kraken.out.map{samplename,taxa,krona -> tuple(taxa,krona)}.collect()
     qualimap_out=qualimap_bamqc.out.map{genome,rep->tuple(genome,rep)}.collect()
+    mosdepth_out=mosdepth.out.collect()
     fastqc_out=fastqc.out.map{samplename,html,zip->tuple(html,zip)}.collect()
 
     samtools_flagstats_out=samtools_flagstats.out.collect()
@@ -616,7 +619,8 @@ workflow QC_NOGL {
         somalier_analysis_out=somalier_analysis_mouse.out.collect()
     }
 
-    conall=fclane_out.concat(fqs_out,kraken_out,qualimap_out,samtools_flagstats_out,
+    conall=fclane_out.concat(fqs_out,kraken_out,qualimap_out,
+        samtools_flagstats_out,fastqc_out,mosdepth_out,
         somalier_analysis_out).flatten().toList()
     multiqc(conall)
 }
@@ -638,7 +642,9 @@ workflow QC_GL {
     kraken(fastqin)
     qualimap_bamqc(applybqsr)
     samtools_flagstats(applybqsr)
+    mosdepth(applybqsr)
     fastqc(applybqsr)
+
     //Cohort VCF
     glout=glnexusout.map{germlinev,germlinenorm,tbi->tuple(germlinenorm,tbi)}
     vcftools(glout)
@@ -651,8 +657,6 @@ workflow QC_GL {
     //Somalier
     somalier_extract(applybqsr)
     som_in=somalier_extract.out.collect()
-
-
 
     //Prep for MultiQC input
     if(params.genome=="hg38"){
@@ -671,14 +675,17 @@ workflow QC_GL {
     qualimap_out=qualimap_bamqc.out.map{genome,rep->tuple(genome,rep)}.collect()
     fastqc_out=fastqc.out.map{samplename,html,zip->tuple(html,zip)}.collect()
     samtools_flagstats_out=samtools_flagstats.out.collect()
+    mosdepth_out=mosdepth.out.collect()
     bcftools_stats_out= bcftools_stats.out.collect()
     gatk_varianteval_out= gatk_varianteval.out.collect()
     snpeff_out=snpeff.out.collect()
     vcftools_out=vcftools.out
     collectvariantcallmetrics_out=collectvariantcallmetrics.out
 
-    conall=fclane_out.concat(fqs_out,kraken_out,qualimap_out,samtools_flagstats_out,bcftools_stats_out,
-    gatk_varianteval_out,snpeff_out,vcftools_out,collectvariantcallmetrics_out,somalier_analysis_out).flatten().toList()
+    conall=fclane_out.concat(fqs_out,
+        kraken_out,qualimap_out,mosdepth_out,
+        fastqc_out,samtools_flagstats_out,bcftools_stats_out,
+        gatk_varianteval_out,snpeff_out,vcftools_out,collectvariantcallmetrics_out,somalier_analysis_out).flatten().toList()
     multiqc(conall)
 }
 

@@ -3,6 +3,7 @@ include {fc_lane; fastq_screen;kraken;qualimap_bamqc;
     bcftools_stats;gatk_varianteval;
     snpeff;fastqc;
     somalier_extract;somalier_analysis_human;somalier_analysis_mouse;
+    mosdepth; 
     multiqc} from  '../../modules/local/qc.nf'
 
 include {deepvariant_step1;deepvariant_step2;deepvariant_step3;
@@ -47,13 +48,13 @@ include {splitinterval} from '../../modules/local/splitbed.nf'
 
 workflow INPUT_TONLY {
     if(params.fastq_input){
-        fastqinput=Channel.fromFilePairs(params.fastq_input) 
+        fastqinput=Channel.fromFilePairs(params.fastq_input)  
     }else if(params.fastq_file_input){
         fastqinput=Channel.fromPath(params.fastq_file_input)
                         .splitCsv(header: false, sep: "\t", strip:true)
                         .map{ sample,fq1,fq2 -> 
                             tuple(sample, tuple(file(fq1),file(fq2))) 
-                            }
+                            }  
     }
 
     if(params.sample_sheet){
@@ -62,12 +63,12 @@ workflow INPUT_TONLY {
                        .splitCsv(header:true, sep: "\t")
                        .map { row -> tuple(
                         row.Tumor
-                        )}
+                        )}  |view
     }else{
         sample_sheet=fastqinput.map{samplename,f1 -> tuple (
-             samplename)}
+             samplename)} |view
     }
-    
+
     emit:
         fastqinput
         sample_sheet
@@ -94,7 +95,6 @@ workflow ALIGN_TONLY {
 
     bqsrbambyinterval=bwamem2.out.combine(splitinterval.out.flatten())
 
-    
     bqsr(bqsrbambyinterval)
     bqsrs=bqsr.out.groupTuple()
         .map { samplename,beds -> tuple( samplename, 
@@ -216,7 +216,7 @@ workflow VC_TONLY {
         | map{tumor,normvcf,normindex ->tuple(tumor,"octopus_tonly",normvcf,normindex)} 
     vc_tonly=vc_tonly|concat(octopus_in_tonly_sc)
     }
-
+    /*
     //SAGE
     if ("sage" in call_list){
     sage_in_tonly=sage_tonly(bamwithsample)
@@ -229,7 +229,7 @@ workflow VC_TONLY {
 
     vc_tonly=vc_tonly | concat(sage_in_tonly) 
     }
-    
+    */
 
     //Combined Variants and Annotated
     //Emit for SC downstream, take Oc/Mu2/sage/Vard/Varscan
@@ -356,6 +356,7 @@ workflow QC_TONLY {
     fastqc(bqsrout)
     samtools_flagstats(bqsrout)
     qualimap_bamqc(bqsrout)
+    mosdepth(bqsrout)
 
     somalier_extract(bqsrout) 
     som_in=somalier_extract.out.collect()
@@ -375,14 +376,12 @@ workflow QC_TONLY {
     kraken_out=kraken.out.map{samplename,taxa,krona -> tuple(taxa,krona)}.collect()
     qualimap_out=qualimap_bamqc.out.map{genome,rep->tuple(genome,rep)}.collect()
     fastqc_out=fastqc.out.map{samplename,html,zip->tuple(html,zip)}.collect()
-
+    mosdepth_out=mosdepth.out.collect()
     samtools_flagstats_out=samtools_flagstats.out.collect()
 
-
-
     conall=fclane_out.concat(fqs_out,kraken_out,qualimap_out,fastqc_out,
-    samtools_flagstats_out,
-    somalier_analysis_out).flatten().toList()
+        samtools_flagstats_out,mosdepth_out, 
+        somalier_analysis_out).flatten().toList()
     
     multiqc(conall)
 }
