@@ -53,7 +53,7 @@ process bwamem2 {
         path("${samplename}.fastp.html")
 
     output:
-        tuple val(samplename), path("${samplename}.bam"), path("${samplename}.bai")
+        tuple val(samplename), path("${samplename}.bam"), path("${samplename}.bam.bai")
 
     script:
     sub_cpus = "$task.cpus".toInteger()/2
@@ -65,14 +65,12 @@ process bwamem2 {
         ${GENOMEREF} \
         ${samplename}.R1.trimmed.fastq.gz ${samplename}.R2.trimmed.fastq.gz | \
     samblaster -M | \
-    samtools sort -@ $sub_cpus -m 10G - --write-index -o ${samplename}.bam##idx##${samplename}.bai
-
-
+    samtools sort -@ $sub_cpus -m 10G - --write-index -o ${samplename}.bam##idx##${samplename}.bam.bai
     """
 
     stub:
     """
-    touch ${samplename}.bam ${samplename}.bai
+    touch ${samplename}.bam ${samplename}.bam.bai
     """
 }
 
@@ -83,10 +81,10 @@ process indelrealign {
     label 'process_long'
 
     input:
-    tuple val(samplename), path("${samplename}.bam"), path("${samplename}.bai")
+    tuple val(samplename), path("${samplename}.bam"), path("${samplename}.bam.bai")
 
     output:
-    tuple val(samplename), path("${samplename}.ir.bam"), path("${samplename}.ir.bai")
+    tuple val(samplename), path("${samplename}.ir.bam"), path("${samplename}.ir.bam.bai")
 
     script:
 
@@ -108,7 +106,7 @@ process indelrealign {
 
     stub:
     """
-    touch ${samplename}.ir.bam ${samplename}.ir.bai
+    touch ${samplename}.ir.bam ${samplename}.ir.bam.bai
     """
 
 }
@@ -118,10 +116,11 @@ process bqsr_ir {
     /*
     Base quality recalibration for all samples
     */
+    errorStrategy 'ignore'
     container = "${params.containers.logan}"
     label 'process_low'
     input:
-        tuple val(samplename), path("${samplename}.ir.bam"), path("${samplename}.ir.bai"), path(bed)
+        tuple val(samplename), path("${samplename}.ir.bam"), path("${samplename}.ir.bam.bai"), path(bed)
 
     output:
         tuple val(samplename), path("${samplename}_${bed.simpleName}.recal_data.grp")
@@ -150,7 +149,7 @@ process bqsr {
     container = "${params.containers.logan}"
     label 'process_low'
     input:
-        tuple val(samplename), path("${samplename}.bam"), path("${samplename}.bai"), path(bed)
+        tuple val(samplename), path(bam), path(bai), path(bed)
 
     output:
         tuple val(samplename), path("${samplename}_${bed.simpleName}.recal_data.grp"), optional: true
@@ -158,7 +157,7 @@ process bqsr {
     script:
     """
     gatk --java-options '-Xmx10g' BaseRecalibrator \
-    --input ${samplename}.bam \
+    --input ${bam} \
     --reference ${GENOMEREF} \
     ${KNOWNRECAL} \
     --output ${samplename}_${bed.simpleName}.recal_data.grp \
@@ -174,12 +173,14 @@ process bqsr {
 process gatherbqsr {
     container = "${params.containers.logan}"
     label 'process_low'
+    
     input:
         tuple val(samplename), path(recalgroups)
+
     output:
         tuple val(samplename), path("${samplename}.recal_data.grp")
-    script:
 
+    script:
     strin = recalgroups.join(" --input ")
 
     """
@@ -190,7 +191,6 @@ process gatherbqsr {
     """
 
     stub:
-
     """
     touch ${samplename}.recal_data.grp
     """
@@ -207,7 +207,7 @@ process applybqsr {
         tuple val(samplename), path(bam), path(bai), path("${samplename}.recal_data.grp")
 
     output:
-        tuple val(samplename), path("${samplename}.bqsr.bam"),  path("${samplename}.bqsr.bai")
+        tuple val(samplename), path("${samplename}.bqsr.bam"),  path("${samplename}.bqsr.bam.bai")
 
     script:
 
@@ -224,7 +224,7 @@ process applybqsr {
     stub:
 
     """
-    touch ${samplename}.bqsr.bam ${samplename}.bqsr.bai
+    touch ${samplename}.bqsr.bam ${samplename}.bqsr.bam.bai
     """
 
 }
@@ -238,11 +238,11 @@ process samtoolsindex {
     tuple val(bamname), path(bam)
 
     output:
-    tuple val(bamname), path(bam), path("${bam}.bai")
+    tuple val(bamname), path(bam), path("${bam.simpleName}.bam.bai")
 
     script:
     """
-    samtools index -@ $task.cpus ${bam} ${bam}.bai
+    samtools index -@ $task.cpus ${bam} ${bam.simpleName}.bam.bai
     """
 
     stub:
@@ -258,21 +258,21 @@ process bamtocram_tonly {
     label 'process_medium'
 
     input:
-        tuple val(tumorname), path(tumor), path(tumorbai)
+        tuple val(id), path(bam), path(bai)
 
     output:
-        path("${tumorname}.cram"), path("${tumorname}.cram.crai")
+        tuple val(id), path("${id}.cram"), path("${id}.cram.crai")
 
 
     script:
     """
-        samtools view -@ $task.cpus -C -T $GENOMEREF -o ${sample}.cram $tumor
-        samtools index ${tumorname}.cram -@ $task.cpus
+        samtools view -@ $task.cpus -C -T $GENOMEREF -o ${id}.cram $tumor
+        samtools index ${id}.cram -@ $task.cpus
     """
     
     stub:
     """
-    touch ${tumorname}.cram ${tumorname}.cram.crai
+    touch ${id}.cram ${id}.cram.crai
     """
 }
 

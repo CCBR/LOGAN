@@ -5,9 +5,10 @@ MODEL="/opt/models/wgs/model.ckpt"
 //Processes
 //Deep Variant
 process deepvariant_step1 {
+    module=['deepvariant/1.4.0']
 
     input:
-        tuple val(samplename), path("${samplename}.bam"), path("${samplename}.bai"), path(bed)
+        tuple val(samplename), path(bam), path(bai), path(bed)
 
     output:
         tuple val(samplename), path("outputshard/${samplename}.tfrecord_${bed}.gz"),
@@ -21,7 +22,7 @@ process deepvariant_step1 {
     --mode calling \
     --ref $GENOMEREF \
     --regions ${bed} \
-    --reads ${samplename}.bam \
+    --reads ${bam} \
     --channels insert_size \
     --examples outputshard/${samplename}.tfrecord_${bed}.gz \
     --gvcf gvcf/${samplename}.gvcf.tfrecord_${bed}.gz
@@ -39,7 +40,8 @@ process deepvariant_step1 {
 
 //Step 2 requires GPU
 process deepvariant_step2 {
-
+    module = ['deepvariant/1.4.0']
+    clusterOptions '--gres=gpu:p100:1'
     input:
         tuple val(samplename), path(tfrecords), path(tfgvcf)
 
@@ -67,6 +69,7 @@ process deepvariant_step2 {
 
 //Step 3 DV
 process deepvariant_step3 {
+    module = ['deepvariant/1.4.0']
 
     input:
         tuple val(samplename), path(tfrecords), path("${samplename}_call_variants_output.tfrecord.gz"),
@@ -98,9 +101,10 @@ process deepvariant_step3 {
 
 //Combined DeepVariant
 process deepvariant_combined {
+    module = ['deepvariant/1.4.0']
 
     input:
-        tuple val(samplename), path("${samplename}.bam"), path("${samplename}.bai")
+        tuple val(samplename), path(bam), path(bai)
 
     output:
         tuple val(samplename), path("${samplename}.gvcf.gz"), path("${samplename}.gvcf.gz.tbi"),
@@ -112,7 +116,7 @@ process deepvariant_combined {
     run_deepvariant \
         --model_type=WGS \
         --ref=$GENOMEREF \
-        --reads=${samplename}.bam \
+        --reads=${bam} \
         --output_gvcf= ${samplename}.gvcf.gz \
         --output_vcf=${samplename}.vcf.gz \
         --num_shards=16
@@ -130,6 +134,7 @@ process deepvariant_combined {
 }
 
 process glnexus {
+    module = ['glnexus/1.4.1']
 
     input:
         path(gvcfs)
