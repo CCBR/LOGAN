@@ -1,4 +1,4 @@
-FROM --platform=linux/amd64 nciccbr/ccbr_ubuntu_base_20.04:v5
+FROM --platform=linux/amd64 nciccbr/ccbr_ubuntu_base_20.04:v6
 
 # build time variables
 ARG BUILD_DATE="000000"
@@ -40,9 +40,8 @@ RUN wget https://github.com/fritzsedlazeck/SURVIVOR/archive/refs/tags/v1.0.6.tar
     && rm /opt2/v1.0.6.tar.gz \
     && cd /opt2/SURVIVOR-1.0.6/Debug \
     && make
-ENV PATH="/opt2/SURVIVOR-1.0.6/:$PATH"
+ENV PATH="/opt2/SURVIVOR-1.0.6/Debug:$PATH"
 
 
 COPY Dockerfile /opt2/Dockerfile_${REPONAME}.${BUILD_TAG}
 RUN chmod a+r /opt2/Dockerfile_${REPONAME}.${BUILD_TAG}
-

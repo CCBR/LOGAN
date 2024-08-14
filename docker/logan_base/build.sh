@@ -5,13 +5,13 @@
 #docker buildx inspect upbeat_ganguly
 #docker buildx build --platform linux/amd64 -f Dockerfile -t dnousome/ccbr_logan_base:v0.3.0 -t dnousome/ccbr_logan_base:latest --push .
 
-docker build --platform linux/amd64 --tag ccbr_logan_base:v0.3.6 -f Dockerfile . 
+docker build --platform linux/amd64 --tag ccbr_logan_base:v0.3.7 -f Dockerfile . 
 
-docker tag ccbr_logan_base:v0.3.6 dnousome/ccbr_logan_base:v0.3.6
-docker tag ccbr_logan_base:v0.3.6 dnousome/ccbr_logan_base
+docker tag ccbr_logan_base:v0.3.7 dnousome/ccbr_logan_base:v0.3.7
+docker tag ccbr_logan_base:v0.3.7 dnousome/ccbr_logan_base
 
 
-docker push dnousome/ccbr_logan_base:v0.3.6
+docker push dnousome/ccbr_logan_base:v0.3.7
 docker push dnousome/ccbr_logan_base:latest
 
 

@@ -25,19 +25,42 @@ RUN apt-get update \
 
 # Common bioinformatics tools 
 # bwa/0.7.17-4  bowtie/1.2.3  bowtie2/2.3.5.1 
-# bedtools/2.27.1  bedops/2.4.37  samtools/1.10 
-# bcftools/1.10.2  vcftools/0.1.16  
-# Previous tools already installed  tabix/1.10.2 trimmomatic/0.39 
+# bedtools/2.27.1  bedops/2.4.37 
+# vcftools/0.1.16  
+# Previous tools already installed 
+# tabix/1.10.2 
 RUN DEBIAN_FRONTEND=noninteractive apt-get install -y \
     tabix \
     libhts-dev
-
       
 # Install BWA-MEM2 v2.2.1
 RUN wget https://github.com/bwa-mem2/bwa-mem2/releases/download/v2.2.1/bwa-mem2-2.2.1_x64-linux.tar.bz2 \
     && tar -xvjf /opt2/bwa-mem2-2.2.1_x64-linux.tar.bz2 \
-    && rm /opt2/bwa-mem2-2.2.1_x64-linux.tar.bz2 
+    && rm /opt2/bwa-mem2-2.2.1_x64-linux.tar.bz2  
 ENV PATH="/opt2/bwa-mem2-2.2.1_x64-linux:$PATH"
+
+# samtools/1.10  # bcftools/1.10.2  are dated in package
+RUN wget https://github.com/samtools/htslib/releases/download/1.20/htslib-1.20.tar.bz2 \
+    && tar -vxjf htslib-1.20.tar.bz2 \
+    && cd htslib-1.20 \
+    && make \
+    && rm /opt2/htslib-1.20.tar.bz2
+ENV PATH="/opt2/htslib-1.20:$PATH"
+
+RUN wget https://github.com/samtools/samtools/releases/download/1.20/samtools-1.20.tar.bz2 \
+    && tar -vxjf samtools-1.20.tar.bz2 \
+    && cd samtools-1.20 \
+    && make \
+    && rm /opt2/samtools-1.20.tar.bz2
+ENV PATH="/opt2/samtools-1.20:$PATH"
+
+RUN wget https://github.com/samtools/bcftools/releases/download/1.20/bcftools-1.20.tar.bz2 \
+    && tar -vxjf bcftools-1.20.tar.bz2 \
+    && cd bcftools-1.20 \
+    && make \
+    && rm /opt2/bcftools-1.20.tar.bz2
+ENV PATH="/opt2/bcftools-1.20:$PATH"
+
 
 # Install Sambamba/0.8.1 for CTRL-Freec
 # not available to apt-get on Ubuntu 20.04
@@ -184,7 +207,7 @@ RUN wget http://opengene.org/fastp/fastp.0.23.4 \
     && chmod a+x fastp/fastp
 ENV PATH="/opt2/fastp:$PATH"
 
-# ASCAT 
+#ASCAT 
 RUN Rscript -e 'devtools::install_github("VanLoo-lab/ascat/ASCAT")'
 
 # SvABA
