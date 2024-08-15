@@ -44,7 +44,6 @@ process bwamem2 {
     container = "${params.containers.logan}"
     tag { name }
 
-
     input:
         tuple val(samplename),
         path("${samplename}.R1.trimmed.fastq.gz"),
@@ -59,13 +58,14 @@ process bwamem2 {
     sub_cpus = "$task.cpus".toInteger()/2
 
     """
-     bwa-mem2 mem -M \
+    mkdir -p tmp
+    bwa-mem2 mem -M \
         -R '@RG\\tID:${samplename}\\tSM:${samplename}\\tPL:illumina\\tLB:${samplename}\\tPU:${samplename}\\tCN:hgsc\\tDS:wgs' \
         -t $task.cpus \
         ${GENOMEREF} \
         ${samplename}.R1.trimmed.fastq.gz ${samplename}.R2.trimmed.fastq.gz | \
     samblaster -M | \
-    samtools sort -@ $sub_cpus -m 10G - --write-index -o ${samplename}.bam##idx##${samplename}.bam.bai
+    samtools sort -T tmp/ -@ $sub_cpus -m 10G - --write-index -o ${samplename}.bam##idx##${samplename}.bam.bai
     """
 
     stub:
@@ -207,7 +207,7 @@ process applybqsr {
         tuple val(samplename), path(bam), path(bai), path("${samplename}.recal_data.grp")
 
     output:
-        tuple val(samplename), path("${samplename}.bqsr.bam"),  path("${samplename}.bqsr.bam.bai")
+        tuple val(samplename), path("${samplename}.bqsr.bam"), path("${samplename}.bqsr.bai")
 
     script:
 
@@ -219,12 +219,13 @@ process applybqsr {
         --output ${samplename}.bqsr.bam \
         --use-jdk-inflater \
         --use-jdk-deflater
+        
     """
 
     stub:
 
     """
-    touch ${samplename}.bqsr.bam ${samplename}.bqsr.bam.bai
+    touch ${samplename}.bqsr.bam ${samplename}.bqsr.bai
     """
 
 }
