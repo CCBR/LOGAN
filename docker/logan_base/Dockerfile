@@ -21,7 +21,7 @@ RUN apt-get update \
  && apt-get -y upgrade \
  && DEBIAN_FRONTEND=noninteractive apt-get install -y \
       bc \
-      openjdk-17-jdk   #Needed for GATK >4
+      openjdk-17-jdk   
 
 # Common bioinformatics tools 
 # bwa/0.7.17-4  bowtie/1.2.3  bowtie2/2.3.5.1 
@@ -77,6 +77,10 @@ RUN wget https://github.com/broadinstitute/gatk/releases/download/4.6.0.0/gatk-4
     && /opt2/gatk-4.6.0.0/gatk --list
 ENV PATH="/opt2/gatk-4.6.0.0:$PATH"
 
+# Picard
+RUN mkdir picard \
+ && wget -O picard/picard.jar https://github.com/broadinstitute/picard/releases/download/3.2.0/picard.jar \
+ENV PICARDJARPATH="/opt2/picard"
 
 #Use DISCVRSeq For CombineVariants Replacement
 #RUN wget https://github.com/BimberLab/DISCVRSeq/releases/download/1.3.62/DISCVRSeq-1.3.62.jar 
@@ -138,14 +142,6 @@ RUN wget https://github.com/BoevaLab/FREEC/archive/refs/tags/v11.6.zip \
     && make
 ENV PATH="/opt2/FREEC-11.6/src:$PATH"
 WORKDIR /opt2 
-
-
-# Install Somalier/v0.2.19
-# download static binary
-RUN mkdir somalier  \
-    && wget -O somalier/somalier https://github.com/brentp/somalier/releases/download/v0.2.19/somalier \
-    && chmod a+rx /opt2/somalier/somalier
-ENV PATH="/opt2/somalier:$PATH"
 
 
 # Install VarScan/v2.4.4
@@ -229,7 +225,7 @@ WORKDIR /opt2
 RUN wget https://github.com/hartwigmedical/hmftools/releases/download/amber-v4.0.1/amber_v4.0.1.jar \
     && wget https://github.com/hartwigmedical/hmftools/releases/download/cobalt-v1.16/cobalt_v1.16.jar \
     && wget https://github.com/hartwigmedical/hmftools/releases/download/purple-v4.0.2/purple_v4.0.2.jar \
-    && wget https://github.com/hartwigmedical/hmftools/releases/download/sage-v3.4.4/sage_v3.4.4.jar \ 
+    && wget https://github.com/hartwigmedical/hmftools/releases/download/sage-v3.4.4/sage_v3.4.4.jar \
     && mkdir hmftools \
     && mv amber_v4.0.1.jar hmftools/amber.jar \
     && mv cobalt_v1.16.jar hmftools/cobalt.jar \

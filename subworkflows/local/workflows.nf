@@ -10,7 +10,8 @@ include {fastp; bwamem2; indelrealign; bqsr_ir;
     bqsr; gatherbqsr; applybqsr; samtoolsindex} from  '../../modules/local/trim_align.nf'
 
 include {deepvariant_step1; deepvariant_step2; deepvariant_step3;
-    deepvariant_combined;glnexus} from '../../modules/local/germline.nf'
+    deepvariant_combined;glnexus;
+    bcfconcat as bcfconcat_vcf;bcfconcat as bcfconcat_gvcf} from '../../modules/local/germline.nf'
 
 include {pileup_paired_t; pileup_paired_n; 
     mutect2; mutect2filter; 
@@ -40,8 +41,8 @@ include {mutect2_t_tonly; mutect2filter_tonly;
     annotvep_tonly as annotvep_tonly_combined;
     combinemafs_tonly;somaticcombine_tonly} from '../../modules/local/variant_calling_tonly.nf'
 
-include {svaba_somatic; manta_somatic;
-    survivor_sv; gunzip;
+include {svaba_somatic; manta_somatic; gridss_somatic;
+    survivor_sv; gunzip as gunzip_manta; gunzip as gunzip_gridss; 
     annotsv_tn as annotsv_survivor_tn
     annotsv_tn as annotsv_svaba;annotsv_tn as annotsv_manta} from '../../modules/local/structural_variant.nf'
 
@@ -136,23 +137,26 @@ workflow ALIGN {
 }
 
 workflow GL {
-    //GERMLINE REQUIRES only BAMBYINTERVAL
     take:
         bambyinterval
+    
     main:
-    deepvariant_step1(bambyinterval)
-    deepvariant_1_sorted=deepvariant_step1.out.groupTuple()
-        .map { samplename,tfbeds,gvcfbed -> tuple( samplename,
-        tfbeds.toSorted{ it -> (it.name =~ /${samplename}.tfrecord_(.*?).bed.gz/)[0][1].toInteger() } ,
-        gvcfbed.toSorted{ it -> (it.name =~ /${samplename}.gvcf.tfrecord_(.*?).bed.gz/)[0][1].toInteger() } )
-        }
-    deepvariant_step2(deepvariant_1_sorted) | deepvariant_step3
-    glin=deepvariant_step3.out.map{samplename,vcf,vcf_tbi,gvcf,gvcf_tbi -> gvcf}.collect()
+    deepvariant_step1(bambyinterval) | deepvariant_step2  
+    | deepvariant_step3  |groupTuple
+    | multiMap{samplename,vcf,vcf_tbi,gvcf,gvcf_tbi -> 
+        vcf: tuple(samplename,vcf.toSorted{it -> (it.name =~ /${samplename}_(.*?).bed.vcf.gz/)[0][1].toInteger()},vcf_tbi,"vcf")
+        gvcf: tuple(samplename,gvcf.toSorted{it -> (it.name =~ /${samplename}_(.*?).bed.gvcf.gz/)[0][1].toInteger()},gvcf_tbi,"gvcf")
+            }
+    | set{dv_out} 
+    dv_out.vcf | bcfconcat_vcf 
+    dv_out.gvcf | bcfconcat_gvcf | map{sample,gvcf,index -> gvcf} 
+        | collect 
+        | glnexus
+    deepvariant_out=bcfconcat_vcf.out | join(bcfconcat_gvcf.out) 
 
-    glnexus(glin)
     emit:
         glnexusout=glnexus.out
-        bcfout=deepvariant_step3.out
+        bcfout=deepvariant_out
 
 }
 
@@ -462,27 +466,39 @@ workflow SV {
 
     main:
         svcall_list = params.svcallers.split(',') as List
+        svout=Channel.empty()
 
-        if ("svaba" in svcall_list){
         //Svaba
+        if ("svaba" in svcall_list){
             svaba_out=svaba_somatic(bamwithsample)
-            .map{ tumor,bps,contigs,discord,alignents,gindel,gsv,so_indel,so_sv,unfil_gindel,unfil_gsv,unfil_so_indel,unfil_sv,log ->
+            | map{ tumor,bps,contigs,discord,alignents,gindel,gsv,so_indel,so_sv,unfil_gindel,unfil_gsv,unfil_so_indel,unfil_sv,log ->
                 tuple(tumor,so_sv,"svaba")}
-            //annotsv_svaba(svaba_out).ifEmpty("Empty SV input--No SV annotated")
+            svout=svout | concat(svaba_out)
         }
-        if ("manta" in svcall_list){
+
         //Manta
+        if ("manta" in svcall_list){
         manta_out=manta_somatic(bamwithsample)
             .map{tumor,gsv,so_sv,unfil_sv,unfil_indel ->
-            tuple(tumor,so_sv,"manta")}
+            tuple(tumor,so_sv,"manta")} | gunzip_manta
         //annotsv_manta(manta_out).ifEmpty("Empty SV input--No SV annotated")
+            svout=svout | concat(manta_out)
         }
 
-        if ("manta" in svcall_list & "svaba" in svcall_list){
+        //GRIDSS
+        if ("gridss" in svcall_list){
+        gridss_out=gridss_somatic(bamwithsample)
+            .map{tumor,normal,vcf,index,bam,gripssvcf,gripsstbi,gripssfilt,filttbi ->
+            tuple(tumor,gripssfilt,"gridss")} | gunzip_gridss
+            svout=svout | concat(gridss_out)
+        }
+
+        if (svcall_list.size()>1){
             //Survivor
-            gunzip(manta_out).concat(svaba_out).groupTuple()
+            svout | groupTuple
                 | survivor_sv 
-                | annotsv_survivor_tn | ifEmpty("Empty SV input--No SV annotated")
+                | annotsv_survivor_tn 
+                | ifEmpty("Empty SV input--No SV annotated")
          }
 }
 

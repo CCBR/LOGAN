@@ -2,8 +2,15 @@ GENOMEREF=file(params.genomes[params.genome].genome)
 ANNOTSVGENOME=params.genomes[params.genome].annotsvgenome
 BWAGENOME=file(params.genomes[params.genome].bwagenome)
 INDELREF=file(params.genomes[params.genome].INDELREF)
+BLACKLIST=file(params.genomes[params.genome].GRIDSSBLACKLIST)
 
-
+if (params.genome.matches("hg38(.*)")| params.genome.matches("hg19(.*)")){
+    GENOMEVER = params.genomes[params.genome].GENOMEVER
+    PONSGL = file(params.genomes[params.genome].PONSGL)
+    PONSV = file(params.genomes[params.genome].PONSV)
+    SVHOTSPOT = file(params.genomes[params.genome].SVHOTSPOT)
+    REPEATMASK = file(params.genomes[params.genome].REPEATMASK)
+}
 
 process svaba_somatic {
     container = "${params.containers.logan}"
@@ -100,9 +107,65 @@ process manta_somatic {
 }
 
 
+process gridss_somatic {
+    label 'process_high'
+    container = "${params.containers.sv}"
+
+    input:
+        tuple val(tumorname), path(tumor), 
+        path(tumorbai), val(normalname), path(normal), path(normalbai)
+
+    output:
+        tuple val(tumorname), val(normalname),
+        path("${tumorname}_vs_${normalname}.vcf.gz"),
+        path("${tumorname}_vs_${normalname}.vcf.gz.tbi"),
+        path("${tumorname}_vs_${normalname}.vcf.gz.assembly.bam"),
+        path("${tumorname}_vs_${normalname}.gripss.vcf.gz"),
+        path("${tumorname}_vs_${normalname}.gripss.vcf.gz.tbi"),
+        path("${tumorname}_vs_${normalname}.gripss.filtered.vcf.gz"),
+        path("${tumorname}_vs_${normalname}.gripss.filtered.vcf.gz.tbi")
+
+    script:
+    """
+    gridss -r ${GENOMEREF} \
+    -o ${tumorname}_vs_${normalname}.vcf.gz -b $BLACKLIST \
+    ${tumor} ${normal} -t $task.cpus
+
+    java -jar /opt2/hmftools/gripss.jar \
+    -sample ${tumorname} \
+    -reference ${normalname} \
+    -ref_genome_version $GENOMEVER \
+    -ref_genome $GENOMEREF  \
+    -pon_sgl_file $PONSGL \
+    -pon_sv_file $PONSV \
+    -known_hotspot_file $SVHOTSPOT \
+    -repeat_mask_file $REPEATMASK \
+    -vcf ${tumorname}_vs_${normalname}.vcf.gz \
+    -output_dir ${tumorname}_vs_${normalname}
+
+    mv ${tumorname}_vs_${normalname}/* .
+    """
+
+
+    stub:
+
+    """
+    touch "${tumorname}_vs_${normalname}.vcf.gz"
+    touch "${tumorname}_vs_${normalname}.vcf.gz.tbi"
+    touch "${tumorname}_vs_${normalname}.vcf.gz.assembly.bam"
+    touch "${tumorname}_vs_${normalname}.gripss.vcf.gz"
+    touch "${tumorname}_vs_${normalname}.gripss.vcf.gz.tbi"
+    touch "${tumorname}_vs_${normalname}.gripss.filtered.vcf.gz"
+    touch "${tumorname}_vs_${normalname}.gripss.filtered.vcf.gz.tbi"
+    """
+}
+
+
+
 process annotsv_tn {
-     //AnnotSV for Manta/Svaba works with either vcf.gz or .vcf files
+     //AnnotSV for Manta/Svaba/GRIDSS works with either vcf.gz or .vcf files
      //Requires bedtools,bcftools
+    errorStrategy = 'ignore'
     container = "${params.containers.annotcnvsv}"
 
     input:
@@ -228,17 +291,17 @@ process gunzip {
 
     output:
         tuple val(tumorname),
-        path("${tumorname}.tumorSV.vcf"), val(sv)
+        path("${tumorname}.tumorSV_${sv}.vcf"), val(sv)
 
     script:
     """
-    gunzip -f ${vcf} > ${tumorname}.tumorSV.vcf
+    gunzip -f ${vcf} > ${tumorname}.tumorSV_${sv}.vcf
     """
 
     stub:
 
     """
-    touch ${tumorname}.tumorSV.vcf
+    touch ${tumorname}.tumorSV_${sv}.vcf
     """
 
 }
@@ -249,7 +312,7 @@ process survivor_sv {
 
     input:
         tuple val(tumorname),
-        path(vcfs),val(svs)
+        path(vcfs), val(svs)
 
     output:
         tuple val(tumorname),
@@ -277,6 +340,8 @@ process survivor_sv {
 process annotsv_tonly {
      //AnnotSV for Manta/Svaba works with either vcf.gz or .vcf files
      //Requires bedtools,bcftools
+    errorStrategy = 'ignore'
+
     container = "${params.containers.annotcnvsv}"
 
     input:
