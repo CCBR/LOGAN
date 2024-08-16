@@ -13,7 +13,7 @@ LOFREQ_CONVERT=params.lofreq_convert
 SOMATIC_FOREST=params.genomes[params.genome].octopus_sforest
 GERMLINE_FOREST=params.genomes[params.genome].octopus_gforest
 //HMFTOOLS
-HOTSPOTS=params.genomes[params.genome].HOTSPOTS
+SOMATICHOTSPOTS=params.genomes[params.genome].SOMATICHOTSPOTS
 PANELBED=params.genomes[params.genome].PANELBED
 HCBED=params.genomes[params.genome].HCBED
 ENSEMBLCACHE=params.genomes[params.genome].ENSEMBLCACHE
@@ -507,7 +507,7 @@ script:
     -threads $task.cpus \
     -ref_genome_version $GENOMEVER \
     -ref_genome $GENOMEREF \
-    -hotspots $HOTSPOTS \
+    -hotspots $SOMATICHOTSPOTS \
     $PANELBED $HCBED $ENSEMBLCACHE \
     -output_vcf ${tumorname}_vs_${normalname}.sage.vcf.gz
     """
