@@ -127,7 +127,7 @@ process gridss_somatic {
 
     script:
     """
-    gridss -r ${GENOMEREF} \
+    gridss -r $BWAGENOME \
     -o ${tumorname}_vs_${normalname}.vcf.gz -b $BLACKLIST \
     ${tumor} ${normal} -t $task.cpus
 
