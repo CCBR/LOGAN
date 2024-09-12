@@ -129,19 +129,21 @@ process gridss_somatic {
     """
     gridss -r $BWAGENOME \
     -o ${tumorname}_vs_${normalname}.vcf.gz -b $BLACKLIST \
-    ${tumor} ${normal} -t $task.cpus
+    ${normal} ${tumor} -t $task.cpus
+
+    mkdir -p ${tumorname}_vs_${normalname}
 
     java -jar /opt2/hmftools/gripss.jar \
-    -sample ${tumorname} \
-    -reference ${normalname} \
-    -ref_genome_version $GENOMEVER \
-    -ref_genome $GENOMEREF  \
-    -pon_sgl_file $PONSGL \
-    -pon_sv_file $PONSV \
-    -known_hotspot_file $SVHOTSPOT \
-    -repeat_mask_file $REPEATMASK \
-    -vcf ${tumorname}_vs_${normalname}.vcf.gz \
-    -output_dir ${tumorname}_vs_${normalname}
+        -sample ${tumorname} \
+        -reference ${normalname} \
+        -ref_genome_version $GENOMEVER \
+        -ref_genome $GENOMEREF  \
+        -pon_sgl_file $PONSGL \
+        -pon_sv_file $PONSV \
+        -known_hotspot_file $SVHOTSPOT \
+        -repeat_mask_file $REPEATMASK \
+        -vcf ${tumorname}_vs_${normalname}.vcf.gz \
+        -output_dir ${tumorname}_vs_${normalname}
 
     mv ${tumorname}_vs_${normalname}/* .
     """
