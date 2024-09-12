@@ -8,12 +8,11 @@
 docker build --platform linux/amd64 --tag ccbr_logan_base:v0.3.7 -f Dockerfile . 
 
 docker tag ccbr_logan_base:v0.3.7 dnousome/ccbr_logan_base:v0.3.7
-docker tag ccbr_logan_base:v0.3.7 dnousome/ccbr_logan_base
+docker tag ccbr_logan_base:v0.3.7 dnousome/ccbr_logan_base:latest
 
 
 docker push dnousome/ccbr_logan_base:v0.3.7
 docker push dnousome/ccbr_logan_base:latest
-
 
 
 
