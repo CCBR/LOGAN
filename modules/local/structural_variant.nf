@@ -120,10 +120,10 @@ process gridss_somatic {
         path("${tumorname}_vs_${normalname}.vcf.gz"),
         path("${tumorname}_vs_${normalname}.vcf.gz.tbi"),
         path("${tumorname}_vs_${normalname}.vcf.gz.assembly.bam"),
-        path("${tumorname}_vs_${normalname}.gripss.vcf.gz"),
-        path("${tumorname}_vs_${normalname}.gripss.vcf.gz.tbi"),
-        path("${tumorname}_vs_${normalname}.gripss.filtered.vcf.gz"),
-        path("${tumorname}_vs_${normalname}.gripss.filtered.vcf.gz.tbi")
+        path("${tumorname}.gripss.vcf.gz"),
+        path("${tumorname}.gripss.vcf.gz.tbi"),
+        path("${tumorname}.gripss.filtered.vcf.gz"),
+        path("${tumorname}.gripss.filtered.vcf.gz.tbi")
 
     script:
     """
@@ -155,10 +155,10 @@ process gridss_somatic {
     touch "${tumorname}_vs_${normalname}.vcf.gz"
     touch "${tumorname}_vs_${normalname}.vcf.gz.tbi"
     touch "${tumorname}_vs_${normalname}.vcf.gz.assembly.bam"
-    touch "${tumorname}_vs_${normalname}.gripss.vcf.gz"
-    touch "${tumorname}_vs_${normalname}.gripss.vcf.gz.tbi"
-    touch "${tumorname}_vs_${normalname}.gripss.filtered.vcf.gz"
-    touch "${tumorname}_vs_${normalname}.gripss.filtered.vcf.gz.tbi"
+    touch "${tumorname}.gripss.vcf.gz"
+    touch "${tumorname}.gripss.vcf.gz.tbi"
+    touch "${tumorname}.gripss.filtered.vcf.gz"
+    touch "${tumorname}.gripss.filtered.vcf.gz.tbi"
     """
 }
 
