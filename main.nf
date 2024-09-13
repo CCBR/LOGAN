@@ -37,13 +37,14 @@ workflow.onComplete {
 
 //Final Workflow
 workflow {
-        if ([params.fastq_input,params.fastq_file_input].any() && params.sample_sheet){
+    //Tumor-Normal FASTQ
+    if ([params.fastq_input,params.fastq_file_input].any() && params.sample_sheet){
         println "Tumor-Normal FASTQ"
         INPUT()
         ALIGN(INPUT.out.fastqinput,INPUT.out.sample_sheet)
     //Germline
         if (params.gl){
-           GL(ALIGN.out.bambyinterval)
+           GL(ALIGN.out.sample_sheet,ALIGN.out.bambyinterval)
         }
         //Tumor-Normal VC, SV, CNV
         if (params.vc){
@@ -71,7 +72,7 @@ workflow {
 
     }
 
-    //TUMOR-NOMRAL BAM INPUT
+    //TUMOR-NORMAL BAM INPUT
     if ([params.bam_input,params.bam_file_input].any() && params.sample_sheet){
         println "Tumor-Normal BAM"
         INPUT_BAM()
@@ -80,6 +81,9 @@ workflow {
         }
         if (params.sv){
             SV(INPUT_BAM.out.bamwithsample)
+        }
+        if (params.gl){
+           GL(INPUT_BAM.out.sample_sheet,INPUT_BAM.out.bambyinterval)
         }
         if (params.cnv){
             if (params.genome == "mm10"){
@@ -92,6 +96,7 @@ workflow {
                 }
             }
         }
+
     }
 
     ///Tumor Only Pipelines
