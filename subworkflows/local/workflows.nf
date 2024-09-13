@@ -13,7 +13,7 @@ include {deepvariant_step1; deepvariant_step2; deepvariant_step3;
     deepvariant_combined;glnexus;
     bcfconcat as bcfconcat_vcf;bcfconcat as bcfconcat_gvcf} from '../../modules/local/germline.nf'
 
-include {pileup_paired_t; pileup_paired_n; 
+include {pileup_paired as pileup_paired_t; pileup_paired as pileup_paired_n; 
     mutect2; mutect2filter; 
     contamination_paired; learnreadorientationmodel;mergemut2stats;
     strelka_tn; 
@@ -76,7 +76,7 @@ workflow INPUT {
     }
 
     if(params.sample_sheet){
-        sample_sheet=Channel.fromPath(params.sample_sheet, checkIfExists: true).view()
+        sample_sheet=Channel.fromPath(params.sample_sheet, checkIfExists: true) | view()
                        .ifEmpty { "sample sheet not found" }
                        .splitCsv(header:true, sep: "\t", strip:true)
                        .map { row -> tuple(
@@ -138,12 +138,16 @@ workflow ALIGN {
 
 workflow GL {
     take:
+        sample_sheet
         bambyinterval
     
     main:
-    deepvariant_step1(bambyinterval) | deepvariant_step2  
-    | deepvariant_step3  |groupTuple
-    | multiMap{samplename,vcf,vcf_tbi,gvcf,gvcf_tbi -> 
+    //Keep Only the NormalSamples
+    bambyinterval_normonly=sample_sheet | map{t,n -> tuple(n)} | unique() | join(bambyinterval) 
+
+    deepvariant_step1(bambyinterval_normonly) | deepvariant_step2  
+        | deepvariant_step3 | groupTuple
+        | multiMap{samplename,vcf,vcf_tbi,gvcf,gvcf_tbi -> 
         vcf: tuple(samplename,vcf.toSorted{it -> (it.name =~ /${samplename}_(.*?).bed.vcf.gz/)[0][1].toInteger()},vcf_tbi,"vcf")
         gvcf: tuple(samplename,gvcf.toSorted{it -> (it.name =~ /${samplename}_(.*?).bed.gvcf.gz/)[0][1].toInteger()},gvcf_tbi,"gvcf")
             }
@@ -169,8 +173,8 @@ workflow VC {
 
     main:
     //Create Pairing for TN (in case of dups)
-    sample_sheet_paired=sample_sheet|map{tu,no -> tuple ("${tu}_vs_${no}",tu, no)} |view()
-    bambyinterval=bamwithsample.combine(splitout.flatten())
+    sample_sheet_paired=sample_sheet | map{tu,no -> tuple ("${tu}_vs_${no}",tu, no)} | view()
+    bambyinterval=bamwithsample.combine(splitout.flatten()) 
 
     bambyinterval 
         | multiMap {tumorname,tumor,tumorbai,normalname,normalbam,normalbai,bed -> 
@@ -180,7 +184,7 @@ workflow VC {
         | set{bambyinterval_tonly}
         
         bambyinterval_t=bambyinterval_tonly.t1 |
-            concat(bambyinterval_tonly.n1) |unique() 
+            concat(bambyinterval_tonly.n1) | unique() 
 
     //Prep Pileups
     call_list = params.callers.split(',') as List
@@ -192,32 +196,41 @@ workflow VC {
 
     //Common for Mutect2/Varscan
     if ("mutect2" in call_list | "varscan" in call_list){ 
-        pileup_paired_t(bambyinterval) 
-        pileup_paired_n(bambyinterval) 
+        bambyinterval | 
+            map{tumorname,tumor,tumorbai,normalname,normal,normalbai,bed -> tuple(tumorname,tumor,tumorbai,bed,"tpileup")} |
+            unique |
+            pileup_paired_t 
+        bambyinterval | 
+            map{tumorname,tumor,tumorbai,normalname,normal,normalbai,bed -> tuple(normalname,normal,normalbai,bed,"npileup")} |
+            unique |
+            pileup_paired_n
 
-        pileup_paired_t.out.groupTuple(by:[0,1]) 
-            | multiMap { samplename, normalname, pileups -> 
-                tout: tuple( samplename, normalname,
+        pileup_paired_t.out | groupTuple |
+            multiMap { samplename, pileups -> 
+                tout: tuple( samplename,
                     pileups.toSorted{ it -> (it.name =~ /${samplename}_(.*?).tpileup.table/)[0][1].toInteger() } )
                 tonly: tuple( samplename,
                     pileups.toSorted{ it -> (it.name =~ /${samplename}_(.*?).tpileup.table/)[0][1].toInteger() } )
                     }
             | set{pileup_paired_tout}
         
-        pileup_paired_n.out.groupTuple(by:[0,1])
-            | multiMap { samplename, normalname, pileups-> 
-                nout: tuple (samplename,normalname,
+        pileup_paired_n.out | groupTuple |
+            multiMap { normalname, pileups -> 
+                nout: tuple (normalname,
                     pileups.toSorted{ it -> (it.name =~ /${normalname}_(.*?).npileup.table/)[0][1].toInteger() } )
                 nonly: tuple (normalname,
                     pileups.toSorted{ it -> (it.name =~ /${normalname}_(.*?).npileup.table/)[0][1].toInteger() } )
                     }
                 | set{pileup_paired_nout}
 
-        pileup_paired_match=pileup_paired_tout.tout.join(pileup_paired_nout.nout,by:[0,1])
+        pileup_paired_match=sample_sheet_paired |map{id,t,n-> tuple(t,id,n)} | combine(pileup_paired_tout.tout,by:0) | 
+            map{it.swap(2,0)} |  combine(pileup_paired_nout.nout,by:0)  |map{no,id,tu,tpi,npi->tuple(tu,no,tpi,npi)}
+ 
+        //pileup_paired_match=pileup_paired_tout.tout.join(pileup_paired_nout.nout,by:[0,1])
         contamination_paired(pileup_paired_match)
 
         if (!params.no_tonly){
-        pileup_all=pileup_paired_tout.tonly.concat(pileup_paired_nout.nonly) 
+        pileup_all=pileup_paired_tout.tonly | concat(pileup_paired_nout.nonly) 
         contamination_tumoronly(pileup_all) 
         }
     }
@@ -297,7 +310,6 @@ workflow VC {
 
         vc_all=vc_all|concat(strelka_in)
 
-
     }
 
     if ("vardict" in call_list){
@@ -335,10 +347,9 @@ workflow VC {
 
         vc_all=vc_all|concat(varscan_in)
 
-
         if (!params.no_tonly){
         //VarScan TOnly
-        varscan_in_tonly=bambyinterval_t.combine(contamination_tumoronly.out,by:0) 
+        varscan_in_tonly=bambyinterval_t.combine(contamination_tumoronly.out,by:0)  
         | varscan_tonly  | groupTuple 
         | map{tumor,vcf-> tuple(tumor,vcf.toSorted{it -> (it.name =~ /${tumor}_(.*?).tonly.varscan.vcf.gz/)[0][1].toInteger()},"varscan_tonly")}  
         | combineVariants_varscan_tonly 
@@ -479,7 +490,7 @@ workflow SV {
         //Manta
         if ("manta" in svcall_list){
         manta_out=manta_somatic(bamwithsample)
-            .map{tumor,gsv,so_sv,unfil_sv,unfil_indel ->
+            | map{tumor,gsv,so_sv,unfil_sv,unfil_indel ->
             tuple(tumor,so_sv,"manta")} | gunzip_manta
         //annotsv_manta(manta_out).ifEmpty("Empty SV input--No SV annotated")
             svout=svout | concat(manta_out)
@@ -488,7 +499,7 @@ workflow SV {
         //GRIDSS
         if ("gridss" in svcall_list){
         gridss_out=gridss_somatic(bamwithsample)
-            .map{tumor,normal,vcf,index,bam,gripssvcf,gripsstbi,gripssfilt,filttbi ->
+            | map{tumor,normal,vcf,index,bam,gripssvcf,gripsstbi,gripssfilt,filttbi ->
             tuple(tumor,gripssfilt,"gridss")} | gunzip_gridss
             svout=svout | concat(gridss_out)
         }
@@ -722,10 +733,10 @@ workflow INPUT_BAM {
     //Either BAM Input or File sheet input
     if(params.bam_input){
         //Check if Index is .bai or .bam.bai
-        bambai=params.bam_input +".bai"
+        bambai = params.bam_input + ".bai"
         baionly = bambai.replace(".bam", "")
-        bamcheck1=file(bambai)
-        bamcheck2=file(baionly)
+        bamcheck1 = file(bambai)
+        bamcheck2 = file(baionly)
 
         if (bamcheck1.size()>0){
             baminputonly=Channel.fromPath(params.bam_input)
@@ -738,7 +749,6 @@ workflow INPUT_BAM {
         }else if (bamcheck1.size==0 && bamcheck2.size==0){
             println "Missing BAM Index"
         }
-
     }else if(params.bam_file_input) {
         baminputonly=Channel.fromPath(params.bam_file_input)
                         .splitCsv(header: false, sep: "\t", strip:true)
@@ -752,6 +762,7 @@ workflow INPUT_BAM {
         intervalbedin = Channel.fromPath(params.genomes[params.genome].intervals,checkIfExists: true,type: 'file')
     }
     splitinterval(intervalbedin)
+    
 
     if (params.indelrealign){ 
         bqsrs = baminputonly | indelrealign | combine(splitinterval.out.flatten()) 
@@ -764,15 +775,21 @@ workflow INPUT_BAM {
         baminput2=baminputonly.combine(bqsrs,by:0) 
             |applybqsr
 
-        bamwithsample=baminput2.combine(sample_sheet,by:0).map{it.swap(3,0)}.combine(baminputonly,by:0).map{it.swap(3,0)} 
-       
+        bamwithsample=baminput2.combine(sample_sheet,by:0).map{it.swap(3,0)}.combine(baminputonly,by:0).map{it.swap(3,0)}        
     } else {
         bamwithsample=baminputonly.combine(sample_sheet,by:0).map{it.swap(3,0)}.combine(baminputonly,by:0).map{it.swap(3,0)}
         
     }
+        bambyinterval_norm=bamwithsample
+            | map {tumo,tubam,tbai,norm,norbam,norbai -> tuple(norm,norbam,norbai)} 
+        bambyinterval_tum=bamwithsample
+            | map {tum,tubam,tbai,norm,norbam,norbai -> tuple(tum,tubam,tbai)} 
+        bambyinterval=bambyinterval_tum | concat(bambyinterval_norm) | unique
+            | combine(splitinterval.out.flatten()) 
 
     emit:
         bamwithsample
+        bambyinterval
         splitout=splitinterval.out
         sample_sheet
 

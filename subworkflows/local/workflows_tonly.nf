@@ -63,7 +63,7 @@ workflow INPUT_TONLY {
                        .splitCsv(header:true, sep: "\t")
                        .map { row -> tuple(
                         row.Tumor
-                        )}  |view
+                        )}  | view
     }else{
         sample_sheet=fastqinput.map{samplename,f1 -> tuple (
              samplename)} |view

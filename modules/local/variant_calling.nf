@@ -59,6 +59,37 @@ process mutect2 {
     """
 }
 
+process pileup_paired {
+    container "${params.containers.logan}"
+    label 'process_highmem'
+
+    input:
+        tuple val(tumorname),
+        path(bam), path(bai),
+        path(bed), val(pilename)
+
+    output:
+        tuple val(tumorname),
+        path("${tumorname}_${bed.simpleName}.${pilename}.table")
+
+    script:
+    """
+    gatk --java-options -Xmx48g GetPileupSummaries \
+        -I ${bam} \
+        -V $GERMLINE_RESOURCE \
+        -L ${bed} \
+        -O ${tumorname}_${bed.simpleName}.${pilename}.table
+
+    """
+
+    stub:
+    """
+    touch ${tumorname}_${bed.simpleName}.${pilename}.table
+    """
+
+}
+
+
 process pileup_paired_t {
     container "${params.containers.logan}"
     label 'process_highmem'

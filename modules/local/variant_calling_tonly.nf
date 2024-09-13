@@ -308,19 +308,19 @@ process vardict_tonly {
             -v 6 \
             -S \
             -E \
-            -f 0.05 >  ${tumor.simpleName}_${bed.simpleName}.tonly.vardict.vcf
+            -f 0.05 >  ${tumorname}_${bed.simpleName}_temp.tonly.vardict.vcf
 
     printf "${tumor.Name}\t${tumorname}\n" > sampname
 
-    bcftools reheader -s sampname ${tumor.simpleName}_${bed.simpleName}.tonly.vardict.vcf \
-        | bcftools view -Oz -o ${tumor.simpleName}_${bed.simpleName}.tonly.vardict.vcf.gz
+    bcftools reheader -s sampname ${tumorname}_${bed.simpleName}_temp.tonly.vardict.vcf \
+        | bcftools view -Oz -o ${tumorname}_${bed.simpleName}.tonly.vardict.vcf.gz
 
     """
 
     stub:
 
     """
-    touch ${tumor.simpleName}_${bed.simpleName}.tonly.vardict.vcf.gz
+    touch ${tumorname}_${bed.simpleName}.tonly.vardict.vcf.gz
 
     """
 
