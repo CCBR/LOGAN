@@ -9,3 +9,5 @@ docker push dnousome/ccbr_logan_sv:latest
 
 ##
 #docker run -it ccbr_logan_sv:v0.0.1
+#gridss --jar /opt2/gridss/gridss-2.13.2-gridss-jar-with-dependencies.jar \
+#--reference  test.fa --output t.vcf.gz s.bam 
