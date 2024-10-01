@@ -278,5 +278,26 @@ process bamtocram_tonly {
 }
 
 
+process samtools2fq {
+    container = "${params.containers.logan}"
+    label 'process_medium'
 
+    input:
+        tuple val(id), path(bam), path(bai)
+
+    output:
+        tuple val(id), path("${id}.R1.fastq"), path("${id}.R2.fastq")
+
+    script:
+    """
+    samtools fastq -@ $task.cpus \
+        -1 ${id}.R1.fastq -2 ${id}.R2.fastq -0 /dev/null -s /dev/null \
+        -n $bam
+    """
+    
+    stub:
+    """
+    touch ${id}.R1.fastq ${id}.R2.fastq 
+    """
+}
 
