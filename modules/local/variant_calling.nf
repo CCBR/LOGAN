@@ -9,6 +9,8 @@ VEPCACHEDIR=file(params.genomes[params.genome].vepcache)
 VEPSPECIES=params.genomes[params.genome].vepspecies
 VEPBUILD=params.genomes[params.genome].vepbuild
 LOFREQ_CONVERT=params.lofreq_convert
+STRELKA_CONVERT=params.strelka_convert
+
 //Octopus
 SOMATIC_FOREST=params.genomes[params.genome].octopus_sforest
 GERMLINE_FOREST=params.genomes[params.genome].octopus_gforest
@@ -877,7 +879,7 @@ process convert_strelka {
     script:
 
     """
-    python /data/nousomedr/wgs/LOGAN/bin/strelka_convert.py ${strelkavcf} ${tumor}_vs_${normal}.filtered.strelka-fixed.vcf.gz
+    python $STRELKA_CONVERT ${strelkavcf} ${tumor}_vs_${normal}.filtered.strelka-fixed.vcf.gz
     bcftools index -t ${tumor}_vs_${normal}.filtered.strelka-fixed.vcf.gz
     """
 
