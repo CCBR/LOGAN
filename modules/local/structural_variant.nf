@@ -127,8 +127,10 @@ process gridss_somatic {
 
     script:
     """
-    gridss -r $BWAGENOME \
+    gridss --jar /opt2/gridss/gridss-2.13.2-gridss-jar-with-dependencies.jar \
+    -r $BWAGENOME \
     -o ${tumorname}_vs_${normalname}.vcf.gz -b $BLACKLIST \
+    --picardoptions VALIDATION_STRINGENCY=LENIENT \
     ${normal} ${tumor} -t $task.cpus
 
     mkdir -p ${tumorname}_vs_${normalname}
@@ -162,6 +164,62 @@ process gridss_somatic {
     """
 }
 
+
+
+process gridss_tonly {
+    label 'process_high'
+    container = "${params.containers.sv}"
+
+    input:
+        tuple val(tumorname), path(tumor), path(tumorbai)
+
+    output:
+        tuple val(tumorname),
+        path("${tumorname}.vcf.gz"),
+        path("${tumorname}.vcf.gz.tbi"),
+        path("${tumorname}.vcf.gz.assembly.bam"),
+        path("${tumorname}.gripss.vcf.gz"),
+        path("${tumorname}.gripss.vcf.gz.tbi"),
+        path("${tumorname}.gripss.filtered.vcf.gz"),
+        path("${tumorname}.gripss.filtered.vcf.gz.tbi")
+
+    script:
+    """
+    gridss --jar /opt2/gridss/gridss-2.13.2-gridss-jar-with-dependencies.jar \
+    -r $BWAGENOME \
+    -o ${tumorname}.vcf.gz -b $BLACKLIST \
+    --picardoptions VALIDATION_STRINGENCY=LENIENT \
+    ${tumor} -t $task.cpus
+
+    mkdir -p ${tumorname}
+
+    java -jar /opt2/hmftools/gripss.jar \
+        -sample ${tumorname} \
+        -ref_genome_version $GENOMEVER \
+        -ref_genome $GENOMEREF  \
+        -pon_sgl_file $PONSGL \
+        -pon_sv_file $PONSV \
+        -known_hotspot_file $SVHOTSPOT \
+        -repeat_mask_file $REPEATMASK \
+        -vcf ${tumorname}.vcf.gz \
+        -output_dir ${tumorname}
+
+    mv ${tumorname}/* .
+    """
+
+
+    stub:
+
+    """
+    touch "${tumorname}.vcf.gz"
+    touch "${tumorname}.vcf.gz.tbi"
+    touch "${tumorname}.vcf.gz.assembly.bam"
+    touch "${tumorname}.gripss.vcf.gz"
+    touch "${tumorname}.gripss.vcf.gz.tbi"
+    touch "${tumorname}.gripss.filtered.vcf.gz"
+    touch "${tumorname}.gripss.filtered.vcf.gz.tbi"
+    """
+}
 
 
 process annotsv_tn {
