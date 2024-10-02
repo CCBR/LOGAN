@@ -35,9 +35,10 @@ include {mutect2_t_tonly; mutect2filter_tonly; pileup_paired_tonly;
     annotvep_tonly as annotvep_tonly_combined;
     combinemafs_tonly; somaticcombine_tonly} from '../../modules/local/variant_calling_tonly.nf'
 
-include {manta_tonly; svaba_tonly; survivor_sv; gunzip;
-annotsv_tonly as annotsv_manta_tonly; annotsv_tonly as annotsv_svaba_tonly;
-annotsv_tonly as annotsv_survivor_tonly} from '../../modules/local/structural_variant.nf'
+include {manta_tonly; svaba_tonly; gridss_tonly;
+    survivor_sv; gunzip as gunzip_gridss;
+    annotsv_tonly as annotsv_manta_tonly; annotsv_tonly as annotsv_svaba_tonly;
+    annotsv_tonly as annotsv_survivor_tonly} from '../../modules/local/structural_variant.nf'
 
 include {freec; amber_tonly; cobalt_tonly; purple_tonly_novc; purple_tonly  } from '../../modules/local/copynumber.nf'
 
@@ -260,23 +261,44 @@ workflow SV_TONLY {
         bamwithsample
         
     main: 
+        svcall_list = params.svcallers.split(',') as List
+        svout=Channel.empty()
+
         //Svaba
-        svaba_out=svaba_tonly(bamwithsample)
-        .map{ tumor,bps,contigs,discord,alignments,so_indel,so_sv,unfil_so_indel,unfil_sv,log ->
-            tuple(tumor,so_sv,"svaba_tonly")} 
-        annotsv_svaba_tonly(svaba_out).ifEmpty("Empty SV input--No SV annotated")
+        if ("svaba" in svcall_list){
 
+            svaba_out=svaba_tonly(bamwithsample)
+            .map{ tumor,bps,contigs,discord,alignments,so_indel,so_sv,unfil_so_indel,unfil_sv,log ->
+                tuple(tumor,so_sv,"svaba_tonly")} 
+            annotsv_svaba_tonly(svaba_out).ifEmpty("Empty SV input--No SV annotated")
+            svout=svout | concat(svaba_out)
+        }
         //Manta
-        manta_out=manta_tonly(bamwithsample)
-            .map{tumor, sv, indel, tumorsv -> 
-            tuple(tumor,tumorsv,"manta_tonly")} 
-        annotsv_manta_tonly(manta_out).ifEmpty("Empty SV input--No SV annotated")
+        if ("manta" in svcall_list){
 
-        //Delly-WIP
+            manta_out=manta_tonly(bamwithsample)
+                .map{tumor, sv, indel, tumorsv -> 
+                tuple(tumor,tumorsv,"manta_tonly")} 
+            annotsv_manta_tonly(manta_out).ifEmpty("Empty SV input--No SV annotated")
+            svout=svout | concat(manta_out)
+        }
+
+        if ("gridss" in svcall_list){
+        gridss_out=gridss_tonly(bamwithsample)
+            | map{tumor,vcf,index,bam,gripssvcf,gripsstbi,gripssfilt,filttbi ->
+            tuple(tumor,gripssfilt,"gridss_tonly")} | gunzip_gridss
+            svout=svout | concat(gridss_out)
+        }
 
         //Survivor
-        gunzip(manta_out).concat(svaba_out).groupTuple()
-       | survivor_sv | annotsv_survivor_tonly | ifEmpty("Empty SV input--No SV annotated")
+          if (svcall_list.size()>1){
+            //Survivor
+            svout | groupTuple
+                | survivor_sv 
+                | annotsv_survivor_tonly 
+                | ifEmpty("Empty SV input--No SV annotated")
+         }
+
 }
 
 
