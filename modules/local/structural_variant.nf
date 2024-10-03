@@ -131,7 +131,10 @@ process gridss_somatic {
     -r $BWAGENOME \
     -o ${tumorname}_vs_${normalname}.vcf.gz -b $BLACKLIST \
     --picardoptions VALIDATION_STRINGENCY=LENIENT \
-    ${normal} ${tumor} -t $task.cpus
+    --jvmheap 90g \
+    --otherjvmheap 64g \
+    -t $task.cpus \
+    ${normal} ${tumor} 
 
     mkdir -p ${tumorname}_vs_${normalname}
 
