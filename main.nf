@@ -56,7 +56,7 @@ workflow {
         if (params.cnv){
             if (params.genome == "mm10"){
                 CNVmouse(ALIGN.out.bamwithsample)
-            } else if (params.genome== "hg38" |params.genome== "hg19"){
+            } else if (params.genome.matches("hg38(.*)")| params.genome.matches("hg19(.*)")){
                 if (!params.vc){
                     CNVhuman_novc(ALIGN.out.bamwithsample)
                 } else {
