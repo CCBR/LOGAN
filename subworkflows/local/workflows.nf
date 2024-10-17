@@ -47,7 +47,7 @@ include {svaba_somatic; manta_somatic; gridss_somatic;
     annotsv_tn as annotsv_svaba;annotsv_tn as annotsv_manta} from '../../modules/local/structural_variant.nf'
 
 include {amber_tn; cobalt_tn; purple; purple_novc;
-    sequenza; seqz_sequenza_bychr; freec; freec_paired } from '../../modules/local/copynumber.nf'
+    sequenza; seqz_sequenza_bychr; freec; freec_paired; freec_paired_exome } from '../../modules/local/copynumber.nf'
 
 include {splitinterval} from '../../modules/local/splitbed.nf'
 
@@ -77,9 +77,9 @@ workflow INPUT {
 
     if(params.sample_sheet){
         sample_sheet=Channel.fromPath(params.sample_sheet, checkIfExists: true) | view()
-                       .ifEmpty { "sample sheet not found" }
-                       .splitCsv(header:true, sep: "\t", strip:true)
-                       .map { row -> tuple(
+                       | ifEmpty("sample sheet not found" )
+                       | splitCsv(header:true, sep: "\t", strip:true)
+                       | map { row -> tuple(
                         row.Tumor,
                         row.Normal
                        )
@@ -534,7 +534,13 @@ workflow CNVmouse {
 
         if ("freec" in cnvcall_list){
         //FREEC Paired Mode
-        bamwithsample | freec_paired
+            if(params.exome){
+                FREECPAIR_SCRIPT = params.script_freecpaired_exome
+                bamwithsample | freec_paired_exome
+            }else{
+                FREECPAIR_SCRIPT = params.script_freecpaired
+                bamwithsample | freec_paired
+            }
 
         //FREEC Unpaired Mode
         bamwithsample 
@@ -551,6 +557,7 @@ workflow CNVhuman {
     main:  
         cnvcall_list = params.cnvcallers.split(',') as List
         scinput = somaticcall_input|map{t1,n1,cal,vcf,ind -> tuple("${t1}_vs_${n1}",cal,vcf,ind)}
+        
         if ("purple" in cnvcall_list){
             //Purple
             bamwithsample | amber_tn
@@ -570,6 +577,17 @@ workflow CNVhuman {
             seqz_sequenza_bychr.out.groupTuple()
                 .map{pair, seqz -> tuple(pair, seqz.sort{it.name})}
                 | sequenza
+        }
+
+        if ("freec" in cnvcall_list){
+            //FREEC
+            if(params.exome){
+                FREECPAIR_SCRIPT = params.script_freecpaired_exome
+                bamwithsample | freec_paired_exome
+            }else{
+                FREECPAIR_SCRIPT = params.script_freecpaired
+                bamwithsample | freec_paired
+            }
         }
 
 }
@@ -601,7 +619,19 @@ workflow CNVhuman_novc {
                 .map{pair, seqz -> tuple(pair, seqz.sort{it.name})}
                 | sequenza
         }
+        
+        if ("freec" in cnvcall_list){
+            //FREEC
+            if(params.exome){
+                FREECPAIR_SCRIPT = params.script_freecpaired_exome
+                bamwithsample | freec_paired_exome
+            }else{
+                FREECPAIR_SCRIPT = params.script_freecpaired
+                bamwithsample | freec_paired
+            }
 
+
+        }
 }
 
 

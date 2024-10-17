@@ -2,17 +2,25 @@ GENOMEREF = file(params.genomes[params.genome].genome)
 SEQUENZAGC = file(params.genomes[params.genome].SEQUENZAGC)
 SEQUENZA_SCRIPT = params.script_sequenza
 
-if (params.genome=="mm10"){
-    FREECLENGTHS = params.genomes[params.genome].FREEC.FREECLENGTHS
-    FREECCHROMS = params.genomes[params.genome].FREEC.FREECCHROMS
-    FREECPILEUP = params.genomes[params.genome].FREEC.FREECPILEUP
-    FREECSNPS = params.genomes[params.genome].FREEC.FREECSNPS
-    FREECTARGETS = params.genomes[params.genome].intervals
-    FREECSCRIPT = params.script_freec
+//FREEC
+REFORMATBED = params.script_reformatbed
+FREEC_SCRIPT = params.script_freec
+if(params.exome){
+    FREECPAIR_SCRIPT = params.script_freecpaired_exome
+}else{
     FREECPAIR_SCRIPT = params.script_freecpaired
-    FREECSIGNIFICANCE = params.freec_significance
-    FREECPLOT = params.freec_plot
 }
+FREECSIGNIFICANCE = params.freec_significance
+FREECLENGTHS = file(params.genomes[params.genome].FREEC.FREECLENGTHS)
+FREECCHROMS = file(params.genomes[params.genome].FREEC.FREECCHROMS)
+FREECPILEUP = file(params.genomes[params.genome].FREEC.FREECPILEUP)
+FREECSNPS = file(params.genomes[params.genome].FREEC.FREECSNPS)
+    if (params.intervals){
+        FREECTARGETS = file(params.intervals)
+    }else{
+        FREECTARGETS = file(params.genomes[params.genome].intervals)
+        }
+FREECPLOT = params.freec_plot
 
 if (params.genome.matches("hg38(.*)")| params.genome.matches("hg19(.*)")){
     HMFGENOMEREF = file(params.genomes[params.genome].HMFGENOME)
@@ -220,6 +228,7 @@ process freec_paired {
         path("${tumorname}_vs_${normalname}_ratio.txt.png")
 
     shell:
+
     """
 
     perl $FREECPAIR_SCRIPT \
@@ -268,6 +277,75 @@ process freec_paired {
 }
 
 
+
+
+process freec_paired_exome {
+    container = "${params.containers.logan}"
+    label 'process_long'
+
+    input:
+        tuple val(tumorname), path(tumor), path(tumorbai),
+        val(normalname), path(normal), path(normalbai)
+
+    output:
+        tuple val(tumorname), val(normalname),
+        path("${tumorname}_vs_${normalname}_CNVs.p.value.txt"),
+        path("${tumorname}_vs_${normalname}_ratio.txt"),
+        path("${tumorname}_vs_${normalname}_BAF.txt"),
+        path("${tumorname}_vs_${normalname}_ratio.txt.log2.png"),
+        path("${tumorname}_vs_${normalname}_ratio.txt.png")
+
+    shell:
+
+    """
+    python $REFORMATBED -i $FREECTARGETS 
+    perl $FREECPAIR_SCRIPT \
+        . \
+        $FREECLENGTHS \
+        $FREECCHROMS \
+        ${tumor} \
+        ${normal} \
+        $FREECPILEUP \
+        $GENOMEREF \
+        $FREECSNPS \
+        exome_targets.bed
+
+    freec -conf freec_exome_config.txt
+
+    cat $FREECSIGNIFICANCE | \
+        R --slave \
+        --args ${tumor}_CNVs \
+        ${tumor}_ratio.txt
+
+    cat $FREECPLOT | \
+        R --slave \
+        --args 2 \
+        ${tumor}_ratio.txt \
+        ${tumor}_BAF.txt
+
+    mv ${tumor}_CNVs.p.value.txt ${tumorname}_vs_${normalname}_CNVs.p.value.txt
+    mv ${tumor}_ratio.txt ${tumorname}_vs_${normalname}_ratio.txt
+    mv ${tumor}_BAF.txt ${tumorname}_vs_${normalname}_BAF.txt
+    mv ${tumor}_BAF.txt.png ${tumorname}_vs_${normalname}_BAF.txt.png
+    mv ${tumor}_ratio.txt.log2.png ${tumorname}_vs_${normalname}_ratio.txt.log2.png
+    mv ${tumor}_ratio.txt.png ${tumorname}_vs_${normalname}_ratio.txt.png
+
+    """
+
+    stub:
+    """
+    touch ${tumorname}_vs_${normalname}_CNVs.p.value.txt
+    touch ${tumorname}_vs_${normalname}_ratio.txt
+    touch ${tumorname}_vs_${normalname}_BAF.txt
+    touch ${tumorname}_vs_${normalname}_BAF.txt.png
+    touch ${tumorname}_vs_${normalname}_ratio.txt.log2.png
+    touch ${tumorname}_vs_${normalname}_ratio.txt.png
+
+    """
+}
+
+
+
 process freec {
     container = "${params.containers.logan}"
     label 'process_medium'
@@ -284,9 +362,10 @@ process freec {
         path("${tumorname}_ratio.txt.png")
 
 
-    shell: """
-
-    perl $FREECSCRIPT \
+    shell: 
+    
+    """
+    perl $FREEC_SCRIPT \
         . \
         $FREECLENGTHS \
         $FREECCHROMS \
