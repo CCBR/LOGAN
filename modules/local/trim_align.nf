@@ -207,7 +207,7 @@ process applybqsr {
         tuple val(samplename), path(bam), path(bai), path("${samplename}.recal_data.grp")
 
     output:
-        tuple val(samplename), path("${samplename}.bqsr.bam"), path("${samplename}.bqsr.bai")
+        tuple val(samplename), path("${samplename}.bqsr.bam"), path("${samplename}.bqsr.bam.bai")
 
     script:
 
@@ -219,13 +219,13 @@ process applybqsr {
         --output ${samplename}.bqsr.bam \
         --use-jdk-inflater \
         --use-jdk-deflater
-        
+    mv ${samplename}.bqsr.bai ${samplename}.bqsr.bam.bai
     """
 
     stub:
 
     """
-    touch ${samplename}.bqsr.bam ${samplename}.bqsr.bai
+    touch ${samplename}.bqsr.bam ${samplename}.bqsr.bam.bai
     """
 
 }
