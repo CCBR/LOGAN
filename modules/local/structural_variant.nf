@@ -347,6 +347,7 @@ process svaba_tonly {
 
 
 process gunzip {
+    label 'process_single'
 
     input:
         tuple val(tumorname),
