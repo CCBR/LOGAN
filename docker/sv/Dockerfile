@@ -23,7 +23,7 @@ RUN apt-key adv --keyserver keyserver.ubuntu.com --recv-keys E298A3A825C0D65DFD5
     && add-apt-repository --enable-source --yes 'ppa:c2d4u.team/c2d4u4.0+' \
     && apt-get -y install r-base r-base-core r-recommended r-base-dev \
     && apt-get -y install libcurl4-openssl-dev libssl-dev libboost-dev libxml2-dev 
-
+ENV PATH="/usr/bin/Rscript:$PATH"
 
 RUN wget https://github.com/samtools/htslib/releases/download/1.20/htslib-1.20.tar.bz2 \
     && tar -vxjf htslib-1.20.tar.bz2 \
