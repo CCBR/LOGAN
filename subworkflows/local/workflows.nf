@@ -47,9 +47,10 @@ include {svaba_somatic; manta_somatic; gridss_somatic;
     annotsv_tn as annotsv_svaba;annotsv_tn as annotsv_manta} from '../../modules/local/structural_variant.nf'
 
 include {amber_tn; cobalt_tn; purple; purple_novc;
-    sequenza; seqz_sequenza_bychr; freec; freec_paired; freec_paired_exome } from '../../modules/local/copynumber.nf'
+    sequenza; seqz_sequenza_bychr; freec; freec_paired; freec_paired_exome;
+    ascat_tn; ascat_tn_exome; cnvkit; cnvkit_exome } from '../../modules/local/copynumber.nf'
 
-include {splitinterval} from '../../modules/local/splitbed.nf'
+include {splitinterval;matchbed as matchbed_ascat; matchbed as matchbed_cnvkit} from '../../modules/local/splitbed.nf'
 
 
 
@@ -555,6 +556,12 @@ workflow CNVhuman {
         somaticcall_input
 
     main:  
+    if (params.intervals){
+        intervalbedin = Channel.fromPath(params.intervals,checkIfExists: true,type: 'file')
+    }else{
+        intervalbedin = Channel.fromPath(params.genomes[params.genome].intervals,checkIfExists: true,type: 'file')
+    }
+
         cnvcall_list = params.cnvcallers.split(',') as List
         scinput = somaticcall_input|map{t1,n1,cal,vcf,ind -> tuple("${t1}_vs_${n1}",cal,vcf,ind)}
         
@@ -589,7 +596,24 @@ workflow CNVhuman {
                 bamwithsample | freec_paired
             }
         }
-
+        //ASCAT
+        if ("ascat" in cnvcall_list){
+            if(params.exome){
+                matchbed_ascat(intervalbedin)
+                bamwithsample | combine(matchbed_ascat.out) | ascat_tn_exome
+            }else{
+                bamwithsample | ascat_tn
+            }
+        }
+        //CNVKIT
+        if ("cnvkit" in cnvcall_list){
+            if(params.exome){
+                matchbed_cnvkit(intervalbedin)
+                bamwithsample | combine(matchbed_cnvkit.out) | cnvkit_exome
+            }else{
+                bamwithsample | cnvkit
+            }
+        }
 }
 
 
@@ -598,6 +622,12 @@ workflow CNVhuman_novc {
         bamwithsample
 
     main:   
+    if (params.intervals){
+        intervalbedin = Channel.fromPath(params.intervals,checkIfExists: true,type: 'file')
+    }else{
+        intervalbedin = Channel.fromPath(params.genomes[params.genome].intervals,checkIfExists: true,type: 'file')
+    }
+
         cnvcall_list = params.cnvcallers.split(',') as List
 
         if ("purple" in cnvcall_list){
@@ -629,9 +659,29 @@ workflow CNVhuman_novc {
                 FREECPAIR_SCRIPT = params.script_freecpaired
                 bamwithsample | freec_paired
             }
-
-
         }
+
+        if ("ascat" in cnvcall_list){
+            //ASCAT
+            if(params.exome){
+                matchbed_ascat(intervalbedin)
+                bamwithsample |combine(matchbed_ascat.out) | ascat_tn_exome
+            }else{
+                bamwithsample | ascat_tn
+            }
+        }
+        
+        //CNVKIT
+        if ("cnvkit" in cnvcall_list){
+            if(params.exome){
+                matchbed_cnvkit(intervalbedin)
+                bamwithsample | combine(matchbed_cnvkit.out) | cnvkit_exome
+            }else{
+                bamwithsample | cnvkit
+            }
+        }
+
+
 }
 
 
@@ -805,9 +855,11 @@ workflow INPUT_BAM {
         baminput2=baminputonly.combine(bqsrs,by:0) 
             |applybqsr
 
-        bamwithsample=baminput2.combine(sample_sheet,by:0).map{it.swap(3,0)}.combine(baminputonly,by:0).map{it.swap(3,0)}        
+        bamwithsample=baminput2.combine(sample_sheet,by:0).map{it.swap(3,0)}.combine(baminputonly,by:0).map{it.swap(3,0)}  
+            | view()      
     } else {
-        bamwithsample=baminputonly.combine(sample_sheet,by:0).map{it.swap(3,0)}.combine(baminputonly,by:0).map{it.swap(3,0)}
+        bamwithsample=baminputonly.combine(sample_sheet,by:0).map{it.swap(3,0)}.combine(baminputonly,by:0).map{it.swap(3,0)} 
+            |view()      
         
     }
         bambyinterval_norm=bamwithsample

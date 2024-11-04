@@ -40,16 +40,17 @@ include {manta_tonly; svaba_tonly; gridss_tonly;
     annotsv_tonly as annotsv_manta_tonly; annotsv_tonly as annotsv_svaba_tonly;
     annotsv_tonly as annotsv_survivor_tonly} from '../../modules/local/structural_variant.nf'
 
-include {freec; amber_tonly; cobalt_tonly; purple_tonly_novc; purple_tonly  } from '../../modules/local/copynumber.nf'
+include {freec; amber_tonly; cobalt_tonly; purple_tonly_novc; purple_tonly;
+        cnvkit_exome_tonly; cnvkit_tonly  } from '../../modules/local/copynumber.nf'
 
-include {splitinterval} from '../../modules/local/splitbed.nf'
+include {splitinterval; matchbed as matchbed_ascat; matchbed as matchbed_cnvkit} from '../../modules/local/splitbed.nf'
 
 
 
 
 workflow INPUT_TONLY {
     if(params.fastq_input){
-        fastqinput=Channel.fromFilePairs(params.fastq_input)  
+        fastqinput=Channel.fromFilePairs(params.fastq_input) 
     }else if(params.fastq_file_input){
         fastqinput=Channel.fromPath(params.fastq_file_input)
                         .splitCsv(header: false, sep: "\t", strip:true)
@@ -67,7 +68,7 @@ workflow INPUT_TONLY {
                         )}  | view
     }else{
         sample_sheet=fastqinput.map{samplename,f1 -> tuple (
-             samplename)} |view
+             samplename)} | view
     }
 
     emit:
@@ -338,6 +339,16 @@ workflow CNVhuman_tonly {
             map{t1,amber,cobalt,vc,vcf,index -> tuple(t1,amber,cobalt,vcf,index)}  
                 | purple_tonly
         }
+
+        //CNVKIT        
+        if ("cnvkit" in cnvcall_list){
+            if(params.exome){
+                matchbed_cnvkit(intervalbedin)
+                bamwithsample | combine(matchbed_cnvkit.out) | cnvkit_exome_tonly
+            }else{
+                bamwithsample | cnvkit_tonly
+            }
+        }
         
 }
 
@@ -358,6 +369,15 @@ workflow CNVhuman_novc_tonly {
             purplein=amber_tonly.out.join(cobalt_tonly.out)
             map{t1,amber,cobalt -> tuple(t1,amber,cobalt)}  
                 | purple_tonly_novc
+        }
+        
+        if ("cnvkit" in cnvcall_list){
+            if(params.exome){
+                matchbed_cnvkit(intervalbedin)
+                bamwithsample | combine(matchbed_cnvkit.out) | cnvkit_exome_tonly
+            }else{
+                bamwithsample | cnvkit_tonly
+            }
         }
 }
 

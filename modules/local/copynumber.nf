@@ -1,6 +1,15 @@
 GENOMEREF = file(params.genomes[params.genome].genome)
+
+//SEQUENZA
 SEQUENZAGC = file(params.genomes[params.genome].SEQUENZAGC)
 SEQUENZA_SCRIPT = params.script_sequenza
+
+//CNV Intervals
+if (params.intervals){
+    CNVTARGETS = file(params.intervals)
+}else{
+    CNVTARGETS = file(params.genomes[params.genome].intervals)
+}
 
 //FREEC
 REFORMATBED = params.script_reformatbed
@@ -15,11 +24,6 @@ FREECLENGTHS = file(params.genomes[params.genome].FREEC.FREECLENGTHS)
 FREECCHROMS = file(params.genomes[params.genome].FREEC.FREECCHROMS)
 FREECPILEUP = file(params.genomes[params.genome].FREEC.FREECPILEUP)
 FREECSNPS = file(params.genomes[params.genome].FREEC.FREECSNPS)
-    if (params.intervals){
-        FREECTARGETS = file(params.intervals)
-    }else{
-        FREECTARGETS = file(params.genomes[params.genome].intervals)
-        }
 FREECPLOT = params.freec_plot
 
 if (params.genome.matches("hg38(.*)")| params.genome.matches("hg19(.*)")){
@@ -33,6 +37,12 @@ if (params.genome.matches("hg38(.*)")| params.genome.matches("hg19(.*)")){
     SOMATICHOTSPOTS = file(params.genomes[params.genome].SOMATICHOTSPOTS)
     GERMLINEHOTSPOTS = file(params.genomes[params.genome].GERMLINEHOTSPOTS)
 }
+
+ascatR =  params.script_ascat
+//CNVKIT
+REFFLAT = file(params.genomes[params.genome].REFFLAT)
+ACCESS = file(params.genomes[params.genome].ACCESS)
+
 
 //mm10 Paired-Sequenza, FREEC-tumor only
 process seqz_sequenza_bychr {
@@ -214,6 +224,7 @@ process sequenza {
 process freec_paired {
     container = "${params.containers.logan}"
     label 'process_long'
+    errorStrategy 'ignore'
 
     input:
         tuple val(tumorname), path(tumor), path(tumorbai),
@@ -240,7 +251,7 @@ process freec_paired {
         $FREECPILEUP \
         $GENOMEREF \
         $FREECSNPS \
-        $FREECTARGETS
+        $CNVTARGETS
 
     freec -conf freec_genome_config.txt
 
@@ -282,6 +293,7 @@ process freec_paired {
 process freec_paired_exome {
     container = "${params.containers.logan}"
     label 'process_long'
+    errorStrategy 'ignore'
 
     input:
         tuple val(tumorname), path(tumor), path(tumorbai),
@@ -298,7 +310,7 @@ process freec_paired_exome {
     shell:
 
     """
-    python $REFORMATBED -i $FREECTARGETS 
+    python $REFORMATBED -i $CNVTARGETS 
     perl $FREECPAIR_SCRIPT \
         . \
         $FREECLENGTHS \
@@ -349,6 +361,7 @@ process freec_paired_exome {
 process freec {
     container = "${params.containers.logan}"
     label 'process_medium'
+    errorStrategy 'ignore'
 
     input:
         tuple val(tumorname), path(tumor), path(tumorbai)
@@ -373,7 +386,7 @@ process freec {
         $FREECPILEUP \
         $GENOMEREF \
         $FREECSNPS \
-        $FREECTARGETS
+        $CNVTARGETS
 
     freec -conf freec_genome_config.txt
 
@@ -696,45 +709,237 @@ process purple_tonly_novc {
 
 }
 
-/*
+
 process ascat_tn {
-    module=["java/12.0.1","R/3.6.3"]
+    container = "${params.containers.cnv}"
+    label 'process_medium'
 
     input:
-        tuple val(samplename), path(cobaltin), path(amberin), path("${samplename}.tonly.final.mut2.vcf.gz")
+        tuple val(tumorname), path(tumor), path(tumorbai),
+        val(normalname), path(normal), path(normalbai)
 
     output:
-        tuple val(samplename), path("${samplename}")
+    tuple val(tumorname), 
+    path("After_correction_${tumorname}.germline.png"),
+    path("After_correction_${tumorname}.tumor.png"),
+    path("Before_correction_${tumorname}.germline.png"),
+    path("Before_correction_${tumorname}.tumor.png"),
+    path("${tumorname}.ASCATprofile.png"),
+    path("${tumorname}.ASPCF.png"),
+    path("${tumorname}.sunrise.png"),
+    path("${tumorname}_BAF.txt"),
+    path("${tumorname}_LogR.txt"),
+    path("${tumorname}.segments_raw.txt"),
+    path("${tumorname}.segments.txt"),
+    path("${tumorname}_vs_${normalname}.qc.txt"),
+    path("${tumorname}_vs_${normalname}_ascat.Rdata")
 
     script:
-
     """
-    Rscript ${ascatR}
+    Rscript $ascatR ${tumor} ${tumorname} ${normal} ${normalname}
     """
 
     stub:
+    """
+    touch After_correction_${tumorname}.germline.png
+    touch After_correction_${tumorname}.tumor.png
+    touch Before_correction_${tumorname}.germline.png
+    touch Before_correction_${tumorname}.tumor.png
+    touch ${tumorname}.ASCATprofile.png
+    touch ${tumorname}.ASPCF.png
+    touch ${tumorname}.sunrise.png
+    touch ${tumorname}_BAF.txt
+    touch ${tumorname}_LogR.txt
+    touch ${tumorname}.segments_raw.txt
+    touch ${tumorname}.segments.txt
+    touch ${tumorname}_vs_${normalname}.qc.txt
+    touch ${tumorname}_vs_${normalname}_ascat.Rdata
 
     """
-    touch ${prefix}.after_correction.gc_rt.test.tumour.germline.png
-    touch ${prefix}.after_correction.gc_rt.test.tumour.tumour.png
-    touch ${prefix}.before_correction.test.tumour.germline.png
-    touch ${prefix}.before_correction.test.tumour.tumour.png
-    touch ${prefix}.cnvs.txt
-    touch ${prefix}.metrics.txt
-    touch ${prefix}.normal_alleleFrequencies_chr21.txt
-    touch ${prefix}.normal_alleleFrequencies_chr22.txt
-    touch ${prefix}.purityploidy.txt
-    touch ${prefix}.segments.txt
-    touch ${prefix}.tumour.ASPCF.png
-    touch ${prefix}.tumour.sunrise.png
-    touch ${prefix}.tumour_alleleFrequencies_chr21.txt
-    touch ${prefix}.tumour_alleleFrequencies_chr22.txt
-    touch ${prefix}.tumour_normalBAF.txt
-    touch ${prefix}.tumour_normalLogR.txt
-    touch ${prefix}.tumour_tumourBAF.txt
-    touch ${prefix}.tumour_tumourLogR.txt
-        """
 
 }
 
-*/
+
+process ascat_tn_exome {
+    container = "${params.containers.cnv}"
+    label 'process_medium'
+
+    input:
+        tuple val(tumorname), path(tumor), path(tumorbai),
+        val(normalname), path(normal), path(normalbai),
+        path(bed)
+
+    output:
+    tuple path("After_correction_${tumorname}.germline.png"),
+    path("After_correction_${tumorname}.tumour.png"),
+    path("Before_correction_${tumorname}.germline.png"),
+    path("Before_correction_${tumorname}.tumour.png"),
+    path("${tumorname}.ASCATprofile.png"),
+    path("${tumorname}.ASPCF.png"),
+    path("${tumorname}.sunrise.png"),
+    path("${tumorname}_BAF.txt"),
+    path("${tumorname}_LogR.txt"),
+    path("${tumorname}.segments_raw.txt"),
+    path("${tumorname}.segments.txt"),
+    path("${tumorname}_vs_${normalname}.qc.txt"),
+    path("${tumorname}_vs_${normalname}_ascat.Rdata")
+
+    script:
+    """
+    sed 's/^chr//' ${bed} > nochrtemp.bed
+    Rscript $ascatR ${tumor} ${tumorname} ${normal} ${normalname} nochrtemp.bed
+    """
+
+    stub:
+    """
+    touch After_correction_${tumorname}.germline.png
+    touch After_correction_${tumorname}.tumour.png
+    touch Before_correction_${tumorname}.germline.png
+    touch Before_correction_${tumorname}.tumour.png
+    touch ${tumorname}.ASCATprofile.png
+    touch ${tumorname}.ASPCF.png
+    touch ${tumorname}.sunrise.png
+    touch ${tumorname}_BAF.txt
+    touch ${tumorname}_LogR.txt
+    touch ${tumorname}.segments_raw.txt
+    touch ${tumorname}.segments.txt
+    touch ${tumorname}_vs_${normalname}.qc.txt
+    touch ${tumorname}_vs_${normalname}_ascat.Rdata
+
+    """
+
+}
+
+
+
+process cnvkit {
+    container = "${params.containers.cnv}"
+    label 'process_medium'
+
+    input:
+    tuple val(tumorname), path(tumor), path(tumorbai),
+        val(normalname), path(normal), path(normalbai)
+
+
+    output:
+    tuple val(tumorname), path("${tumorname}")
+
+
+    script:
+    """
+    cnvkit.py batch ${tumor} --normal ${normal} \
+    --annotate $REFFLAT \
+    --fasta $GENOMEREF --access $ACCESS \
+    --output-reference ${tumorname}.cnn --output-dir ${tumorname}/  \
+    --diagram --scatter \
+    -m wgs -p $task.cpus
+    """
+
+    stub:
+    """
+    mkdir ${tumorname}
+    touch ${tumorname}/${normalname}.antitargetcoverage.cnn ${tumorname}/${normalname}.targetcoverage.cnn
+    touch ${tumorname}/${tumorname}.antitargetcoverage.cnn ${tumorname}/${tumorname}.targetcoverage.cnn
+    touch ${tumorname}/${tumorname}.bintest.cns ${tumorname}/${tumorname}.call.cns ${tumorname}/${tumorname}.cnr ${tumorname}/${tumorname}.cns ${tumorname}/${tumorname}-diagram.pdf ${tumorname}/${tumorname}-scatter.png
+    """
+
+}
+
+process cnvkit_exome {
+    container = "${params.containers.cnv}"
+    label 'process_medium'
+
+    input:
+        tuple val(tumorname), path(tumor), path(tumorbai),
+        val(normalname), path(normal), path(normalbai),
+        path(bed)
+
+    output:
+    tuple val(tumorname), path("${tumorname}")
+
+    script:
+    """
+    cnvkit.py batch ${tumor} --normal ${normal} \
+    --targets $bed --annotate $REFFLAT \
+    --fasta $GENOMEREF --access $ACCESS \
+    --output-reference ${tumorname}.cnn --output-dir ${tumorname}/ \
+    --diagram --scatter -p $task.cpus
+    """
+
+    stub:
+    """
+    mkdir ${tumorname}
+    touch ${tumorname}/${normalname}.antitargetcoverage.cnn ${tumorname}/${normalname}.targetcoverage.cnn
+    touch ${tumorname}/${tumorname}.antitargetcoverage.cnn ${tumorname}/${tumorname}.targetcoverage.cnn
+    touch ${tumorname}/${tumorname}.bintest.cns ${tumorname}/${tumorname}.call.cns ${tumorname}/${tumorname}.cnr ${tumorname}/${tumorname}.cns ${tumorname}/${tumorname}-diagram.pdf ${tumorname}/${tumorname}-scatter.png
+
+    """
+
+}
+
+
+
+process cnvkit_tonly {
+    container = "${params.containers.cnv}"
+    label 'process_medium'
+
+    input:
+    tuple val(tumorname), path(tumor), path(tumorbai),
+        path(bed)
+
+    output:
+    tuple val(tumorname), path("${tumorname}")
+
+
+    script:
+    """
+    cnvkit.py batch ${tumor} -n \
+    --annotate $REFFLAT \
+    --fasta $GENOMEREF --access $ACCESS \
+    --output-reference ${tumorname}.cnn --output-dir ${tumorname}/  \
+    --diagram --scatter \
+    -m wgs -p $task.cpus
+    """
+
+    stub:
+    """
+    mkdir ${tumorname}
+    touch ${tumorname}/${normalname}.antitargetcoverage.cnn ${tumorname}/${normalname}.targetcoverage.cnn
+    touch ${tumorname}/${tumorname}.antitargetcoverage.cnn ${tumorname}/${tumorname}.targetcoverage.cnn
+    touch ${tumorname}/${tumorname}.bintest.cns ${tumorname}/${tumorname}.call.cns ${tumorname}/${tumorname}.cnr ${tumorname}/${tumorname}.cns ${tumorname}/${tumorname}-diagram.pdf ${tumorname}/${tumorname}-scatter.png
+    """
+
+}
+
+process cnvkit_exome_tonly {
+    container = "${params.containers.cnv}"
+    label 'process_medium'
+
+    input:
+        tuple val(tumorname), path(tumor), path(tumorbai),
+        val(normalname), path(normal), path(normalbai),
+        path(bed)
+
+    output:
+    tuple val(tumorname), path("${tumorname}")
+
+    script:
+    """
+    cnvkit.py batch ${tumor} --normal \
+    --targets $bed --annotate $REFFLAT \
+    --fasta $GENOMEREF --access $ACCESS \
+    --output-reference ${tumorname}.cnn --output-dir ${tumorname}/ \
+    --diagram --scatter -p $task.cpus
+    """
+
+    stub:
+    """
+    mkdir ${tumorname}
+    touch ${tumorname}/${normalname}.antitargetcoverage.cnn ${tumorname}/${normalname}.targetcoverage.cnn
+    touch ${tumorname}/${tumorname}.antitargetcoverage.cnn ${tumorname}/${tumorname}.targetcoverage.cnn
+    touch ${tumorname}/${tumorname}.bintest.cns ${tumorname}/${tumorname}.call.cns ${tumorname}/${tumorname}.cnr ${tumorname}/${tumorname}.cns ${tumorname}/${tumorname}-diagram.pdf ${tumorname}/${tumorname}-scatter.png
+
+    """
+
+}
+

@@ -10,33 +10,38 @@ library(RColorBrewer)
 
 args = commandArgs(trailingOnly=TRUE)
 tumor_bam=args[1]
-normal_bam=args[2]
-tumor_name=gsub(".bam","",basename(tumor_bam))
-normal_name=gsub(".bam","",basename(normal_bam))
+tumor_name=args[2]
+normal_bam=args[3]
+normal_name=args[4]
 genome="hg38"
-
+bed=args[5]
+#chroms=scan(text=args[4],sep=",",quiet=T)
+cpus=as.numeric(Sys.getenv("SLURM_CPUS_PER_TASK"))
+cpus=ifelse(is.na(cpus),2,cpus)
 
 ##DETERMINE SEX
-system(sprintf('/usr/local/apps/alleleCount/4.2.1/bin/alleleCounter -l /data/CCBR_Pipeliner/Pipelines/LOGAN/resources/hg38/ASCAT/G1000_loci/gender_chr.loci -b %s -o %s_temp_gender.out',
+system(sprintf('alleleCounter -l /data/CCBR_Pipeliner/Pipelines/LOGAN/resources/hg38/ASCAT/G1000_loci/gender_chr.loci -b %s -c chrX -o %s_temp_gender.out',
 normal_bam,normal_name))
 s=read.table(sprintf("%s_temp_gender.out",normal_name))
 gender=ifelse(sum(s$V7)>5,"XY","XX")
+print(gender)
 
 ascat.prepareHTS(
   tumourseqfile = tumor_bam,
   normalseqfile = normal_bam,
   tumourname = tumor_name,
   normalname = normal_name,
-  allelecounter_exe = "/usr/local/apps/alleleCount/4.2.1/bin/alleleCounter",
+  allelecounter_exe = "alleleCounter",
   alleles.prefix = "/data/CCBR_Pipeliner/Pipelines/LOGAN/resources/hg38/ASCAT/G1000_alleles/G1000_alleles_hg38_chr",
   loci.prefix = "/data/CCBR_Pipeliner/Pipelines/LOGAN/resources/hg38/ASCAT/G1000_loci/G1000_loci_hg38_chr",
   gender = gender,
   genomeVersion = genome,
-  nthreads = 8,
+  nthreads = cpus,
   tumourLogR_file = sprintf("%s_LogR.txt",tumor_name),
   tumourBAF_file = sprintf("%s_BAF.txt",tumor_name),
   normalLogR_file = sprintf("%s_LogR.txt",normal_name),
-  normalBAF_file = sprintf("%s_BAF.txt",normal_name))
+  normalBAF_file = sprintf("%s_BAF.txt",normal_name),
+  BED_file=bed)
 
 ascat.bc = ascat.loadData(Tumor_LogR_file = sprintf("%s_LogR.txt",tumor_name), 
     Tumor_BAF_file = sprintf("%s_BAF.txt",tumor_name), 
@@ -51,7 +56,5 @@ ascat.bc = ascat.aspcf(ascat.bc)
 ascat.plotSegmentedData(ascat.bc)
 ascat.output = ascat.runAscat(ascat.bc, gamma=1, write_segments = T)
 QC = ascat.metrics(ascat.bc,ascat.output)
+write.table(QC,sprintf("%s.qc.txt",paste0(tumor_name,"_vs_",normal_name)))
 save(ascat.bc, ascat.output, QC, file = sprintf('%s_vs_%s_ascat.Rdata',tumor_name,normal_name))
-
-
-#####
