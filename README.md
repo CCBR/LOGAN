@@ -29,7 +29,7 @@ module load ccbrpipeliner
 ```
 
 ## Usage
-LOGAN supports 
+
 
 ### Input Files
 LOGAN supports inputs of either 
@@ -99,21 +99,23 @@ Adding flags determines SNV (germline and/or somatic), SV, and/or CNV calling mo
 
 `--germline`- Enables germline using DV
 
-`--sv`- Enables somatic SV calling using Manta and SVABA
+`--sv`- Enables somatic SV calling using Manta, GRIDSS, and SVABA
 
-`--cnv`- Enables somatic CNV calling using FREEC, Sequenza, and Purple (hg19/hg38 only)
+`--cnv`- Enables somatic CNV calling using FREEC, Sequenza, ASCAT, CNVKit, and Purple (hg19/hg38 only)
 
 
 
 #### Optional Arguments
 `--indelrealign` - Enables indel realignment when running alignment steps. May be helpful for certain callers (VarScan, VarDict)
 
-`--callers`- Comma separated argument for callers, the default is to use all available.  
+`--callers`- Comma separated argument for selecting only specified callers, the default is to use all available.  
 Example: `--callers mutect2,octopus`
 
-`--cnvcallers`- - Comma separated argument for cnvcallers. Adding flag allows only certain callers to run.  
+`--cnvcallers`- - Comma separated argument for selecting only specified CNV callers. Adding flag allows only certain callers to run.  
 Example: `--cnvcallers purple`
 
+`--svcallers`- - Comma separated argument for selecting only specified SV vallers. Adding flag allows only certain callers to run.  
+Example: `--svcallers gridss`
 
 ## Running LOGAN
 Example of Tumor_Normal calling mode 
