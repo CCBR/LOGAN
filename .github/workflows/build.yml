@@ -13,6 +13,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 2
     strategy:
       matrix:
         python-version: ["3.9"]
@@ -31,16 +32,19 @@ jobs:
           python -m pip install --upgrade pip setuptools
           pip install .[dev,test]
           python -c 'from logan.src.util import chmod_bins_exec; chmod_bins_exec()'
+      - name: Check CLI basics
+        run: |
+          which logan
+          logan --version
+          logan --citation
       - name: Test stub run
         run: |
-          mkdir tmp && cd tmp
-          which logan
-          logan init
+          logan init 
           logan run -profile ci_stub,docker \
           --fastq_input "/opt2/.tests/*R{1,2}.fastq.gz" \
           --vc --cnv --sv \
           --genome hg38 \
           --outdir /opt2/output_tn_fqs \
-          --interval /opt2/.tests/interval.bed \
+          --intervals /opt2/.tests/interval.bed \
           -stub
 
