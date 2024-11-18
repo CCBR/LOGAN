@@ -41,10 +41,10 @@ jobs:
         run: |
           logan init 
           logan run -profile ci_stub,docker \
-          --fastq_input "/opt2/.tests/*R{1,2}.fastq.gz" \
+          --fastq_input ".tests/*R{1,2}.fastq.gz" \
           --vc --cnv --sv \
           --genome hg38 \
-          --outdir /opt2/output_tn_fqs \
-          --intervals /opt2/.tests/interval.bed \
+          --outdir output_tn_fqs \
+          --intervals .tests/interval.bed \
           -stub
 
