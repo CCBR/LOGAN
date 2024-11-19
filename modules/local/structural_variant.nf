@@ -129,6 +129,7 @@ process gridss_somatic {
     """
     gridss --jar /opt2/gridss/gridss-2.13.2-gridss-jar-with-dependencies.jar \
     -r $BWAGENOME \
+    -l ${normalname},${tumorname} \
     -o ${tumorname}_vs_${normalname}.vcf.gz -b $BLACKLIST \
     --picardoptions VALIDATION_STRINGENCY=LENIENT \
     --jvmheap 90g \
@@ -190,6 +191,7 @@ process gridss_tonly {
     """
     gridss --jar /opt2/gridss/gridss-2.13.2-gridss-jar-with-dependencies.jar \
     -r $BWAGENOME \
+    -l ${tumorname} \
     -o ${tumorname}.vcf.gz -b $BLACKLIST \
     --picardoptions VALIDATION_STRINGENCY=LENIENT \
     ${tumor} -t $task.cpus
