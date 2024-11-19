@@ -1,10 +1,14 @@
+//REFERENCES
 GENOMEREF=file(params.genomes[params.genome].genome)
 GENOMEFAI=file(params.genomes[params.genome].genomefai)
 GENOMEDICT=file(params.genomes[params.genome].genomedict)
 GERMLINE_RESOURCE=file(params.genomes[params.genome].germline_resource)
 GNOMADGERMLINE=params.genomes[params.genome].gnomad
+//DBSNP for LOFREQ/MUSE
 DBSNP=file(params.genomes[params.genome].dbsnp)
+//PON Mutect2
 PON=file(params.genomes[params.genome].tonly_PON)
+//VEP
 VEPCACHEDIR=file(params.genomes[params.genome].vepcache)
 VEPSPECIES=params.genomes[params.genome].vepspecies
 VEPBUILD=params.genomes[params.genome].vepbuild
@@ -398,7 +402,7 @@ process sage_tonly {
 
     script:
     """
-        java -Xms4G -Xmx32G -cp /opt2/hmftools/sage.jar com.hartwig.hmftools.sage.SageApplication \
+        java -Xms4G -Xmx32G -cp /opt2/hmftools/sage.jar \
         -tumor ${tumorname} -tumor_bam ${tumorbam} \
         -threads $task.cpus \
         -ref_genome_version $GENOMEVER \

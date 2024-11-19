@@ -1,16 +1,17 @@
+//References
 GENOMEREF=file(params.genomes[params.genome].genome)
 GENOMEFAI=file(params.genomes[params.genome].genomefai)
 GENOMEDICT=file(params.genomes[params.genome].genomedict)
 GERMLINE_RESOURCE=file(params.genomes[params.genome].germline_resource)
 GNOMADGERMLINE=params.genomes[params.genome].gnomad
+//DBSNP for LOFREQ/MUSE
 DBSNP=file(params.genomes[params.genome].dbsnp)
+//PON Mutect2
 PON=file(params.genomes[params.genome].PON)
+//VEP
 VEPCACHEDIR=file(params.genomes[params.genome].vepcache)
 VEPSPECIES=params.genomes[params.genome].vepspecies
 VEPBUILD=params.genomes[params.genome].vepbuild
-LOFREQ_CONVERT=params.lofreq_convert
-STRELKA_CONVERT=params.strelka_convert
-
 //Octopus
 SOMATIC_FOREST=params.genomes[params.genome].octopus_sforest
 GERMLINE_FOREST=params.genomes[params.genome].octopus_gforest
@@ -20,6 +21,9 @@ PANELBED=params.genomes[params.genome].PANELBED
 HCBED=params.genomes[params.genome].HCBED
 ENSEMBLCACHE=params.genomes[params.genome].ENSEMBLCACHE
 GENOMEVER=params.genomes[params.genome].GENOMEVER
+//HelperScripts
+LOFREQ_CONVERT=params.lofreq_convert
+STRELKA_CONVERT=params.strelka_convert
 
 process mutect2 {
     container "${params.containers.logan}"
@@ -523,18 +527,19 @@ process sage_tn {
     container "${params.containers.logan}"
     label 'process_high'
 
-     input:
+    input:
         tuple val(tumorname), path(tumorbam), path(tumorbai),
         val(normalname), path(normalbam), path(normalbai)
 
- output:
+    output:
         tuple val(tumorname), val(normalname),
         path("${tumorname}_vs_${normalname}.sage.vcf.gz"),
         path("${tumorname}_vs_${normalname}.sage.vcf.gz.tbi")
 
-script:
+    
+    script:
     """
-    java -Xms4G -Xmx32G -cp /opt2/hmftools/sage.jar com.hartwig.hmftools.sage.SageApplication \
+    java -Xms4G -Xmx32G -cp /opt2/hmftools/sage.jar \
     -tumor ${tumorname} -tumor_bam ${tumorbam} \
     -reference ${normalname} -reference_bam ${normalbam} \
     -threads $task.cpus \
