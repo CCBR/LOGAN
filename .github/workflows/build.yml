@@ -41,7 +41,7 @@ jobs:
         run: |
           logan init 
           logan run -profile ci_stub,docker \
-          --fastq_input ".tests/*R{1,2}.fastq.gz" \
+          --fastq_input ".tests/*R{1,2}_001.fastq.gz" \
           --vc --cnv --sv \
           --genome hg38 \
           --outdir output_tn_fqs \
