@@ -37,12 +37,14 @@ jobs:
           which logan
           logan --version
           logan --citation
-      - name: Test stub run
+      - name: Test stub run for Fastqs
         run: |
           logan init 
-          logan run -profile ci_stub,docker \
+          logan run -profile ci_stub \
+          --sample_sheet .tests/pairs.tsv \
           --fastq_input ".tests/*R{1,2}_001.fastq.gz" \
-          --vc --cnv --sv \
+          --vc --cnv --sv --gl --qc \
+          --split_regions 2 \
           --genome hg38 \
           --outdir output_tn_fqs \
           --intervals .tests/interval.bed \
