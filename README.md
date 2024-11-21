@@ -19,19 +19,20 @@ Original pipelining and code forked from the CCBR Exome-seek Pipeline [Exome-see
 [singularity](https://singularity.lbl.gov/all-releases) must be installed on the target system. Snakemake orchestrates the execution of each step in the pipeline. To guarantee the highest level of reproducibility, each step relies on versioned images from [DockerHub](https://hub.docker.com/orgs/nciccbr/repositories). Nextflow uses singularity to pull these images onto the local filesystem prior to job execution, and as so, nextflow and singularity are the only two dependencies.
 
 ## Setup
-LOGAN can be used with the Nextflow pipelining software
+LOGAN can be used with the Nextflow pipelining software in 
 Please clone this repository to your local filesystem using the following command on Biowulf:
+
 ```bash
 # start an interactive node
 sinteractive --mem=2g --cpus-per-task=2 --gres=lscratch:200
+
 git clone https://github.com/CCBR/LOGAN
 module load nextflow
 ##Example run 
-nextflow run /data/LOGAN//main.nf
+nextflow run LOGAN/main.nf -profile ci_stub -preview
 ```
 
 ## Usage
-
 
 ### Input Files
 LOGAN supports inputs of either 
@@ -99,10 +100,9 @@ Adding flags determines SNV (germline and/or somatic), SV, and/or CNV calling mo
 
 `--vc`- Enables somatic SNV calling using mutect2, vardict, varscan, octopus, strelka (TN only), MUSE (TN only), and lofreq (TN only)
 
-`--germline`- Enables germline using Deepvariant
+`--germline`- Enables germline calling using Deepvariant
 
 `--sv`- Enables somatic SV calling using Manta, GRIDSS, and SVABA
-
 
 `--cnv`- Enables somatic CNV calling using FREEC, Sequenza, ASCAT, CNVKit, and Purple (hg19/hg38 only)
 
@@ -124,21 +124,21 @@ Example: `--svcallers gridss`
 Example of Tumor_Normal calling mode 
 ```bash
 # preview the logan jobs that will run 
-nextflow run /data/LOGAN/main.nf --mode local -profile ci_stub --genome hg38 --sample_sheet samplesheet.tsv --outdir out --fastq_input "*R{1,2}.fastq.gz" -preview --vc --sv --cnv
+nextflow run LOGAN/main.nf --mode local -profile ci_stub --genome hg38 --sample_sheet samplesheet.tsv --outdir out --fastq_input "*R{1,2}.fastq.gz" -preview --vc --sv --cnv
 # run a stub/dryrun of the logan jobs 
-nextflow run /data/LOGAN/main.nf --mode local -profile ci_stub --genome hg38 --sample_sheet samplesheet.tsv --outdir out --fastq_input "*R{1,2}.fastq.gz" -stub --vc --sv --cnv
+nextflow run LOGAN/main.nf --mode local -profile ci_stub --genome hg38 --sample_sheet samplesheet.tsv --outdir out --fastq_input "*R{1,2}.fastq.gz" -stub --vc --sv --cnv
 # launch a logan run on slurm with the test dataset
-nextflow run /data/LOGAN/main.nf --mode slurm -profile biowulf,slurm --genome hg38 --sample_sheet samplesheet.tsv --outdir out --fastq_input "*R{1,2}.fastq.gz" --vc --sv --cnv 
+nextflow run LOGAN/main.nf --mode slurm -profile biowulf,slurm --genome hg38 --sample_sheet samplesheet.tsv --outdir out --fastq_input "*R{1,2}.fastq.gz" --vc --sv --cnv 
 ```
 
 Example of Tumor only calling mode 
 ```bash
 # preview the logan jobs that will run 
-nextflow run /data/LOGAN/main.nf --mode local -profile ci_stub --genome hg38 --outdir out --fastq_input "*R{1,2}.fastq.gz" --callers octopus,mutect2 -preview --vc --sv --cnv
+nextflow run LOGAN/main.nf --mode local -profile ci_stub --genome hg38 --outdir out --fastq_input "*R{1,2}.fastq.gz" --callers octopus,mutect2 -preview --vc --sv --cnv
 # run a stub/dryrun of the logan jobs 
-nextflow run /data/LOGAN/main.nf --mode local -profile ci_stub --genome hg38 --outdir out --fastq_input "*R{1,2}.fastq.gz" --callers octopus,mutect2 -stub --vc --sv --cnv
+nextflow run LOGAN/main.nf --mode local -profile ci_stub --genome hg38 --outdir out --fastq_input "*R{1,2}.fastq.gz" --callers octopus,mutect2 -stub --vc --sv --cnv
 # launch a logan run on slurm with the test dataset
-nextflow run /data/LOGAN/main.nf --mode slurm -profile biowulf,slurm --genome hg38 --outdir out --fastq_input "*R{1,2}.fastq.gz" --callers octopus,mutect2 --vc --sv --cnv
+nextflow run LOGAN/main.nf --mode slurm -profile biowulf,slurm --genome hg38 --outdir out --fastq_input "*R{1,2}.fastq.gz" --callers octopus,mutect2 --vc --sv --cnv
 ```
 
 
