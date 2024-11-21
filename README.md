@@ -69,10 +69,10 @@ c130889189_PBMC  /data/nousomedr/c130889189_PBMC.bam  /data/nousomedr/c130889189
 `--genome hg19` and `--genome mm10` are also supported 
 
 #### hg38 has options for either  
-`--genome hg38` - Based off the GRCh38.d1.vd1.fa which is consistent with TCGA and other GDC processing pipelines  
+`--genome hg38` - Based off the GRCh38.d1.vd1.fa which is consistent with TCGA/GDC processing pipelines  
 
 `--genome hg38_sf` - Based off the Homo_sapiens_assembly38.fasta which is derived from the Broad Institute/NCI Sequencing Facility
-The biggest difference between the two is that GRCh38.d1.vd1.fa has fewer contigs (especially related to HLA regions), so reads should map to chr6 vs the HLA contig directly
+The biggest difference between the two is that GRCh38.d1.vd1.fa only the GCA_000001405.15_GRCh38_no_alt_analysis_set, Sequence Decoys (GenBank Accession GCA_000786075), and Virus Sequences. Homo_sapiens_assembly38.fasta has HLA specific contigs which may not be compatible with certain downstream tools.
 
 
 ### Operating Modes
