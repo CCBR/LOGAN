@@ -104,7 +104,7 @@ Adding flags determines SNV (germline and/or somatic), SV, and/or CNV calling mo
 
 `--sv`- Enables somatic SV calling using Manta, GRIDSS, and SVABA
 
-`--cnv`- Enables somatic CNV calling using FREEC, Sequenza, ASCAT, CNVKit, and Purple (hg19/hg38 only)
+`--cnv`- Enables somatic CNV calling using FREEC, Sequenza, CNVKit, ASCAT(hg19/hg38 only), and Purple (hg19/hg38 only)
 
 
 
