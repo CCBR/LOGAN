@@ -2,7 +2,6 @@
 GENOMEREF=file(params.genomes[params.genome].genome)
 GENOMEFAI=file(params.genomes[params.genome].genomefai)
 GENOMEDICT=file(params.genomes[params.genome].genomedict)
-GERMLINE_RESOURCE=file(params.genomes[params.genome].germline_resource)
 
 
 process combineVariants {
@@ -81,7 +80,7 @@ process combineVariants_alternative {
     script:
     vcfin = vcfs.join(" ")
     samplist=sample.split('_vs_')
-    if (vc.contains("lofreq")) {
+    if (vc.contains("lofreq") | vc.contains('deepsomatic')) {
         samporder = samplist[0]
     }else if(samplist.size()>1){
         samporder = samplist.join(",")
