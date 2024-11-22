@@ -5,7 +5,8 @@ MODEL="/opt/models/wgs/"
 //Processes
 //Deep Variant
 process deepvariant_step1 {
-    module=['deepvariant/1.6.0']
+    container = "${params.containers.deepvariant}"
+    label 'process_somaticcaller'
 
     input:
         tuple val(samplename), path(bam), path(bai), path(bed)
@@ -38,9 +39,9 @@ process deepvariant_step1 {
 
 //Step 2 requires GPU
 process deepvariant_step2 {
-    module = ['deepvariant/1.6.0']
+    container = "${params.containers.deepvariant}"
     //clusterOptions '--gres=lscratch:100,gpu:p100:1  --partition=gpu'
-    label 'process_long'
+    label 'process_somaticcaller'
 
     input:
         tuple val(samplename), path(tfrecords), path(json), path(tfgvcf), path(bed)
@@ -71,8 +72,9 @@ process deepvariant_step2 {
 
 //Step 3 DV
 process deepvariant_step3 {
-    module = ['deepvariant/1.6.0']
-
+    container = "${params.containers.deepvariant}"
+    label 'process_somaticcaller'
+    
     input:
         tuple val(samplename), path(tfrecords),
         path(tfgvcf), path("outdv/*"), path(bed)

@@ -1,3 +1,6 @@
+include {splitinterval; matchbed as matchbed_ascat; 
+        matchbed as matchbed_cnvkit} from '../../modules/local/splitbed.nf'
+
 include {fc_lane; fastq_screen;kraken;qualimap_bamqc;
     samtools_flagstats;vcftools;collectvariantcallmetrics;
     bcftools_stats;gatk_varianteval;
@@ -6,48 +9,65 @@ include {fc_lane; fastq_screen;kraken;qualimap_bamqc;
     mosdepth; 
     multiqc} from  '../../modules/local/qc.nf'
 
-include {deepvariant_step1;deepvariant_step2;deepvariant_step3;
-    deepvariant_combined;glnexus} from '../../modules/local/germline.nf'
-
 include {fastp; bwamem2; 
     bqsr; gatherbqsr; applybqsr; samtoolsindex} from '../../modules/local/trim_align.nf'
-    
-include {mutect2; mutect2filter; pileup_paired_t; pileup_paired_n; 
-    bcftools_index_octopus;
-    contamination_paired; learnreadorientationmodel; mergemut2stats;
-    combineVariants as combineVariants_vardict; combineVariants as combineVariants_varscan; 
-    combineVariants as combineVariants_vardict_tonly; combineVariants as combineVariants_varscan_tonly;
-    combineVariants as combineVariants_sage; combineVariants as combineVariants_sage_tonly;
-    combineVariants_alternative; 
-    annotvep_tn as annotvep_tn_mut2;
-    annotvep_tn as annotvep_tn_varscan; annotvep_tn as annotvep_tn_vardict;
-    combinemafs_tn} from '../../modules/local/variant_calling.nf'
 
-include {mutect2_t_tonly; mutect2filter_tonly; pileup_paired_tonly; 
-    varscan_tonly; vardict_tonly; 
-    octopus_tonly; sage_tonly;
+include {pileup_paired as pileup_paired_t; pileup_paired as pileup_paired_n; 
+    pileup_paired_tonly;
+    learnreadorientationmodel;
+    mutect2; mutect2filter;  contamination_paired; mergemut2stats; 
+    mutect2_t_tonly; mutect2filter_tonly;
     contamination_tumoronly;
-    learnreadorientationmodel_tonly; 
-    mergemut2stats_tonly; octopus_convertvcf_tonly;
-    annotvep_tonly as annotvep_tonly_varscan; annotvep_tonly as annotvep_tonly_vardict; 
-    annotvep_tonly as annotvep_tonly_mut2; annotvep_tonly as annotvep_tonly_octopus;
-    annotvep_tonly as annotvep_tonly_sage;
-    annotvep_tonly as annotvep_tonly_combined;
-    combinemafs_tonly; somaticcombine_tonly} from '../../modules/local/variant_calling_tonly.nf'
-
-include {manta_tonly; svaba_tonly; gridss_tonly;
-    survivor_sv; gunzip as gunzip_gridss;
-    annotsv_tonly as annotsv_manta_tonly; annotsv_tonly as annotsv_svaba_tonly;
-    annotsv_tonly as annotsv_survivor_tonly} from '../../modules/local/structural_variant.nf'
-
-include {freec; amber_tonly; cobalt_tonly; purple_tonly_novc; purple_tonly;
-        cnvkit_exome_tonly; cnvkit_tonly  } from '../../modules/local/copynumber.nf'
-
-include {splitinterval; matchbed as matchbed_ascat; matchbed as matchbed_cnvkit} from '../../modules/local/splitbed.nf'
+    learnreadorientationmodel_tonly;
+    mergemut2stats_tonly} from '../../modules/local/mutect2.nf'
+include {sage_tn;  sage_tonly} from '../../modules/local/sage.nf'
+include {vardict_tn; vardict_tonly} from '../../modules/local/vardict.nf'
+include {varscan_tn;  varscan_tonly} from '../../modules/local/varscan.nf'
+include {octopus_tn; bcftools_index_octopus; 
+    bcftools_index_octopus as bcftools_index_octopus_tonly; octopus_convertvcf;
+    octopus_tonly; octopus_convertvcf_tonly} from '../../modules/local/octopus.nf'
+include {deepsomatic_tonly_step1; deepsomatic_tonly_step2;
+        deepsomatic_step3 as deepsomatic_tonly_step3  } from "../../modules/local/deepsomatic.nf"
 
 
+include {combineVariants as combineVariants_vardict; combineVariants as combineVariants_vardict_tonly;
+    combineVariants as combineVariants_varscan; combineVariants as combineVariants_varscan_tonly;
+    combineVariants_alternative;
+    combineVariants_alternative as combineVariants_deepsomatic; combineVariants_alternative as combineVariants_deepsomatic_tonly;
+    combineVariants as combineVariants_sage; combineVariants as combineVariants_sage_tonly;
+    combineVariants_alternative as combineVariants_lofreq; combineVariants as combineVariants_muse;
+    combineVariants_alternative as combineVariants_octopus; 
+    combineVariants_alternative as combineVariants_octopus_tonly;
+    combinemafs_tn; somaticcombine;
+    combinemafs_tonly;somaticcombine_tonly} from '../../modules/local/combinefilter.nf'
 
 
+include {annotvep_tn as annotvep_tn_mut2; annotvep_tn as annotvep_tn_strelka;
+    annotvep_tn as annotvep_tn_varscan; annotvep_tn as annotvep_tn_vardict; annotvep_tn as annotvep_tn_octopus;
+    annotvep_tn as annotvep_tn_lofreq; annotvep_tn as annotvep_tn_muse; annotvep_tn as annotvep_tn_sage;
+    annotvep_tn as annotvep_tn_deepsomatic;
+    annotvep_tn as annotvep_tn_combined; 
+    annotvep_tonly as annotvep_tonly_varscan; annotvep_tonly as annotvep_tonly_vardict;
+    annotvep_tonly as annotvep_tonly_mut2; annotvep_tonly as annotvep_tonly_octopus; 
+    annotvep_tonly as annotvep_tonly_sage; annotvep_tonly as annotvep_tonly_deepsomatic;
+    annotvep_tonly as annotvep_tonly_combined} from '../../modules/local/annotvep.nf'
+
+include {svaba_tonly} from '../../modules/local/svaba.nf'
+include {manta_tonly} from '../../modules/local/manta.nf'
+include {gridss_tonly} from '../../modules/local/gridss.nf'
+include {survivor_sv; 
+    gunzip as gunzip_manta; gunzip as gunzip_gridss; 
+    annotsv_tonly as annotsv_survivor_tonly;
+    annotsv_tonly as annotsv_svaba_tonly; 
+    annotsv_tonly as annotsv_gridss_tonly; 
+    annotsv_tonly as annotsv_manta_tonly} from '../../modules/local/annotsv.nf'
+
+include {freec} from '../../modules/local/freec.nf'
+include {amber_tonly; cobalt_tonly; purple_tonly_novc; purple_tonly} from '../../modules/local/purple.nf'
+include {cnvkit_exome_tonly; cnvkit_tonly } from '../../modules/local/cnvkit.nf'
+
+
+//Workflows
 workflow INPUT_TONLY {
     if(params.fastq_input){
         fastqinput=Channel.fromFilePairs(params.fastq_input) 
@@ -218,6 +238,26 @@ workflow VC_TONLY {
         | map{tumor,normvcf,normindex ->tuple(tumor,"octopus_tonly",normvcf,normindex)} 
     vc_tonly=vc_tonly|concat(octopus_in_tonly_sc)
     }
+
+    //DeepSomatic Tonly
+    if ("deepsomatic" in call_list){
+    deepsomatic_tonly_in=deepsomatic_tonly_step1(bambyinterval) 
+        | deepsomatic_tonly_step2  
+        | deepsomatic_tonly_step3 | groupTuple 
+        | map{samplename,vcf,vcf_tbi -> 
+            tuple(samplename,vcf.toSorted{it -> (it.name =~ /${samplename}_(.*?).bed.vcf.gz/)[0][1].toInteger()},vcf_tbi,"deepsomatic_tonly")
+            } 
+        | combineVariants_deepsomatic_tonly           
+        | join(sample_sheet) 
+        | map{tumor,marked,markedindex,normvcf,normindex->tuple(tumor,"deepsomatic_tonly",normvcf,normindex)}
+
+    annotvep_tonly_deepsomatic(deepsomatic_tonly_in)
+
+    vc_tonly=vc_tonly | concat(deepsomatic_tonly_in) 
+          
+    }
+    
+
     /*
     //SAGE
     if ("sage" in call_list){
@@ -288,6 +328,7 @@ workflow SV_TONLY {
         gridss_out=gridss_tonly(bamwithsample)
             | map{tumor,vcf,index,bam,gripssvcf,gripsstbi,gripssfilt,filttbi ->
             tuple(tumor,gripssfilt,"gridss_tonly")} | gunzip_gridss
+            annotsv_gridss_tonly(manta_out).ifEmpty("Empty SV input--No SV annotated")
             svout=svout | concat(gridss_out)
         }
 

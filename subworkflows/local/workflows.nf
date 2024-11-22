@@ -1,3 +1,5 @@
+include {splitinterval;matchbed as matchbed_ascat; matchbed as matchbed_cnvkit} from '../../modules/local/splitbed.nf'
+
 include {fc_lane; fastq_screen;kraken;qualimap_bamqc;fastqc;
     samtools_flagstats;vcftools;collectvariantcallmetrics;
     bcftools_stats;gatk_varianteval;
@@ -10,56 +12,73 @@ include {fastp; bwamem2; indelrealign; bqsr_ir;
     bqsr; gatherbqsr; applybqsr; samtoolsindex} from  '../../modules/local/trim_align.nf'
 
 include {deepvariant_step1; deepvariant_step2; deepvariant_step3;
-    deepvariant_combined;glnexus;
-    bcfconcat as bcfconcat_vcf;bcfconcat as bcfconcat_gvcf} from '../../modules/local/germline.nf'
+    deepvariant_combined; glnexus;
+    bcfconcat as bcfconcat_vcf; bcfconcat as bcfconcat_gvcf} from '../../modules/local/deepvariant.nf'
 
 include {pileup_paired as pileup_paired_t; pileup_paired as pileup_paired_n; 
-    mutect2; mutect2filter; 
-    contamination_paired; learnreadorientationmodel;mergemut2stats;
-    strelka_tn; 
-    varscan_tn; vardict_tn; lofreq_tn; muse_tn; sage_tn;
-    octopus_tn; bcftools_index_octopus; bcftools_index_octopus as bcftools_index_octopus_tonly; octopus_convertvcf; 
-    combineVariants_strelka; convert_strelka;
-    combineVariants as combineVariants_vardict; combineVariants as combineVariants_vardict_tonly;
-    combineVariants as combineVariants_varscan; combineVariants as combineVariants_varscan_tonly;
-    combineVariants as combineVariants_sage; combineVariants as combineVariants_sage_tonly;
-    combineVariants_alternative as combineVariants_lofreq; combineVariants as combineVariants_muse;
-    combineVariants_alternative as combineVariants_octopus; combineVariants_alternative as combineVariants_octopus_tonly;
-    annotvep_tn as annotvep_tn_mut2; annotvep_tn as annotvep_tn_strelka;
-    annotvep_tn as annotvep_tn_varscan; annotvep_tn as annotvep_tn_vardict; annotvep_tn as annotvep_tn_octopus;
-    annotvep_tn as annotvep_tn_lofreq; annotvep_tn as annotvep_tn_muse; annotvep_tn as annotvep_tn_sage;
-    annotvep_tn as annotvep_tn_combined;
-    combinemafs_tn; somaticcombine} from '../../modules/local/variant_calling.nf'
-
-include {mutect2_t_tonly; mutect2filter_tonly;
-    varscan_tonly; vardict_tonly; octopus_tonly; sage_tonly;
+    learnreadorientationmodel;
+    mutect2; mutect2filter;  contamination_paired; mergemut2stats; 
+    mutect2_t_tonly; mutect2filter_tonly;
     contamination_tumoronly;
     learnreadorientationmodel_tonly;
-    mergemut2stats_tonly; octopus_convertvcf_tonly;
+    mergemut2stats_tonly} from '../../modules/local/mutect2.nf'
+
+include {sage_tn;  sage_tonly} from '../../modules/local/sage.nf'
+include {vardict_tn; vardict_tonly} from '../../modules/local/vardict.nf'
+include {varscan_tn;  varscan_tonly} from '../../modules/local/varscan.nf'
+include {octopus_tn; bcftools_index_octopus; 
+    bcftools_index_octopus as bcftools_index_octopus_tonly; octopus_convertvcf;
+    octopus_tonly; octopus_convertvcf_tonly} from '../../modules/local/octopus.nf'
+include {lofreq_tn} from '../../modules/local/lofreq.nf'
+include {strelka_tn; combineVariants_strelka; convert_strelka} from '../../modules/local/strelka.nf'
+include {muse_tn} from '../../modules/local/muse.nf'
+include {deepsomatic_tn_step1; deepsomatic_step2; deepsomatic_step3;
+        deepsomatic_tonly_step1; deepsomatic_tonly_step2;
+        deepsomatic_step3 as deepsomatic_tonly_step3  } from "../../modules/local/deepsomatic.nf"
+
+
+include {combineVariants as combineVariants_vardict; combineVariants as combineVariants_vardict_tonly;
+    combineVariants as combineVariants_varscan; combineVariants as combineVariants_varscan_tonly;
+    combineVariants_alternative as combineVariants_deepsomatic; combineVariants_alternative as combineVariants_deepsomatic_tonly;
+    combineVariants as combineVariants_sage; combineVariants as combineVariants_sage_tonly;
+    combineVariants_alternative as combineVariants_lofreq; combineVariants as combineVariants_muse;
+    combineVariants_alternative as combineVariants_octopus; 
+    combineVariants_alternative as combineVariants_octopus_tonly;
+    combinemafs_tn; somaticcombine;
+    combinemafs_tonly;somaticcombine_tonly} from '../../modules/local/combinefilter.nf'
+
+include {annotvep_tn as annotvep_tn_mut2; annotvep_tn as annotvep_tn_strelka;
+    annotvep_tn as annotvep_tn_varscan; annotvep_tn as annotvep_tn_vardict; annotvep_tn as annotvep_tn_octopus;
+    annotvep_tn as annotvep_tn_lofreq; annotvep_tn as annotvep_tn_muse; annotvep_tn as annotvep_tn_sage;
+    annotvep_tn as annotvep_tn_deepsomatic;
+    annotvep_tn as annotvep_tn_combined; 
     annotvep_tonly as annotvep_tonly_varscan; annotvep_tonly as annotvep_tonly_vardict;
-    annotvep_tonly as annotvep_tonly_mut2; annotvep_tonly as annotvep_tonly_octopus; annotvep_tonly as annotvep_tonly_sage;
-    annotvep_tonly as annotvep_tonly_combined;
-    combinemafs_tonly;somaticcombine_tonly} from '../../modules/local/variant_calling_tonly.nf'
+    annotvep_tonly as annotvep_tonly_mut2; annotvep_tonly as annotvep_tonly_octopus; 
+    annotvep_tonly as annotvep_tonly_sage; annotvep_tonly as annotvep_tonly_deepsomatic;
+    annotvep_tonly as annotvep_tonly_combined} from '../../modules/local/annotvep.nf'
 
-include {svaba_somatic; manta_somatic; gridss_somatic;
-    survivor_sv; gunzip as gunzip_manta; gunzip as gunzip_gridss; 
+include {svaba_somatic} from '../../modules/local/svaba.nf'
+include {manta_somatic} from '../../modules/local/manta.nf'
+include {gridss_somatic} from '../../modules/local/gridss.nf'
+include {survivor_sv; 
+    gunzip as gunzip_manta; gunzip as gunzip_gridss; 
     annotsv_tn as annotsv_survivor_tn
-    annotsv_tn as annotsv_svaba;annotsv_tn as annotsv_manta} from '../../modules/local/structural_variant.nf'
+    annotsv_tn as annotsv_gridss; annotsv_tn as annotsv_svaba; annotsv_tn as annotsv_manta} from '../../modules/local/annotsv.nf'
 
-include {amber_tn; cobalt_tn; purple; purple_novc;
-    sequenza; seqz_sequenza_bychr; freec; freec_paired; freec_paired_exome;
-    ascat_tn; ascat_tn_exome; cnvkit; cnvkit_exome } from '../../modules/local/copynumber.nf'
+include {amber_tn; cobalt_tn; purple; purple_novc} from '../../modules/local/purple.nf'
+include {sequenza; seqz_sequenza_bychr} from '../../modules/local/sequenza.nf'
+include {freec; freec_paired; freec_paired_exome} from '../../modules/local/freec.nf'
+include {ascat_tn; ascat_tn_exome} from '../../modules/local/ascat.nf'
+include {cnvkit; cnvkit_exome } from '../../modules/local/cnvkit.nf'
 
-include {splitinterval;matchbed as matchbed_ascat; matchbed as matchbed_cnvkit} from '../../modules/local/splitbed.nf'
 
 
-
+//Workflows
 workflow DETERMINEBAM {
     if(params.bam_input){
         params.BAMINPUT=true
     }else if(params.file_input){
             file(params.file_input).text
-
     }
 
 }
@@ -396,6 +415,45 @@ workflow VC {
         annotvep_tn_lofreq(lofreq_in)
 
         vc_all=vc_all|concat(lofreq_in)
+    }
+
+
+    //DeepSomatic TN
+    if ("deepsomatic" in call_list){
+        deepsomatic_in = deepsomatic_tn_step1(bambyinterval) 
+            | map{tname,nname,tf,tfjson,bed -> tuple("${tname}_vs_${nname}",tf,tfjson,bed)} 
+            | deepsomatic_step2  
+            | deepsomatic_step3 | groupTuple 
+            | map{samplename,vcf,vcf_tbi -> 
+                tuple(samplename,vcf.toSorted{it -> (it.name =~ /${samplename}_(.*?).bed.vcf.gz/)[0][1].toInteger()},vcf_tbi,"deepsomatic")
+                }
+            | combineVariants_deepsomatic             
+            | join(sample_sheet_paired)
+            | map{sample,marked,markedindex,normvcf,normindex,tumor,normal->tuple(tumor,normal,"deepsomatic",normvcf,normindex)}
+        annotvep_tn_deepsomatic(deepsomatic_in)
+
+        vc_all=vc_all|concat(deepsomatic_in)
+
+        //DeepSomatic TOnly
+          if (!params.no_tonly){
+          deepsomatic_tonly_in = deepsomatic_tonly_step1(bambyinterval_t) 
+            | deepsomatic_tonly_step2  
+            | deepsomatic_tonly_step3 | groupTuple 
+
+            | map{samplename,vcf,vcf_tbi -> 
+                tuple(samplename,vcf.toSorted{it -> (it.name =~ /${samplename}_(.*?).bed.vcf.gz/)[0][1].toInteger()},vcf_tbi,"deepsomatic_tonly")
+             } 
+
+            | combineVariants_deepsomatic_tonly           
+            | join(sample_sheet) 
+            | map{tumor,marked,markedindex,normvcf,normindex,normal->tuple(tumor,"deepsomatic_tonly",normvcf,normindex)}
+
+        annotvep_tonly_deepsomatic(deepsomatic_tonly_in)
+
+        vc_tonly=vc_tonly | concat(deepsomatic_tonly_in) 
+          
+          }
+          
     }
 
 
