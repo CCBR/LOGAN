@@ -606,6 +606,16 @@ workflow CNVmouse {
             | map{tname,tumor,tbai,nname,norm,nbai->tuple(tname,tumor,tbai)}
             | freec
         }
+
+         //CNVKIT
+        if ("cnvkit" in cnvcall_list){
+            if(params.exome){
+                matchbed_cnvkit(intervalbedin)
+                bamwithsample | combine(matchbed_cnvkit.out) | cnvkit_exome
+            }else{
+                bamwithsample | cnvkit
+            }
+        }
 }
 
 workflow CNVhuman {
@@ -644,8 +654,8 @@ workflow CNVhuman {
                 | sequenza
         }
 
+        //FREEC
         if ("freec" in cnvcall_list){
-            //FREEC
             if(params.exome){
                 FREECPAIR_SCRIPT = params.script_freecpaired_exome
                 bamwithsample | freec_paired_exome
@@ -654,6 +664,7 @@ workflow CNVhuman {
                 bamwithsample | freec_paired
             }
         }
+        
         //ASCAT
         if ("ascat" in cnvcall_list){
             if(params.exome){
@@ -663,6 +674,7 @@ workflow CNVhuman {
                 bamwithsample | ascat_tn
             }
         }
+        
         //CNVKIT
         if ("cnvkit" in cnvcall_list){
             if(params.exome){

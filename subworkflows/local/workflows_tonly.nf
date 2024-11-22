@@ -355,6 +355,15 @@ workflow CNVmouse_tonly {
     if ("freec" in cnvcall_list){
         freec(bamwithsample)
     }
+     //CNVKIT
+        if ("cnvkit" in cnvcall_list){
+            if(params.exome){
+                matchbed_cnvkit(intervalbedin)
+                bamwithsample | combine(matchbed_cnvkit.out) | cnvkit_exome_tonly
+            }else{
+                bamwithsample | cnvkit_tonly
+            }
+        }
 }
 
 
