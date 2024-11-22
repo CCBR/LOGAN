@@ -13,15 +13,15 @@ tumor_bam=args[1]
 tumor_name=args[2]
 normal_bam=args[3]
 normal_name=args[4]
-genome="hg38"
-bed=args[5]
+genome=args[5]
+bed=args[6]
 #chroms=scan(text=args[4],sep=",",quiet=T)
 cpus=as.numeric(Sys.getenv("SLURM_CPUS_PER_TASK"))
 cpus=ifelse(is.na(cpus),2,cpus)
 
 ##DETERMINE SEX
-system(sprintf('alleleCounter -l /data/CCBR_Pipeliner/Pipelines/LOGAN/resources/hg38/ASCAT/G1000_loci/gender_chr.loci -b %s -c chrX -o %s_temp_gender.out',
-normal_bam,normal_name))
+system(sprintf('alleleCounter -l /data/CCBR_Pipeliner/Pipelines/LOGAN/resources/%s/ASCAT/gender_chr.loci -b %s -c chrX -o %s_temp_gender.out',
+  genome,normal_bam,normal_name))
 s=read.table(sprintf("%s_temp_gender.out",normal_name))
 gender=ifelse(sum(s$V7)>5,"XY","XX")
 print(gender)
@@ -32,8 +32,8 @@ ascat.prepareHTS(
   tumourname = tumor_name,
   normalname = normal_name,
   allelecounter_exe = "alleleCounter",
-  alleles.prefix = "/data/CCBR_Pipeliner/Pipelines/LOGAN/resources/hg38/ASCAT/G1000_alleles/G1000_alleles_hg38_chr",
-  loci.prefix = "/data/CCBR_Pipeliner/Pipelines/LOGAN/resources/hg38/ASCAT/G1000_loci/G1000_loci_hg38_chr",
+  alleles.prefix = sprintf("/data/CCBR_Pipeliner/Pipelines/LOGAN/resources/%s/ASCAT/G1000_alleles/G1000_alleles_%s_chr",genome,genome),
+  loci.prefix = sprintf("/data/CCBR_Pipeliner/Pipelines/LOGAN/resources/%s/ASCAT/G1000_loci/G1000_loci_%s_chr",genome,genome),
   gender = gender,
   genomeVersion = genome,
   nthreads = cpus,
@@ -49,9 +49,10 @@ ascat.bc = ascat.loadData(Tumor_LogR_file = sprintf("%s_LogR.txt",tumor_name),
     gender = gender, genomeVersion = genome)
 
 ascat.plotRawData(ascat.bc, img.prefix = "Before_correction_")
-ascat.bc = ascat.correctLogR(ascat.bc, GCcontentfile = "/data/CCBR_Pipeliner/Pipelines/LOGAN/resources/hg38/ASCAT/GC_G1000/GC_G1000_hg38.txt", 
-  replictimingfile = "/data/CCBR_Pipeliner/Pipelines/LOGAN/resources/hg38/ASCAT/RT_G1000/RT_G1000_hg38.txt")
-  ascat.plotRawData(ascat.bc, img.prefix = "After_correction_")
+ascat.bc = ascat.correctLogR(ascat.bc, 
+  GCcontentfile = sprintf("/data/CCBR_Pipeliner/Pipelines/LOGAN/resources/%s/ASCAT/GC_G1000/GC_G1000_%s.txt",genome,genome), 
+  replictimingfile = sprintf("/data/CCBR_Pipeliner/Pipelines/LOGAN/resources/%s/ASCAT/RT_G1000/RT_G1000_%s.txt",genome,genome))
+ascat.plotRawData(ascat.bc, img.prefix = "After_correction_")
 ascat.bc = ascat.aspcf(ascat.bc)
 ascat.plotSegmentedData(ascat.bc)
 ascat.output = ascat.runAscat(ascat.bc, gamma=1, write_segments = T)
