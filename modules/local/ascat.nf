@@ -83,7 +83,7 @@ process ascat_tn_exome {
     script:
     """
     sed 's/^chr//' ${bed} > nochrtemp.bed
-    Rscript $ascatR ${tumor} ${tumorname} ${normal} ${normalname} $GENOMEVER nochrtemp.bed
+    Rscript $ascatR ${tumor} ${tumorname} ${normal} ${normalname} $GENOMEVER nochrtemp.bed wes
     """
 
     stub:
