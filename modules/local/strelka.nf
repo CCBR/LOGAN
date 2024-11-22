@@ -1,3 +1,6 @@
+//References
+GENOMEREF=file(params.genomes[params.genome].genome)
+
 //HelperScripts
 STRELKA_CONVERT=params.strelka_convert
 

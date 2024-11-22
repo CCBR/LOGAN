@@ -1,4 +1,3 @@
-
 BWAGENOME=file(params.genomes[params.genome].bwagenome)
 INDELREF=file(params.genomes[params.genome].INDELREF)
 

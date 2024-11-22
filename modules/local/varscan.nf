@@ -1,6 +1,5 @@
 //References
 GENOMEREF=file(params.genomes[params.genome].genome)
-GENOMEFAI=file(params.genomes[params.genome].genomefai)
 GENOMEDICT=file(params.genomes[params.genome].genomedict)
 
 
