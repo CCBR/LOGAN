@@ -112,8 +112,8 @@ process gridss_somatic {
     container = "${params.containers.sv}"
 
     input:
-        tuple val(tumorname), path(tumor), 
-        path(tumorbai), val(normalname), path(normal), path(normalbai)
+        tuple val(tumorname), path(tumor), path(tumorbai), 
+        val(normalname), path(normal), path(normalbai)
 
     output:
         tuple val(tumorname), val(normalname),
