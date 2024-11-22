@@ -2,10 +2,11 @@
 
 ## LOGAN 0.2.0
 ### New features
-- Added additional SV callers(GRIDSS) and annotation for SV (GRIPSS) + CNV Callers (ASCAT, CNVKit)
+- Added additional SV callers(GRIDSS) and annotation for SV (GRIPSS) + CNV Callers (ASCAT, CNVKit) + SNV (Deepsomatic)
 - Bugfixes for hg19 by fixing references
 - Updated PON for hg38 using TCGA/GDC references
 - In development: adding exome support by using bed file to restrict calling regions
+- Refactored modules to be similar to nf-core
 
 ## LOGAN 0.1.0
 ### Features

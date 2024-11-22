@@ -98,7 +98,7 @@ No addtional flags for sample sheet are required as all samples will be used to 
 
 Adding flags determines SNV (germline and/or somatic), SV, and/or CNV calling modes
 
-`--vc`- Enables somatic SNV calling using mutect2, vardict, varscan, octopus, strelka (TN only), MUSE (TN only), and lofreq (TN only)
+`--vc`- Enables somatic SNV calling using mutect2, deepsomatic, vardict, varscan, octopus, strelka (TN only), MUSE (TN only), and lofreq (TN only)
 
 `--germline`- Enables germline calling using Deepvariant
 
