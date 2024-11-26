@@ -13,7 +13,6 @@ if (params.genome.matches("hg38(.*)")| params.genome.matches("hg19(.*)")){
 
 
 process gridss_somatic {
-    label 'process_high'
     container = "${params.containers.sv}"
 
     input:
@@ -76,7 +75,6 @@ process gridss_somatic {
 
 
 process gridss_tonly {
-    label 'process_high'
     container = "${params.containers.sv}"
 
     input:
