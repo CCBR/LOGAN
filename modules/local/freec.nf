@@ -1,5 +1,7 @@
 //FREEC
 //mm10 Paired-Sequenza, FREEC-tumor only
+GENOMEREF = file(params.genomes[params.genome].genome)
+
 //CNV Intervals
 if (params.intervals){
     CNVTARGETS = file(params.intervals)
