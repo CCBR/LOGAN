@@ -17,9 +17,9 @@ process ascat_tn {
     output:
     tuple val(tumorname), 
     path("After_correction_${tumorname}.germline.png"),
-    path("After_correction_${tumorname}.tumor.png"),
+    path("After_correction_${tumorname}.tumour.png"),
     path("Before_correction_${tumorname}.germline.png"),
-    path("Before_correction_${tumorname}.tumor.png"),
+    path("Before_correction_${tumorname}.tumour.png"),
     path("${tumorname}.ASCATprofile.png"),
     path("${tumorname}.ASPCF.png"),
     path("${tumorname}.sunrise.png"),
@@ -38,9 +38,9 @@ process ascat_tn {
     stub:
     """
     touch After_correction_${tumorname}.germline.png
-    touch After_correction_${tumorname}.tumor.png
+    touch After_correction_${tumorname}.tumour.png
     touch Before_correction_${tumorname}.germline.png
-    touch Before_correction_${tumorname}.tumor.png
+    touch Before_correction_${tumorname}.tumour.png
     touch ${tumorname}.ASCATprofile.png
     touch ${tumorname}.ASPCF.png
     touch ${tumorname}.sunrise.png
@@ -66,7 +66,8 @@ process ascat_tn_exome {
         path(bed)
 
     output:
-    tuple path("After_correction_${tumorname}.germline.png"),
+    tuple val(tumorname), 
+    path("After_correction_${tumorname}.germline.png"),
     path("After_correction_${tumorname}.tumour.png"),
     path("Before_correction_${tumorname}.germline.png"),
     path("Before_correction_${tumorname}.tumour.png"),
