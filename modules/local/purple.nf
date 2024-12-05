@@ -1,15 +1,16 @@
 //PURPLE
-if (params.genome.matches("hg38(.*)")| params.genome.matches("hg19(.*)")){
-    HMFGENOMEREF = file(params.genomes[params.genome].HMFGENOME)
-    GENOMEVER = params.genomes[params.genome].GENOMEVER
-    GCPROFILE = file(params.genomes[params.genome].GCPROFILE)
-    GERMLINEHET = file(params.genomes[params.genome].GERMLINEHET)
-    DIPLODREG = file(params.genomes[params.genome].DIPLODREG)
-    ENSEMBLCACHE = params.genomes[params.genome].ENSEMBLCACHE
-    DRIVERS = file(params.genomes[params.genome].DRIVERS)
-    SOMATICHOTSPOTS = file(params.genomes[params.genome].SOMATICHOTSPOTS)
-    GERMLINEHOTSPOTS = file(params.genomes[params.genome].GERMLINEHOTSPOTS)
-}
+GENOMEREF=file(params.genomes[params.genome].genome)
+HMFGENOMEREF = file(params.genomes[params.genome].HMFGENOME)
+GENOMEVER = params.genomes[params.genome].GENOMEVER
+GCPROFILE = file(params.genomes[params.genome].GCPROFILE)
+GERMLINEHET = file(params.genomes[params.genome].GERMLINEHET)
+DIPLODREG = file(params.genomes[params.genome].DIPLODREG)
+ENSEMBLCACHE = params.genomes[params.genome].ENSEMBLCACHE
+DRIVERS = file(params.genomes[params.genome].DRIVERS)
+SOMATICHOTSPOTS = file(params.genomes[params.genome].SOMATICHOTSPOTS)
+GERMLINEHOTSPOTS = file(params.genomes[params.genome].GERMLINEHOTSPOTS)
+//if (params.genome.matches("hg38(.*)")| params.genome.matches("hg19(.*)")){
+//}
 
 
 
@@ -195,7 +196,8 @@ process purple_novc {
         path(amberin), path(cobaltin)
 
     output:
-        tuple val(id), val(tumorname), val(normalname), path("${id}")
+        tuple val(id), val(tumorname), val(normalname), 
+            path("${id}")
 
     script:
 
@@ -217,8 +219,8 @@ process purple_novc {
     stub:
 
     """
-    mkdir ${tumorname}
-    touch ${tumorname}/${tumorname}.purple.cnv.somatic.tsv ${tumorname}/${tumorname}.purple.cnv.gene.tsv ${tumorname}/${tumorname}.driver.catalog.somatic.tsv
+    mkdir ${id}
+    touch ${id}/${id}.purple.cnv.somatic.tsv ${id}/${id}.purple.cnv.gene.tsv ${id}/${id}.driver.catalog.somatic.tsv
     """
 
 }

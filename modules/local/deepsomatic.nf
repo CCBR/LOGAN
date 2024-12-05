@@ -11,7 +11,7 @@ process deepsomatic_tn_step1 {
 
     input:
         tuple val(tname), path(tbam), path(tbai), 
-         val(nname), path(nbam), path(nbai),
+        val(nname), path(nbam), path(nbai),
         path(bed)
 
     output:

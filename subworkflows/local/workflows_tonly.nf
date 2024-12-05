@@ -1,13 +1,19 @@
 include {splitinterval; matchbed as matchbed_ascat; 
         matchbed as matchbed_cnvkit} from '../../modules/local/splitbed.nf'
 
-include {fc_lane; fastq_screen;kraken;qualimap_bamqc;
-    samtools_flagstats;vcftools;collectvariantcallmetrics;
-    bcftools_stats;gatk_varianteval;
-    snpeff;fastqc;
-    somalier_extract;somalier_analysis_human;somalier_analysis_mouse;
-    mosdepth; 
-    multiqc} from  '../../modules/local/qc.nf'
+include {fc_lane} from '../../modules/local/fc_lane.nf'
+include {fastq_screen} from '../../modules/local/fastq_screen.nf'
+include {kraken} from '../../modules/local/kraken.nf'
+include {qualimap_bamqc} from '../../modules/local/qualimap.nf'
+include {fastqc} from '../../modules/local/fastqc.nf'
+include {samtools_flagstats} from '../../modules/local/samtools_flagstats.nf'
+include {vcftools} from '../../modules/local/vcftools.nf'
+include {bcftools_stats} from '../../modules/local/bcftools_stats.nf'
+include {gatk_varianteval; collectvariantcallmetrics} from '../../modules/local/gatk_varianteval.nf'
+include {snpeff} from '../../modules/local/snpeff.nf'
+include {somalier_extract;somalier_analysis_human;somalier_analysis_mouse} from '../../modules/local/somalier.nf'
+include {mosdepth} from '../../modules/local/mosdepth.nf'
+include {multiqc} from  '../../modules/local/multiqc.nf'
 
 include {fastp; bwamem2; 
     bqsr; gatherbqsr; applybqsr; samtoolsindex} from '../../modules/local/trim_align.nf'
