@@ -322,7 +322,6 @@ workflow SV_TONLY {
         }
         //Manta
         if ("manta" in svcall_list){
-
             manta_out=manta_tonly(bamwithsample)
                 .map{tumor, sv, indel, tumorsv -> 
                 tuple(tumor,tumorsv,"manta_tonly")} 
@@ -330,22 +329,39 @@ workflow SV_TONLY {
             svout=svout | concat(manta_out)
         }
 
+        //GRIDSS
         if ("gridss" in svcall_list){
         gridss_out=gridss_tonly(bamwithsample)
+        gridss_out_forsv=gridss_out
             | map{tumor,vcf,index,bam,gripssvcf,gripsstbi,gripssfilt,filttbi ->
             tuple(tumor,gripssfilt,"gridss_tonly")} | gunzip_gridss
-            annotsv_gridss_tonly(manta_out).ifEmpty("Empty SV input--No SV annotated")
+        annotsv_gridss_tonly(gridss_out_forsv).ifEmpty("Empty SV input--No SV annotated")
             svout=svout | concat(gridss_out)
         }
 
         //Survivor
-          if (svcall_list.size()>1){
+        if (svcall_list.size()>1){
             //Survivor
             svout | groupTuple
                 | survivor_sv 
                 | annotsv_survivor_tonly 
                 | ifEmpty("Empty SV input--No SV annotated")
          }
+
+        if("gridss" in svcall_list){
+            somaticsv_input=gridss_out 
+                | map{tumor,vcf,index,bam,gripssvcf,gripsstbi,gripssfilt,filttbi ->
+                    tuple(tumor,vcf,index,gripsstbi,gripssfilt,filttbi)}
+        }else if("manta" in svcall_list){
+            somaticsv_input=manta_out 
+                | map{tumor,gsv,gsv_tbi,so_sv,so_sv_tbi,unfil_sv,unfil_sv_tbi,unfil_indel,unfil_indel_tbi ->
+                    tuple(tumor,unfil_sv,unfil_sv_tbi,so_sv,so_sv_tbi)}
+        }else{
+            somaticsv_input=Channel.empty()
+        }
+    
+    emit:
+        somaticsv_input
 
 }
 

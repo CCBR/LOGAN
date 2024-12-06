@@ -556,18 +556,20 @@ workflow SV {
         //Manta
         if ("manta" in svcall_list){
         manta_out=manta_somatic(bamwithsample)
-            | map{tumor,gsv,so_sv,unfil_sv,unfil_indel ->
-            tuple(tumor,so_sv,"manta")} | gunzip_manta
+        manta_out_forsv=manta_out    
+            | map{tumor,normal,gsv,gsv_tbi,so_sv,so_sv_tbi,unfil_sv,unfil_sv_tbi,unfil_indel,unfil_indel_tbi ->
+                tuple(tumor,so_sv,"manta")} | gunzip_manta
         //annotsv_manta(manta_out).ifEmpty("Empty SV input--No SV annotated")
-            svout=svout | concat(manta_out)
+            svout=svout | concat(manta_out_forsv)
         }
 
         //GRIDSS
         if ("gridss" in svcall_list){
         gridss_out=gridss_somatic(bamwithsample)
+        gridss_out_forsv=gridss_out 
             | map{tumor,normal,vcf,index,bam,gripssvcf,gripsstbi,gripssfilt,filttbi ->
-            tuple(tumor,gripssfilt,"gridss")} | gunzip_gridss
-            svout=svout | concat(gridss_out)
+                tuple(tumor,gripssfilt,"gridss")} | gunzip_gridss
+            svout=svout | concat(gridss_out_forsv)
         }
 
         if (svcall_list.size()>1){
@@ -577,6 +579,21 @@ workflow SV {
                 | annotsv_survivor_tn 
                 | ifEmpty("Empty SV input--No SV annotated")
          }
+        
+        if("gridss" in svcall_list){
+            somaticsv_input=gridss_out 
+                | map{tumor,normal,vcf,index,bam,gripssvcf,gripsstbi,gripssfilt,filttbi ->
+                    tuple(tumor,normal,vcf,index,gripssfilt,filttbi)}
+        }else if("manta" in svcall_list){
+            somaticsv_input=manta_out 
+                | map{tumor,normal,gsv,gsv_tbi,so_sv,so_sv_tbi,unfil_sv,unfil_sv_tbi,unfil_indel,unfil_indel_tbi ->
+                    tuple(tumor,normal,unfil_sv,unfil_sv_tbi,so_sv,so_sv_tbi)}
+        }else{
+            somaticsv_input=Channel.empty()
+        }
+    
+    emit:
+        somaticsv_input
 }
 
 workflow CNVmouse {
