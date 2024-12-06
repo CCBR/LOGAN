@@ -1,4 +1,8 @@
-
+if (params.genome.matches("hg38(.*)")| params.genome.matches("hg19(.*)")){
+    SPECIES="HUMAN"
+}else if (params.genome.matches("mm10")){
+    SPECIES="MOUSE"
+}
 process qualimap_bamqc {
     /*
     Quality-control step to assess various post-alignment metrics
@@ -11,7 +15,7 @@ process qualimap_bamqc {
         Report containing post-aligment quality-control metrics
     */
     container = "${params.containers.loganqc}"
-    label 'process_medium'
+    label 'process_high'
 
     input:
         tuple val(samplename), path(bam), path(bai)
@@ -23,12 +27,12 @@ process qualimap_bamqc {
     """
     unset DISPLAY
     qualimap bamqc -bam ${bam} \
-        --java-mem-size=112G \
+        --java-mem-size=70G \
         -c -ip \
         -outdir ${samplename} \
         -outformat HTML \
-        -nt 8 \
-        --gd HUMAN \
+        -nt $task.cpus \
+        --gd $SPECIES \
         --skip-duplicated \
         -nw 500 \
         -p NON-STRAND-SPECIFIC
