@@ -1,31 +1,3 @@
-process ffpe_1 {
-
-    container "${params.containers.logan}"
-    label 'process_medium'
-
-    input:
-    tuple val(tumorsample), val(normal),
-        path("${tumorsample}_vs_${normal}_combined.vcf.gz"),
-        path("${tumorsample}_vs_${normal}_combined.vcf.gz.tbi"),
-        bam, bamindex
-        tuple val(tumorsample), val(normal),
-        val(caller),
-        path(vcfs), path(vcfindex)
-
-    output:
-        tuple val(tumorsample), val(normal),
-        path("${tumorsample}_vs_${normal}_combined.vcf.gz"),
-        path("${tumorsample}_vs_${normal}_combined.vcf.gz.tbi")
-
-    script:
-
-
-    stub:
-    """
-    touch "${tumorsample}_vs_${normal}_combined_ffpolish.vcf.gz"
-    """
-}
-
 
 
 /*DISCVR

@@ -43,7 +43,6 @@ include {deepsomatic_tn_step1; deepsomatic_step2; deepsomatic_step3;
         deepsomatic_tonly_step1; deepsomatic_tonly_step2;
         deepsomatic_step3 as deepsomatic_tonly_step3  } from "../../modules/local/deepsomatic.nf"
 
-
 include {combineVariants as combineVariants_vardict; combineVariants as combineVariants_vardict_tonly;
     combineVariants as combineVariants_varscan; combineVariants as combineVariants_varscan_tonly;
     combineVariants_alternative as combineVariants_deepsomatic; combineVariants_alternative as combineVariants_deepsomatic_tonly;
@@ -53,6 +52,23 @@ include {combineVariants as combineVariants_vardict; combineVariants as combineV
     combineVariants_alternative as combineVariants_octopus_tonly;
     combinemafs_tn; somaticcombine;
     combinemafs_tonly;somaticcombine_tonly} from '../../modules/local/combinefilter.nf'
+
+include {sobdetect_pass1 as sobdetect_pass1_mutect2; sobdetect_pass2 as sobdetect_pass2_mutect2; 
+    sobdetect_metrics as sobdetect_metrics_mutect2; sobdetect_cohort_params as sobdetect_cohort_params_mutect2;
+    sobdetect_pass1 as sobdetect_pass1_octopus; sobdetect_pass2 as sobdetect_pass2_octopus; 
+    sobdetect_metrics as sobdetect_metrics_octopus; sobdetect_cohort_params as sobdetect_cohort_params_octopus;
+    sobdetect_pass1 as sobdetect_pass1_strelka; sobdetect_pass2 as sobdetect_pass2_strelka; 
+    sobdetect_metrics as sobdetect_metrics_strelka; sobdetect_cohort_params as sobdetect_cohort_params_strelka;
+    sobdetect_pass1 as sobdetect_pass1_lofreq; sobdetect_pass2 as sobdetect_pass2_lofreq; 
+    sobdetect_metrics as sobdetect_metrics_lofreq; sobdetect_cohort_params as sobdetect_cohort_params_lofreq;
+    sobdetect_pass1 as sobdetect_pass1_muse; sobdetect_pass2 as sobdetect_pass2_muse; 
+    sobdetect_metrics as sobdetect_metrics_muse; sobdetect_cohort_params as sobdetect_cohort_params_muse;
+    sobdetect_pass1 as sobdetect_pass1_vardict; sobdetect_pass2 as sobdetect_pass2_vardict; 
+    sobdetect_metrics as sobdetect_metrics_vardict; sobdetect_cohort_params as sobdetect_cohort_params_vardict;
+    sobdetect_pass1 as sobdetect_pass1_varscan; sobdetect_pass2 as sobdetect_pass2_varscan; 
+    sobdetect_metrics as sobdetect_metrics_varscan; sobdetect_cohort_params as sobdetect_cohort_params_varscan;
+    } from "../../modules/local/ffpe.nf"
+
 
 include {annotvep_tn as annotvep_tn_mut2; annotvep_tn as annotvep_tn_strelka;
     annotvep_tn as annotvep_tn_varscan; annotvep_tn as annotvep_tn_vardict; annotvep_tn as annotvep_tn_octopus;
@@ -463,7 +479,6 @@ workflow VC {
           
     }
 
-
     //MuSE TN
     if ("muse" in call_list){
         muse_in=muse_tn(bamwithsample)
@@ -484,9 +499,9 @@ workflow VC {
             | map{samplename,marked,markedindex,normvcf,normindex ->
                 tuple(samplename.split('_vs_')[0],samplename.split('_vs_')[1],"octopus",normvcf,normindex)}
         annotvep_tn_octopus(octopus_in)
-        octopus_in_sc = octopus_in | octopus_convertvcf 
+        octopus_in = octopus_in | octopus_convertvcf 
             |  map{tumor,normal,vcf,vcfindex ->tuple(tumor,normal,"octopus",vcf,vcfindex)} 
-        vc_all=vc_all|concat(octopus_in_sc)
+        vc_all=vc_all|concat(octopus_in)
 
     //Octopus TOnly
         if (!params.no_tonly){ 
@@ -529,8 +544,136 @@ workflow VC {
         somaticcall_input=Channel.empty()
     }
     
-    
-    //Implement PCGR Annotator/CivIC Next
+    //FFPE Steps 
+    if(params.ffpe){
+        vc_ffpe_paired=Channel.empty()
+        vc_ffpe_tonly=Channel.empty()
+        bamwithsample1=bamwithsample | map{tumor,tbam,tbai,norm,nbam,nbai ->tuple(tumor,norm,tbam,tbai,nbam,nbai)}
+
+        if('mutect2' in call_list){
+            mutect2_p1=bamwithsample1 | join(mutect2_in,by:[0,1])
+                | map{tumor,normal,tbam,tbai,nbam,nbai,vc,normvcf,tbi->tuple("${tumor}_vs_${normal}",normvcf,tbam,vc)}
+                | sobdetect_pass1_mutect2  
+            mutect2_p1 | map{sample,vcf,info->info}
+                | collect
+                | sobdetect_cohort_params_mutect2
+
+            mutect2_p2 = bamwithsample1 
+                | join(mutect2_in,by:[0,1])
+                | map{tumor,normal,tbam,tbai,nbam,nbai,vc,normvcf,tbi->tuple("${tumor}_vs_${normal}",normvcf,tbam,vc)}
+                | combine(sobdetect_cohort_params_mutect2.out) 
+                | sobdetect_pass2_mutect2
+            mutect2_p1_vcfs=mutect2_p1 | map{sample,vcf,info->vcf} |collect 
+            mutect2_p2_vcfs=mutect2_p2 | map{sample,vcf,info,filtvcf,vcftbi->vcf} |collect
+            sobdetect_metrics_mutect2(mutect2_p1_vcfs,mutect2_p2_vcfs)
+        }
+
+        if('octopus' in call_list){
+            octopus_p1=bamwithsample1 | join(octopus_in,by:[0,1])
+                | map{tumor,normal,tbam,tbai,nbam,nbai,vc,normvcf,tbi->tuple("${tumor}_vs_${normal}",normvcf,tbam,vc)}
+                | sobdetect_pass1_octopus  
+            octopus_p1 | map{sample,vcf,info->info}
+                | collect
+                | sobdetect_cohort_params_octopus
+            octopus_p2 = bamwithsample1 
+                | join(octopus_in,by:[0,1])
+                | map{tumor,normal,tbam,tbai,nbam,nbai,vc,normvcf,tbi->tuple("${tumor}_vs_${normal}",normvcf,tbam,vc)}
+                | combine(sobdetect_cohort_params_octopus.out) 
+                | sobdetect_pass2_octopus
+            octopus_p1_vcfs=octopus_p1 | map{sample,vcf,info->vcf} |collect 
+            octopus_p2_vcfs=octopus_p2 | map{sample,vcf,info,filtvcf,vcftbi->vcf} |collect
+            sobdetect_metrics_octopus(octopus_p1_vcfs,octopus_p2_vcfs)
+        }
+
+        if('strelka' in call_list){
+            strelka_p1=bamwithsample1 | join(strelka_in,by:[0,1])
+                | map{tumor,normal,tbam,tbai,nbam,nbai,vc,normvcf,tbi->tuple("${tumor}_vs_${normal}",normvcf,tbam,vc)}
+                | sobdetect_pass1_strelka
+            strelka_p1 | map{sample,vcf,info->info}
+                | collect
+                | sobdetect_cohort_params_strelka
+            strelka_p2 = bamwithsample1 
+                | join(strelka_in,by:[0,1])
+                | map{tumor,normal,tbam,tbai,nbam,nbai,vc,normvcf,tbi->tuple("${tumor}_vs_${normal}",normvcf,tbam,vc)}
+                | combine(sobdetect_cohort_params_strelka.out) 
+                | sobdetect_pass2_strelka
+                
+            strelka_p1_vcfs=strelka_p1 | map{sample,vcf,info->vcf} |collect 
+            strelka_p2_vcfs=strelka_p2 | map{sample,vcf,info,filtvcf,vcftbi->vcf} | collect
+
+            sobdetect_metrics_strelka(strelka_p1_vcfs,strelka_p2_vcfs)
+
+        }
+
+        if('lofreq' in call_list){
+            lofreq_p1=bamwithsample1 | join(lofreq_in,by:[0,1])
+                | map{tumor,normal,tbam,tbai,nbam,nbai,vc,normvcf,tbi->tuple("${tumor}_vs_${normal}",normvcf,tbam,vc)}
+                | sobdetect_pass1_lofreq  
+            lofreq_p1 | map{sample,vcf,info->info}
+                | collect
+                | sobdetect_cohort_params_lofreq
+            lofreq_p2 = bamwithsample1 
+                | join(lofreq_in,by:[0,1])
+                | map{tumor,normal,tbam,tbai,nbam,nbai,vc,normvcf,tbi->tuple("${tumor}_vs_${normal}",normvcf,tbam,vc)}
+                | combine(sobdetect_cohort_params_lofreq.out) 
+                | sobdetect_pass2_lofreq
+            lofreq_p1_vcfs=lofreq_p1 | map{sample,vcf,info->vcf} |collect 
+            lofreq_p2_vcfs=lofreq_p2 | map{sample,vcf,info,filtvcf,vcftbi->vcf} |collect
+            sobdetect_metrics_lofreq(lofreq_p1_vcfs,lofreq_p2_vcfs)
+        }
+
+    if('muse' in call_list){
+        muse_p1=bamwithsample1 | join(muse_in,by:[0,1])
+            | map{tumor,normal,tbam,tbai,nbam,nbai,vc,normvcf,tbi->tuple("${tumor}_vs_${normal}",normvcf,tbam,vc)}
+            | sobdetect_pass1_muse  
+        muse_p1 | map{sample,vcf,info->info}
+            | collect
+            | sobdetect_cohort_params_muse
+        muse_p2 = bamwithsample1 
+            | join(muse_in,by:[0,1])
+            | map{tumor,normal,tbam,tbai,nbam,nbai,vc,normvcf,tbi->tuple("${tumor}_vs_${normal}",normvcf,tbam,vc)}
+            | combine(sobdetect_cohort_params_muse.out) 
+            | sobdetect_pass2_muse
+        muse_p1_vcfs=muse_p1 | map{sample,vcf,info->vcf} |collect 
+        muse_p2_vcfs=muse_p2 | map{sample,vcf,info,filtvcf,vcftbi->vcf} |collect
+        sobdetect_metrics_muse(muse_p1_vcfs,muse_p2_vcfs)
+    }
+
+    if('vardict' in call_list){
+        vardict_p1=bamwithsample1 | join(vardict_in,by:[0,1])
+            | map{tumor,normal,tbam,tbai,nbam,nbai,vc,normvcf,tbi->tuple("${tumor}_vs_${normal}",normvcf,tbam,vc)}
+            | sobdetect_pass1_vardict  
+        vardict_p1 | map{sample,vcf,info->info}
+            | collect
+            | sobdetect_cohort_params_vardict
+        vardict_p2 = bamwithsample1 
+            | join(vardict_in,by:[0,1])
+            | map{tumor,normal,tbam,tbai,nbam,nbai,vc,normvcf,tbi->tuple("${tumor}_vs_${normal}",normvcf,tbam,vc)}
+            | combine(sobdetect_cohort_params_vardict.out) 
+            | sobdetect_pass2_vardict
+        vardict_p1_vcfs=vardict_p1 | map{sample,vcf,info->vcf} |collect 
+        vardict_p2_vcfs=vardict_p2 | map{sample,vcf,info,filtvcf,vcftbi->vcf} |collect
+        sobdetect_metrics_vardict(vardict_p1_vcfs,vardict_p2_vcfs)
+    }
+
+    if('varscan' in call_list){
+        varscan_p1=bamwithsample1 | join(varscan_in,by:[0,1])
+            | map{tumor,normal,tbam,tbai,nbam,nbai,vc,normvcf,tbi->tuple("${tumor}_vs_${normal}",normvcf,tbam,vc)}
+            | sobdetect_pass1_varscan  
+        varscan_p1 | map{sample,vcf,info->info}
+            | collect
+            | sobdetect_cohort_params_varscan
+        varscan_p2 = bamwithsample1 
+            | join(varscan_in,by:[0,1])
+            | map{tumor,normal,tbam,tbai,nbam,nbai,vc,normvcf,tbi->tuple("${tumor}_vs_${normal}",normvcf,tbam,vc)}
+            | combine(sobdetect_cohort_params_varscan.out) 
+            | sobdetect_pass2_varscan
+        varscan_p1_vcfs=varscan_p1 | map{sample,vcf,info->vcf} |collect 
+        varscan_p2_vcfs=varscan_p2 | map{sample,vcf,info,filtvcf,vcftbi->vcf} |collect
+        sobdetect_metrics_varscan(varscan_p1_vcfs,varscan_p2_vcfs)
+    }
+    }
+
     emit:
         somaticcall_input
    

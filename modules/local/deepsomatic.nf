@@ -1,5 +1,10 @@
 GENOMEREF=file(params.genomes[params.genome].genome)
-if (params.exome) {
+
+if(params.exome && params.ffpe) {
+    DS_MODEL = "/opt/models/deepsomatic/ffpe_wes"
+}else if(params.ffpe){
+    DS_MODEL = "/opt/models/deepsomatic/ffpe_wgs"
+}else if(params.exome){
     DS_MODEL = "/opt/models/deepsomatic/wes"
 }else{
     DS_MODEL = "/opt/models/deepsomatic/wgs"
