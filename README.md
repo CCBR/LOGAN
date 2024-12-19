@@ -120,6 +120,10 @@ Example: `--cnvcallers purple`
 `--svcallers`- - Comma separated argument for selecting only specified SV vallers. Adding flag allows only certain callers to run.  
 Example: `--svcallers gridss`
 
+`--ffpe`- - Adds additional filtering for FFPE by detecting strand orientation bias using SOBDetector. 
+
+`--exome`- - Limits calling to intervals provided in target bed to reduce time and to account for exome sequencing specific parameters.
+
 ## Running LOGAN
 Example of Tumor_Normal calling mode 
 ```bash
