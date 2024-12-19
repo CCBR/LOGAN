@@ -13,6 +13,7 @@ keywords = ["bioinformatics", "nextflow"]
 authors = [
     {name = 'Darryl Nousome', email = 'darryl.nousome@nih.gov'},
     {name = "Kelly Sovacool", email = "kelly.sovacool@nih.gov"},
+    {name = 'Samarth Mathur', email = 'samarth.mathur@nih.gov'},
     {name = "Vishal Koparde", email = "vishal.koparde@nih.gov"},
 ]
 maintainers = [
