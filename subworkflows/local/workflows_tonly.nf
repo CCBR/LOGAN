@@ -44,9 +44,8 @@ include {combineVariants as combineVariants_vardict; combineVariants as combineV
     combineVariants_alternative as combineVariants_lofreq; combineVariants as combineVariants_muse;
     combineVariants_alternative as combineVariants_octopus; 
     combineVariants_alternative as combineVariants_octopus_tonly;
-    combinemafs_tn; somaticcombine;
-    combinemafs_tonly;somaticcombine_tonly} from '../../modules/local/combinefilter.nf'
-
+    combinemafs_tn; somaticcombine;somaticcombine as somaticcombine_ffpe;
+    combinemafs_tonly;somaticcombine_tonly;somaticcombine_tonly as somaticcombine_tonly_ffpe} from '../../modules/local/combinefilter.nf'
 
 include {annotvep_tn as annotvep_tn_mut2; annotvep_tn as annotvep_tn_strelka;
     annotvep_tn as annotvep_tn_varscan; annotvep_tn as annotvep_tn_vardict; annotvep_tn as annotvep_tn_octopus;
@@ -57,6 +56,21 @@ include {annotvep_tn as annotvep_tn_mut2; annotvep_tn as annotvep_tn_strelka;
     annotvep_tonly as annotvep_tonly_mut2; annotvep_tonly as annotvep_tonly_octopus; 
     annotvep_tonly as annotvep_tonly_sage; annotvep_tonly as annotvep_tonly_deepsomatic;
     annotvep_tonly as annotvep_tonly_combined} from '../../modules/local/annotvep.nf'
+
+include {sobdetect_pass1 as sobdetect_pass1_mutect2_tonly; sobdetect_pass2 as sobdetect_pass2_mutect2_tonly; 
+    sobdetect_metrics as sobdetect_metrics_mutect2_tonly; sobdetect_cohort_params as sobdetect_cohort_params_mutect2_tonly;
+    sobdetect_pass1 as sobdetect_pass1_octopus_tonly; sobdetect_pass2 as sobdetect_pass2_octopus_tonly; 
+    sobdetect_metrics as sobdetect_metrics_octopus_tonly; sobdetect_cohort_params as sobdetect_cohort_params_octopus_tonly;
+    sobdetect_pass1 as sobdetect_pass1_vardict_tonly; sobdetect_pass2 as sobdetect_pass2_vardict_tonly; 
+    sobdetect_metrics as sobdetect_metrics_vardict_tonly; sobdetect_cohort_params as sobdetect_cohort_params_vardict_tonly;
+    sobdetect_pass1 as sobdetect_pass1_varscan_tonly; sobdetect_pass2 as sobdetect_pass2_varscan_tonly; 
+    sobdetect_metrics as sobdetect_metrics_varscan_tonly; sobdetect_cohort_params as sobdetect_cohort_params_varscan_tonly
+    } from "../../modules/local/ffpe.nf"
+
+include {annotvep_tonly as annotvep_tonly_varscan_ffpe; annotvep_tonly as annotvep_tonly_vardict_ffpe;
+    annotvep_tonly as annotvep_tonly_mut2_ffpe; annotvep_tonly as annotvep_tonly_octopus_ffpe; 
+    annotvep_tonly as annotvep_tonly_sage_ffpe; annotvep_tonly as annotvep_tonly_deepsomatic_ffpe;
+    annotvep_tonly as annotvep_tonly_combined_ffpe} from '../../modules/local/annotvep.nf'
 
 include {svaba_tonly} from '../../modules/local/svaba.nf'
 include {manta_tonly} from '../../modules/local/manta.nf'
@@ -279,6 +293,101 @@ workflow VC_TONLY {
     }
     */
 
+    //FFPE Steps 
+    if(params.ffpe){
+        vc_ffpe_tonly=Channel.empty()
+        bamwithsample1=bamwithsample
+
+        if('mutect2' in call_list){
+            mutect2_tonly_p1=bamwithsample1 | join(mutect2_in_tonly) 
+                | map{tumor,tbam,tbai,vc,normvcf,tbi->tuple(tumor,normvcf,tbam,vc)}
+                | sobdetect_pass1_mutect2_tonly
+            mutect2_tonly_p1 | map{sample,vcf,info->info}
+                | collect
+                | sobdetect_cohort_params_mutect2_tonly
+
+            mutect2_tonly_p2 = bamwithsample1 
+                | join(mutect2_in_tonly)
+                | map{tumor,tbam,tbai,vc,normvcf,tbi->tuple(tumor,normvcf,tbam,vc)}
+                | combine(sobdetect_cohort_params_mutect2_tonly.out) 
+                | sobdetect_pass2_mutect2_tonly
+            mutect2_tonly_p1_vcfs=mutect2_tonly_p1 | map{sample,vcf,info->vcf} |collect 
+            mutect2_tonly_p2_vcfs=mutect2_tonly_p2 | map{sample,vcf,info,filtvcf,vcftbi->vcf} |collect
+            sobdetect_metrics_mutect2_tonly(mutect2_tonly_p1_vcfs,mutect2_tonly_p2_vcfs)
+
+            mutect2_tonly_ffpe_out=mutect2_tonly_p2 | map{sample,vcf,info,filtvcf,vcftbi->tuple(sample,"mutect2_tonly",filtvcf,vcftbi)} 
+            annotvep_tonly_mut2_ffpe(mutect2_tonly_ffpe_out)
+            vc_ffpe_tonly=vc_ffpe_tonly |concat(mutect2_tonly_ffpe_out)
+        }
+
+        if('octopus' in call_list){
+            octopus_tonly_p1=bamwithsample1 | join(octopus_in_tonly) 
+                | map{tumor,tbam,tbai,vc,normvcf,tbi->tuple(tumor,normvcf,tbam,vc)}
+                | sobdetect_pass1_octopus_tonly
+            octopus_tonly_p1 | map{sample,vcf,info->info}
+                | collect
+                | sobdetect_cohort_params_octopus_tonly
+
+            octopus_tonly_p2 = bamwithsample1 
+                | join(octopus_in_tonly)
+                | map{tumor,tbam,tbai,vc,normvcf,tbi->tuple(tumor,normvcf,tbam,vc)}
+                | combine(sobdetect_cohort_params_octopus_tonly.out) 
+                | sobdetect_pass2_octopus_tonly
+            octopus_tonly_p1_vcfs=octopus_tonly_p1 | map{sample,vcf,info->vcf} |collect 
+            octopus_tonly_p2_vcfs=octopus_tonly_p2 | map{sample,vcf,info,filtvcf,vcftbi->vcf} |collect
+            sobdetect_metrics_octopus_tonly(octopus_tonly_p1_vcfs,octopus_tonly_p2_vcfs)
+
+            octopus_tonly_ffpe_out=octopus_tonly_p2 | map{sample,vcf,info,filtvcf,vcftbi->tuple(sample,"octopus_tonly",filtvcf,vcftbi)} 
+            annotvep_tonly_octopus_ffpe(octopus_tonly_ffpe_out)
+            vc_ffpe_tonly=vc_ffpe_tonly |concat(octopus_tonly_ffpe_out)
+        }
+
+    if('vardict' in call_list){
+        vardict_tonly_p1=bamwithsample1 | join(vardict_in_tonly) 
+            | map{tumor,tbam,tbai,vc,normvcf,tbi->tuple(tumor,normvcf,tbam,vc)}
+            | sobdetect_pass1_vardict_tonly
+        vardict_tonly_p1 | map{sample,vcf,info->info}
+            | collect
+            | sobdetect_cohort_params_vardict_tonly
+
+        vardict_tonly_p2 = bamwithsample1 
+            | join(vardict_in_tonly)
+            | map{tumor,tbam,tbai,vc,normvcf,tbi->tuple(tumor,normvcf,tbam,vc)}
+            | combine(sobdetect_cohort_params_vardict_tonly.out) 
+            | sobdetect_pass2_vardict_tonly
+        vardict_tonly_p1_vcfs=vardict_tonly_p1 | map{sample,vcf,info->vcf} |collect 
+        vardict_tonly_p2_vcfs=vardict_tonly_p2 | map{sample,vcf,info,filtvcf,vcftbi->vcf} |collect
+        sobdetect_metrics_vardict_tonly(vardict_tonly_p1_vcfs,vardict_tonly_p2_vcfs)
+
+        vardict_tonly_ffpe_out=vardict_tonly_p2 | map{sample,vcf,info,filtvcf,vcftbi->tuple(sample,"vardict_tonly",filtvcf,vcftbi)} 
+        annotvep_tonly_vardict_ffpe(vardict_tonly_ffpe_out)
+        vc_ffpe_tonly=vc_ffpe_tonly |concat(vardict_tonly_ffpe_out)
+    }
+
+    if('varscan' in call_list){
+    varscan_tonly_p1=bamwithsample1 | join(varscan_in_tonly) 
+        | map{tumor,tbam,tbai,vc,normvcf,tbi->tuple(tumor,normvcf,tbam,vc)}
+        | sobdetect_pass1_varscan_tonly
+    varscan_tonly_p1 | map{sample,vcf,info->info}
+        | collect
+        | sobdetect_cohort_params_varscan_tonly
+
+    varscan_tonly_p2 = bamwithsample1 
+        | join(varscan_in_tonly)
+        | map{tumor,tbam,tbai,vc,normvcf,tbi->tuple(tumor,normvcf,tbam,vc)}
+        | combine(sobdetect_cohort_params_varscan_tonly.out) 
+        | sobdetect_pass2_varscan_tonly
+    varscan_tonly_p1_vcfs=varscan_tonly_p1 | map{sample,vcf,info->vcf} |collect 
+    varscan_tonly_p2_vcfs=varscan_tonly_p2 | map{sample,vcf,info,filtvcf,vcftbi->vcf} |collect
+    sobdetect_metrics_varscan_tonly(varscan_tonly_p1_vcfs,varscan_tonly_p2_vcfs)
+
+    varscan_tonly_ffpe_out=varscan_tonly_p2 | map{sample,vcf,info,filtvcf,vcftbi->tuple(sample,"varscan_tonly",filtvcf,vcftbi)} 
+    annotvep_tonly_varscan_ffpe(varscan_tonly_ffpe_out)
+    vc_ffpe_tonly=vc_ffpe_tonly |concat(varscan_tonly_ffpe_out)
+    }
+}
+
+
     //Combined Variants and Annotated
     //Emit for SC downstream, take Oc/Mu2/sage/Vard/Varscan
 
@@ -294,10 +403,12 @@ workflow VC_TONLY {
         somaticcall_input=sage_in_tonly
     }else if("mutect2" in call_list){
         somaticcall_input=mutect2_in_tonly
+    }else if("mutect2" in call_list & params.ffpe){
+        somaticcall_input=mutect2_ffpe_out
     }else{
         somaticcall_input=Channel.empty()
     }
-   
+
     emit:
         somaticcall_input
 }
