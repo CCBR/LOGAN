@@ -82,8 +82,8 @@ process sobdetect_pass2 {
     tuple val(sample), 
         path("${vc}/pass2/${sample}.pass2.sobdetect.vcf"),
         path("${vc}/pass2/${sample}.info"),
-        path("${vc}/pass2/${sample}.artifact_filtered.vcf.gz"),
-        path("${vc}/pass2/${sample}.artifact_filtered.vcf.gz.tbi")
+        path("${vc}/pass2/${sample}_${vc}.artifact_filtered.vcf.gz"),
+        path("${vc}/pass2/${sample}_${vc}.artifact_filtered.vcf.gz.tbi")
 
     script:
     """
@@ -120,8 +120,8 @@ process sobdetect_pass2 {
     mkdir -p ${vc}/pass2
     touch ${vc}/pass2/${sample}.pass2.sobdetect.vcf
     touch ${vc}/pass2/${sample}.info
-    touch ${vc}/pass2/${sample}.artifact_filtered.vcf.gz
-    touch ${vc}/pass2/${sample}.artifact_filtered.vcf.gz.tbi
+    touch ${vc}/pass2/${sample}_${vc}.artifact_filtered.vcf.gz
+    touch ${vc}/pass2/${sample}_${vc}.artifact_filtered.vcf.gz.tbi
 
     """
 }
