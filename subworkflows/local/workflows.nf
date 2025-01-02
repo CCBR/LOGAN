@@ -787,7 +787,7 @@ workflow VC {
             vc_ffpe_tonly=vc_ffpe_tonly |concat(varscan_tonly_ffpe_out)
         }
     }
-
+    }
 
     //Combine All Variants Using VCF -> Annotate
     if (call_list.size()>1){
@@ -814,7 +814,8 @@ workflow VC {
                 | annotvep_tonly_combined_ffpe
         }
     }
-   
+    
+
     if("sage" in call_list){
         somaticcall_input=sage_in
     }else if("mutect2" in call_list){
@@ -824,7 +825,8 @@ workflow VC {
     }else{
         somaticcall_input=Channel.empty()
     }
-    }
+    
+
 
     emit:
         somaticcall_input
@@ -1245,11 +1247,11 @@ workflow INPUT_BAM {
 
         bamwithsample=baminput2.combine(sample_sheet,by:0).map{it.swap(3,0)}.combine(baminputonly,by:0).map{it.swap(3,0)}  
             | view()      
-    } else {
+        }else{
         bamwithsample=baminputonly.combine(sample_sheet,by:0).map{it.swap(3,0)}.combine(baminputonly,by:0).map{it.swap(3,0)} 
-            |view()      
-        
-    }
+            | view()      
+        }
+
         bambyinterval_norm=bamwithsample
             | map {tumo,tubam,tbai,norm,norbam,norbai -> tuple(norm,norbam,norbai)} 
         bambyinterval_tum=bamwithsample

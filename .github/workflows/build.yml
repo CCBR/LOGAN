@@ -28,7 +28,7 @@ jobs:
       - name: Install nextflow
         uses: nf-core/setup-nextflow@v2
         with:
-          version: "24.10.2"
+          version: "24.04.4"
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip setuptools
