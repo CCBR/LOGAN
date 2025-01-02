@@ -5,21 +5,15 @@
 #docker buildx inspect upbeat_ganguly
 #docker buildx build --platform linux/amd64 -f Dockerfile -t dnousome/ccbr_logan_base:v0.3.0 -t dnousome/ccbr_logan_base:latest --push .
 
-docker build --platform linux/amd64 --tag ccbr_logan_base:v0.3.7 -f Dockerfile . 
+docker build --platform linux/amd64 --tag ccbr_logan_base:v0.3.8 -f Dockerfile . 
 
-docker tag ccbr_logan_base:v0.3.7 dnousome/ccbr_logan_base:v0.3.7
-docker tag ccbr_logan_base:v0.3.7 dnousome/ccbr_logan_base:latest
+docker tag ccbr_logan_base:v0.3.8 dnousome/ccbr_logan_base:v0.3.8
+docker tag ccbr_logan_base:v0.3.8 dnousome/ccbr_logan_base:latest
 
 
-docker push dnousome/ccbr_logan_base:v0.3.7
+docker push dnousome/ccbr_logan_base:v0.3.8
 docker push dnousome/ccbr_logan_base:latest
 
-
-
-# Tag image with version and reset latest
-#docker tag ccbr_wgs_base:v0.1.0 nciccbr/ccbr_wgs_base:v0.1.0
-#docker tag ccbr_wgs_base:v0.1.0 nciccbr/ccbr_wgs_base
-
-# Push image to DockerHub
-#docker push nciccbr/ccbr_wgs_base:v0.1.0
-#docker push nciccbr/ccbr_wgs_base:latest
+#Pull to CCBR
+cd /data/CCBR_Pipeliner/SIFS
+singularity pull dnousome-ccbr_logan_base-v0.3.8.img docker://dnousome/ccbr_logan_base:v0.3.8 

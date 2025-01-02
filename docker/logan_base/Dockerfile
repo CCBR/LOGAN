@@ -69,7 +69,7 @@ RUN wget https://github.com/biod/sambamba/releases/download/v0.8.1/sambamba-0.8.
     && mv /opt2/sambamba-0.8.1-linux-amd64-static /opt2/sambamba \
     && chmod a+rx /opt2/sambamba
 
-# Install GATK4 (GATK/4.5.0.0)
+# Install GATK4 (GATK/4.6.0.0)
 # Requires Java17 
 RUN wget https://github.com/broadinstitute/gatk/releases/download/4.6.0.0/gatk-4.6.0.0.zip \
     && unzip /opt2/gatk-4.6.0.0.zip \
@@ -79,7 +79,7 @@ ENV PATH="/opt2/gatk-4.6.0.0:$PATH"
 
 # Picard
 RUN mkdir picard \
- && wget -O picard/picard.jar https://github.com/broadinstitute/picard/releases/download/3.2.0/picard.jar \
+ && wget -O picard/picard.jar https://github.com/broadinstitute/picard/releases/download/3.2.0/picard.jar 
 ENV PICARDJARPATH="/opt2/picard"
 
 #Use DISCVRSeq For CombineVariants Replacement
@@ -197,9 +197,9 @@ RUN wget https://github.com/AstraZeneca-NGS/VarDictJava/releases/download/v1.8.3
 ENV PATH="/opt2/VarDict-1.8.3/bin:$PATH"
 
 # Fastp From Opengene github
-RUN wget http://opengene.org/fastp/fastp.0.23.4 \
+RUN wget http://opengene.org/fastp/fastp.0.24.0 \
     && mkdir fastp \
-    && mv fastp.0.23.4 fastp/fastp \
+    && mv fastp.0.24.0 fastp/fastp \
     && chmod a+x fastp/fastp
 ENV PATH="/opt2/fastp:$PATH"
 
@@ -233,6 +233,11 @@ RUN wget https://github.com/hartwigmedical/hmftools/releases/download/amber-v4.0
     && mv sage_v3.4.4.jar hmftools/sage.jar \
     && chmod a+x hmftools/amber.jar
 ENV PATH="/opt2/hmftools:$PATH"
+WORKDIR /opt2
+
+#GLNEXUS
+RUN wget https://github.com/dnanexus-rnd/GLnexus/releases/download/v1.4.1/glnexus_cli \
+    && chmod +x glnexus_cli
 
 # Add Dockerfile and argparse.bash script
 # and export environment variables
