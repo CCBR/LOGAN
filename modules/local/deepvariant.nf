@@ -129,41 +129,8 @@ process bcfconcat {
 }
 
 
-//Combined DeepVariant
-process deepvariant_combined {
-    module = ['deepvariant/1.6.0']
-
-    input:
-        tuple val(samplename), path(bam), path(bai)
-
-    output:
-        tuple val(samplename), path("${samplename}.gvcf.gz"), path("${samplename}.gvcf.gz.tbi"),
-        path("${samplename}.vcf.gz"), path("${samplename}.vcf.gz.tbi")
-
-
-    script:
-    """
-    run_deepvariant \
-        --model_type=WGS \
-        --ref=$GENOMEREF \
-        --reads=${bam} \
-        --output_gvcf=${samplename}.gvcf.gz \
-        --output_vcf=${samplename}.vcf.gz \
-        --num_shards=16
-    """
-
-
-    stub:
-    """
-    touch ${samplename}.vcf.gz ${samplename}.vcf.gz.tbi
-    touch ${samplename}.gvcf.gz  ${samplename}.gvcf.gz.tbi
-    """
-
-
-}
-
 process glnexus {
-    module = ['glnexus/1.4.1','bcftools/1.19']
+    container = "${params.containers.logan}"
 
     input:
         path(gvcfs)
@@ -198,4 +165,40 @@ process glnexus {
         touch germline.norm.vcf.gz
         touch germline.norm.vcf.gz.tbi
     """
+}
+
+
+
+
+//Combined DeepVariant
+process deepvariant_combined {
+    module = ['deepvariant/1.6.0']
+
+    input:
+        tuple val(samplename), path(bam), path(bai)
+
+    output:
+        tuple val(samplename), path("${samplename}.gvcf.gz"), path("${samplename}.gvcf.gz.tbi"),
+        path("${samplename}.vcf.gz"), path("${samplename}.vcf.gz.tbi")
+
+
+    script:
+    """
+    run_deepvariant \
+        --model_type=WGS \
+        --ref=$GENOMEREF \
+        --reads=${bam} \
+        --output_gvcf=${samplename}.gvcf.gz \
+        --output_vcf=${samplename}.vcf.gz \
+        --num_shards=16
+    """
+
+
+    stub:
+    """
+    touch ${samplename}.vcf.gz ${samplename}.vcf.gz.tbi
+    touch ${samplename}.gvcf.gz  ${samplename}.gvcf.gz.tbi
+    """
+
+
 }
