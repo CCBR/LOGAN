@@ -1,4 +1,4 @@
-include {splitinterval;matchbed as matchbed_ascat; matchbed as matchbed_cnvkit} from '../../modules/local/splitbed.nf'
+include {splitinterval; matchbed; matchbed as matchbed_ascat; matchbed as matchbed_cnvkit} from '../../modules/local/splitbed.nf'
 
 //QC
 include {fc_lane} from '../../modules/local/fc_lane.nf'
@@ -170,24 +170,47 @@ workflow ALIGN {
     }else{
         intervalbedin = Channel.fromPath(params.genomes[params.genome].intervals,checkIfExists: true,type: 'file')
     }
-    splitinterval(intervalbedin)
+    matchbed(intervalbedin) | splitinterval
 
     fastp(fastqinput)
     bwamem2(fastp.out)
-    bqsrbambyinterval=bwamem2.out.combine(splitinterval.out.flatten())
-    bambyinterval=bwamem2.out.combine(splitinterval.out.flatten())
+    
+    //Indel Realignment
+    if (params.indelrealign){ 
+        bwaindelre = bwamem2.out | indelrealign 
+        bqsrbambyinterval = bwaindelre.combine(splitinterval.out.flatten())
+        bambyinterval = bwaindelre.combine(splitinterval.out.flatten())
 
-    bqsr(bqsrbambyinterval)
-    bqsrs=bqsr.out.groupTuple()
-        .map { samplename,beds -> tuple( samplename,
-        beds.toSorted{ it -> (it.name =~ /${samplename}_(.*?).recal_data.grp/)[0][1].toInteger() } )
+        bqsr_ir(bqsrbambyinterval)
+        
+        bqsrs = bqsr_ir.out             
+            | groupTuple 
+            | map { samplename,beds -> 
+                tuple( samplename, beds.toSorted{ it -> (it.name =~ /${samplename}_(.*?).recal_data.grp/)[0][1].toInteger() } )} 
+        gatherbqsr(bqsrs)
+
+        tobqsr=bwaindelre.combine(gatherbqsr.out,by:0)
+        applybqsr(tobqsr)
+
+        bamwithsample=applybqsr.out.combine(sample_sheet,by:0).map{it.swap(3,0)}.combine(applybqsr.out,by:0).map{it.swap(3,0)}  
+
+    }else{ 
+        bqsrbambyinterval=bwamem2.out.combine(splitinterval.out.flatten())
+        bambyinterval=bwamem2.out.combine(splitinterval.out.flatten())
+
+        bqsr(bqsrbambyinterval)
+        bqsrs=bqsr.out | groupTuple
+            | map { samplename,beds -> 
+                tuple( samplename,
+                beds.toSorted{ it -> (it.name =~ /${samplename}_(.*?).recal_data.grp/)[0][1].toInteger() } )}
+        gatherbqsr(bqsrs)
+
+        tobqsr=bwamem2.out.combine(gatherbqsr.out,by:0)
+        applybqsr(tobqsr)
+
+        bamwithsample=applybqsr.out.combine(sample_sheet,by:0).map{it.swap(3,0)}.combine(applybqsr.out,by:0).map{it.swap(3,0)}
+ 
         }
-    gatherbqsr(bqsrs)
-
-    tobqsr=bwamem2.out.combine(gatherbqsr.out,by:0)
-    applybqsr(tobqsr)
-
-    bamwithsample=applybqsr.out.combine(sample_sheet,by:0).map{it.swap(3,0)}.combine(applybqsr.out,by:0).map{it.swap(3,0)}
 
     emit:
         bamwithsample
@@ -1107,11 +1130,11 @@ workflow QC_NOGL {
 
     samtools_flagstats_out=samtools_flagstats.out.collect()
 
-    if(params.genome=="hg38"){
+    if(params.genome.matches("hg38(.*)")| params.genome.matches("hg19(.*)")){
         somalier_analysis_human(som_in)
         somalier_analysis_out=somalier_analysis_human.out.collect()
     }
-    else if(params.genome=="mm10"){
+    else if(params.genome.matches("mm10")){
         somalier_analysis_mouse(som_in)
         somalier_analysis_out=somalier_analysis_mouse.out.collect()
     }
@@ -1156,11 +1179,11 @@ workflow QC_GL {
     som_in=somalier_extract.out.collect()
 
     //Prep for MultiQC input
-    if(params.genome=="hg38"){
+    if(params.genome.matches("hg38(.*)")| params.genome.matches("hg19(.*)")){
         somalier_analysis_human(som_in)
         somalier_analysis_out=somalier_analysis_human.out.collect()
     }
-    else if(params.genome=="mm10"){
+    else if(params.genome.matches("mm10")){
         somalier_analysis_mouse(som_in)
         somalier_analysis_out=somalier_analysis_mouse.out.collect()
     }
@@ -1186,6 +1209,94 @@ workflow QC_GL {
     multiqc(conall)
 }
 
+//QC_GL_BAMS
+workflow QC_GL_BAM {
+    take:
+        applybqsr
+        glnexusout
+        bcfout
+
+    main:
+    //QC Steps
+    qualimap_bamqc(applybqsr)
+    samtools_flagstats(applybqsr)
+    mosdepth(applybqsr)
+    fastqc(applybqsr)
+
+    //Cohort VCF
+    glout=glnexusout.map{germlinev,germlinenorm,tbi->tuple(germlinenorm,tbi)}
+    vcftools(glout)
+    collectvariantcallmetrics(glout)
+    //Per sample VCFs
+    bcfin=bcfout.map{samplename,vcf,vcf_tbi,gvcf,gvcf_tbi -> tuple(samplename,gvcf,gvcf_tbi)}
+    bcftools_stats(bcfin)
+    gatk_varianteval(bcfin)
+    snpeff(bcfin)
+    //Somalier
+    somalier_extract(applybqsr)
+    som_in=somalier_extract.out.collect()
+
+    //Prep for MultiQC input
+    if(params.genome.matches("hg38(.*)")| params.genome.matches("hg19(.*)")){
+        somalier_analysis_human(som_in)
+        somalier_analysis_out=somalier_analysis_human.out.collect()
+    }
+    else if(params.genome.matches("mm10")){
+        somalier_analysis_mouse(som_in)
+        somalier_analysis_out=somalier_analysis_mouse.out.collect()
+    }
+
+    qualimap_out=qualimap_bamqc.out.map{genome,rep->tuple(genome,rep)}.collect()
+    samtools_flagstats_out=samtools_flagstats.out.collect()
+    mosdepth_out=mosdepth.out.collect()
+    bcftools_stats_out=bcftools_stats.out.collect()
+    gatk_varianteval_out=gatk_varianteval.out.collect()
+    snpeff_out=snpeff.out.collect()
+    vcftools_out=vcftools.out
+    collectvariantcallmetrics_out=collectvariantcallmetrics.out
+
+    conall=concat(qualimap_out,mosdepth_out,
+        samtools_flagstats_out,bcftools_stats_out,
+        gatk_varianteval_out,snpeff_out,vcftools_out,collectvariantcallmetrics_out,
+        somalier_analysis_out).flatten().toList()
+    multiqc(conall)
+}
+
+
+//QC NOGL-BAMs 
+workflow QC_NOGL_BAM {
+    take:
+        bams
+
+    main:
+    //BQSR BAMs 
+    fastqc(bams)
+    samtools_flagstats(bams)
+    qualimap_bamqc(bams)
+    mosdepth(bams)
+
+    somalier_extract(bams) 
+    som_in=somalier_extract.out.collect()
+    if(params.genome.matches("hg38(.*)")| params.genome.matches("hg19(.*)")){
+        somalier_analysis_human(som_in)
+        somalier_analysis_out=somalier_analysis_human.out.collect()
+    }
+    else if(params.genome.matches("mm10")){
+        somalier_analysis_mouse(som_in)
+        somalier_analysis_out=somalier_analysis_mouse.out.collect()
+    }
+    
+    //Prep for MultiQC input
+    qualimap_out=qualimap_bamqc.out.map{genome,rep->tuple(genome,rep)}.collect()
+    mosdepth_out=mosdepth.out.collect()
+    samtools_flagstats_out=samtools_flagstats.out.collect()
+
+    conall=fclane_out.concat(qualimap_out,
+        samtools_flagstats_out,mosdepth_out, 
+        somalier_analysis_out).flatten().toList()
+    
+    multiqc(conall)
+}
 
 //Variant Calling from BAM only
 workflow INPUT_BAM {
@@ -1231,7 +1342,7 @@ workflow INPUT_BAM {
     }else{
         intervalbedin = Channel.fromPath(params.genomes[params.genome].intervals,checkIfExists: true,type: 'file')
     }
-    splitinterval(intervalbedin)
+    matchbed(intervalbedin) | splitinterval
     
 
     if (params.indelrealign){ 
@@ -1253,7 +1364,7 @@ workflow INPUT_BAM {
         }
 
         bambyinterval_norm=bamwithsample
-            | map {tumo,tubam,tbai,norm,norbam,norbai -> tuple(norm,norbam,norbai)} 
+            | map {tum,tubam,tbai,norm,norbam,norbai -> tuple(norm,norbam,norbai)} 
         bambyinterval_tum=bamwithsample
             | map {tum,tubam,tbai,norm,norbam,norbai -> tuple(tum,tubam,tbai)} 
         bambyinterval=bambyinterval_tum | concat(bambyinterval_norm) | unique
