@@ -137,7 +137,7 @@ process glnexus {
 
     output:
         tuple path("germline.v.bcf"),
-        path("germline.norm.vcf.gz"),path("germline.norm.vcf.gz.tbi")
+        path("germline.norm.vcf.gz"), path("germline.norm.vcf.gz.tbi")
 
     script:
 
