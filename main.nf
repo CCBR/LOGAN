@@ -18,12 +18,12 @@ log.info """\
 
 include {DETERMINEBAM; INPUT; INPUT_BAM; ALIGN; GL;
     VC; SV; CNVmouse; CNVhuman; CNVhuman_novc;
-    QC_GL; QC_NOGL} from "./subworkflows/local/workflows.nf"
+    QC_GL; QC_NOGL; QC_GL_BAM; QC_NOGL_BAM} from "./subworkflows/local/workflows.nf"
 
 include {INPUT_TONLY; INPUT_TONLY_BAM;
     ALIGN_TONLY;
     VC_TONLY; SV_TONLY; CNVmouse_tonly;  CNVhuman_tonly; CNVhuman_novc_tonly;
-    QC_TONLY } from "./subworkflows/local/workflows_tonly.nf"
+    QC_TONLY; QC_TONLY_BAM} from "./subworkflows/local/workflows_tonly.nf"
 
 
 workflow.onComplete {
@@ -35,14 +35,14 @@ workflow.onComplete {
     }
 }
 
-//Final Workflow
+//All Workflows
 workflow {
     //Tumor-Normal FASTQ
     if ([params.fastq_input,params.fastq_file_input].any() && params.sample_sheet){
         println "Tumor-Normal FASTQ"
         INPUT()
         ALIGN(INPUT.out.fastqinput,INPUT.out.sample_sheet)
-    //Germline
+        //Germline
         if (params.gl){
            GL(ALIGN.out.sample_sheet,ALIGN.out.bambyinterval)
         }
@@ -54,7 +54,7 @@ workflow {
             SV(ALIGN.out.bamwithsample)
         }
         if (params.cnv){
-            if (params.genome == "mm10"){
+            if (params.genome.matches("mm10")){
                 CNVmouse(ALIGN.out.bamwithsample)
             } else if (params.genome.matches("hg38(.*)")| params.genome.matches("hg19(.*)")){
                 if (!params.vc){
@@ -64,9 +64,10 @@ workflow {
                 }
             }
     }
+        //QC Steps
         if (params.qc && params.gl){
             QC_GL(ALIGN.out.fastqin,ALIGN.out.fastpout,ALIGN.out.bqsrout,GL.out.glnexusout,GL.out.bcfout)
-        }  else if (params.qc){
+        }else if (params.qc){
             QC_NOGL(ALIGN.out.fastqin,ALIGN.out.fastpout,ALIGN.out.bqsrout)
         }
 
@@ -86,9 +87,9 @@ workflow {
            GL(INPUT_BAM.out.sample_sheet,INPUT_BAM.out.bambyinterval)
         }
         if (params.cnv){
-            if (params.genome == "mm10"){
+            if (params.genome.matches("mm10")){
                 CNVmouse(INPUT_BAM.out.bamwithsample)
-            } else if (params.genome.matches("hg38(.*)")| params.genome.matches("hg19(.*)")){
+            } else if (params.genome.matches("hg38(.*)") | params.genome.matches("hg19(.*)")){
                 if (!params.vc){
                     CNVhuman_novc(INPUT_BAM.out.bamwithsample)
                 }else {
@@ -96,6 +97,13 @@ workflow {
                 }
             }
         }
+        //QC Steps
+        if (params.qc && params.gl){
+            QC_GL_BAM(INPUT_BAM.out.bamwithsample,GL.out.glnexusout,GL.out.bcfout)
+        }else if(params.qc){
+            QC_NOGL_BAM(INPUT_BAM.out.bamwithsample)
+        }
+
 
     }
 
@@ -111,7 +119,7 @@ workflow {
             SV_TONLY(ALIGN_TONLY.out.bamwithsample)
         }
         if (params.cnv){
-            if (params.genome == "mm10"){
+            if (params.genome.matches("mm10")){
                 CNVmouse_tonly(ALIGN_TONLY.out.bamwithsample)
             } else if (params.genome.matches("hg38(.*)") | params.genome.matches("hg19(.*)")){
                 if (!params.vc){
@@ -123,7 +131,7 @@ workflow {
             }
         }
         if (params.qc){
-                QC_TONLY(ALIGN_TONLY.out.fastqin,ALIGN_TONLY.out.fastpout,ALIGN_TONLY.out.bqsrout)
+            QC_TONLY(ALIGN_TONLY.out.fastqin,ALIGN_TONLY.out.fastpout,ALIGN_TONLY.out.bqsrout)
         }
     }
 
@@ -138,17 +146,20 @@ workflow {
             SV_TONLY(INPUT_TONLY_BAM.out.bamwithsample)
         }
         if (params.cnv){
-            if (params.genome == "mm10"){
+            if (params.genome.matches("mm10")){
                 CNVmouse_tonly(INPUT_TONLY_BAM.out.bamwithsample)
-            } else if (params.genome.matches("hg38(.*)")| params.genome.matches("hg19(.*)")){
+            }else if (params.genome.matches("hg38(.*)") | params.genome.matches("hg19(.*)")){
                 if (!params.vc){
                     VC_TONLY(INPUT_TONLY_BAM.out.bamwithsample,INPUT_TONLY_BAM.out.splitout,INPUT_TONLY_BAM.out.sample_sheet)
                     CNVhuman_tonly(INPUT_TONLY_BAM.out.bamwithsample,VC_TONLY.out.somaticcall_input)
                 } else {
                     CNVhuman_tonly(INPUT_TONLY_BAM.out.bamwithsample,VC_TONLY.out.somaticcall_input)
                 }
+            }
+        }
+        if (params.qc){
+            QC_TONLY_BAM(INPUT_TONLY_BAM.out.bamwithsample)
+        }
 
-        }
-        }
     }
 }
