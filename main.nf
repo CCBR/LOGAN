@@ -9,8 +9,8 @@ log.info """\
          =============================
          genome: ${params.genome}
          outdir: ${params.outdir}
-         Sample Sheet: ${params.sample_sheet}
          Samples: ${params.fastq_input} ${params.fastq_file_input} ${params.bam_input} ${params.bam_file_input}
+         Sample Sheet: ${params.sample_sheet}
          """
          .stripIndent()
 
@@ -56,7 +56,7 @@ workflow {
         if (params.cnv){
             if (params.genome.matches("mm10")){
                 CNVmouse(ALIGN.out.bamwithsample)
-            } else if (params.genome.matches("hg38(.*)")| params.genome.matches("hg19(.*)")){
+            } else if (params.genome.matches("hg38(.*)") | params.genome.matches("hg19(.*)")){
                 if (!params.vc){
                     CNVhuman_novc(ALIGN.out.bamwithsample)
                 } else {
@@ -99,9 +99,9 @@ workflow {
         }
         //QC Steps
         if (params.qc && params.gl){
-            QC_GL_BAM(INPUT_BAM.out.bamwithsample,GL.out.glnexusout,GL.out.bcfout)
+            QC_GL_BAM(INPUT_BAM.out.allbam,GL.out.glnexusout,GL.out.bcfout)
         }else if(params.qc){
-            QC_NOGL_BAM(INPUT_BAM.out.bamwithsample)
+            QC_NOGL_BAM(INPUT_BAM.out.allbam)
         }
 
 

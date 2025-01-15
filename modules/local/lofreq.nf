@@ -8,6 +8,7 @@ LOFREQ_CONVERT=params.lofreq_convert
 process lofreq_tn {
     container "${params.containers.lofreq}"
     label 'process_somaticcaller'
+    errorStrategy 'ignore'
 
     input:
         tuple val(tumorname), path(tumor), path(tumorbai),

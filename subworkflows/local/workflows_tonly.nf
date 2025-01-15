@@ -202,6 +202,10 @@ workflow VC_TONLY {
     call_list_tonly = params.tonlycallers.split(',') as List
     call_list = call_list.intersect(call_list_tonly)
 
+    if (params.exome && "muse" in call_list){
+        call_list.removeIf { it == 'muse' }
+    }
+
     vc_tonly=Channel.empty()
 
     if ("mutect2" in call_list | "varscan" in call_list){ 
@@ -535,6 +539,10 @@ workflow CNVhuman_tonly {
             bamwithsample | freec 
         }
 
+        if (params.exome && "purple" in cnvcall_list ){
+            cnvcall_list.removeIf { it == 'purple' }
+        }
+
         if ("purple" in cnvcall_list){
             //Purple
             bamwithsample | amber_tonly
@@ -562,11 +570,17 @@ workflow CNVhuman_novc_tonly {
         bamwithsample
 
     main: 
+        cnvcall_list = params.cnvcallers.split(',') as List
+
         if ("freec" in cnvcall_list){
             //FREEC-Unpaired only
             bamwithsample | freec 
         }   
         
+        if (params.exome && "purple" in cnvcall_list){
+            cnvcall_list.removeIf { it == 'purple' }
+        }
+
         if ("purple" in cnvcall_list){
             //Purple
             bamwithsample | amber_tonly
@@ -575,7 +589,7 @@ workflow CNVhuman_novc_tonly {
             map{t1,amber,cobalt -> tuple(t1,amber,cobalt)}  
                 | purple_tonly_novc
         }
-        
+
         if ("cnvkit" in cnvcall_list){
             if(params.exome){
                 matchbed_cnvkit(intervalbedin)
@@ -662,9 +676,10 @@ workflow QC_TONLY_BAM {
     mosdepth_out=mosdepth.out.collect()
     samtools_flagstats_out=samtools_flagstats.out.collect()
 
-    conall=fclane_out.concat(qualimap_out,
+    conall=qualimap_out | concat(
         samtools_flagstats_out,mosdepth_out, 
-        somalier_analysis_out).flatten().toList()
+        somalier_analysis_out) 
+        | flatten | toList
     
     multiqc(conall)
 }
@@ -717,6 +732,7 @@ workflow INPUT_TONLY_BAM {
         bamwithsample
         splitout=splitinterval.out
         sample_sheet
+        
     
 }
 

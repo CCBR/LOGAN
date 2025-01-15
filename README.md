@@ -64,7 +64,8 @@ c130889189_PBMC  /data/nousomedr/c130889189_PBMC.bam  /data/nousomedr/c130889189
 ```
 
 ### Genome
-`--genome` - A flag to indicate which genome to run for alignment/variant calling/etc. Like `--genome hg38` to run the hg38 genome
+`--genome` - A flag to indicate which genome to run. hg38, hg19 and mm10 are supported.  
+Example: `--genome hg38` to run the hg38 genome
 
 `--genome hg19` and `--genome mm10` are also supported 
 
@@ -98,31 +99,30 @@ No addtional flags for sample sheet are required as all samples will be used to 
 
 Adding flags determines SNV (germline and/or somatic), SV, and/or CNV calling modes
 
-`--vc`- Enables somatic SNV calling using mutect2, deepsomatic, vardict, varscan, octopus, strelka (TN only), MUSE (TN only), and lofreq (TN only)
+`--vc` or `--snv` - Enables somatic SNV calling using mutect2, vardict, varscan, octopus, deepsomatic, strelka (TN only), MUSE (TN only), and lofreq (TN only)
 
-`--germline`- Enables germline calling using Deepvariant
+`--gl` or `--germline` - Enables germline calling using Deepvariant
 
-`--sv`- Enables somatic SV calling using Manta, GRIDSS, and SVABA
+`--sv` or `--structural`- Enables somatic SV calling using Manta, GRIDSS, and SVABA
 
-`--cnv`- Enables somatic CNV calling using FREEC, Sequenza, CNVKit, ASCAT(hg19/hg38 only), and Purple (hg19/hg38 only)
-
+`--cnv` or `--copynumber`- Enables somatic CNV calling using FREEC, Sequenza, ASCAT, CNVKit, and Purple (hg19/hg38 only)
 
 
 #### Optional Arguments
-`--indelrealign` - Enables indel realignment when running alignment steps. May be helpful for certain callers (VarScan, VarDict)
-
-`--callers`- Comma separated argument for selecting only specified callers, the default is to use all available.  
+`--callers` - Comma separated argument for selecting only specified callers, the default is to use all.
 Example: `--callers mutect2,octopus`
 
-`--cnvcallers`- - Comma separated argument for selecting only specified CNV callers. Adding flag allows only certain callers to run.  
+`--cnvcallers` - Comma separated argument for selecting only specified CNV callers, the default is to use all.
 Example: `--cnvcallers purple`
 
-`--svcallers`- - Comma separated argument for selecting only specified SV vallers. Adding flag allows only certain callers to run.  
+`--svcallers` - Comma separated argument for selecting only specified SV callers, the default is to use all.
 Example: `--svcallers gridss`
 
-`--ffpe`- - Adds additional filtering for FFPE by detecting strand orientation bias using SOBDetector. 
+`--ffpe` - Adds additional filtering for FFPE by detecting strand orientation bias using SOBDetector. 
 
-`--exome`- - Limits calling to intervals provided in target bed to reduce time and to account for exome sequencing specific parameters.
+`--exome` - Limits calling to intervals provided in target bed to reduce time and to account for exome sequencing specific parameters.
+
+`--indelrealign` - Enables indel realignment using the GATK pipeline when running alignment steps. May be helpful for certain callers (VarScan, VarDict) that do not have local haplotype reassembly.
 
 ## Running LOGAN
 Example of Tumor_Normal calling mode 
@@ -145,6 +145,9 @@ nextflow run LOGAN/main.nf --mode local -profile ci_stub --genome hg38 --outdir 
 nextflow run LOGAN/main.nf --mode slurm -profile biowulf,slurm --genome hg38 --outdir out --fastq_input "*R{1,2}.fastq.gz" --callers octopus,mutect2 --vc --sv --cnv
 ```
 
+
+### Pipeline Tools and Overview
+![alt text](docs/LOGAN.png)
 
 
 

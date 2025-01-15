@@ -277,7 +277,12 @@ workflow VC {
     call_list = params.callers.split(',') as List
     call_list_tonly = params.tonlycallers.split(',') as List
     call_list_tonly = call_list.intersect(call_list_tonly)
-
+    
+    //Drop MUSE if using Exome
+    if (params.exome && "muse" in call_list){
+        call_list.removeIf { it == 'muse' }
+    }
+    
     vc_all=Channel.empty()
     vc_tonly=Channel.empty()
 
@@ -849,8 +854,6 @@ workflow VC {
         somaticcall_input=Channel.empty()
     }
     
-
-
     emit:
         somaticcall_input
    
@@ -976,6 +979,11 @@ workflow CNVhuman {
         cnvcall_list = params.cnvcallers.split(',') as List
         scinput = somaticcall_input|map{t1,n1,cal,vcf,ind -> tuple("${t1}_vs_${n1}",cal,vcf,ind)}
         
+        //Drop Purple if using Exome
+        if (params.exome && "purple" in cnvcall_list){
+            cnvcall_list.removeIf { it == 'purple' }
+        }
+
         if ("purple" in cnvcall_list){
             //Purple
             bamwithsample | amber_tn
@@ -1043,6 +1051,11 @@ workflow CNVhuman_novc {
 
         cnvcall_list = params.cnvcallers.split(',') as List
 
+        //Drop Purple if using Exome
+        if (params.exome && "purple" in cnvcall_list){
+            cnvcall_list.removeIf { it == 'purple' }
+        }
+
         if ("purple" in cnvcall_list){
             //Purple
             bamwithsample | amber_tn 
@@ -1051,6 +1064,7 @@ workflow CNVhuman_novc {
             purplein | map{id,t1,n1,amber,t2,n2,cobalt -> tuple(id,t1,n1,amber,cobalt)}
                 | purple_novc
         }
+
 
         if ("sequenza" in cnvcall_list){
             //Sequenza
@@ -1255,10 +1269,11 @@ workflow QC_GL_BAM {
     vcftools_out=vcftools.out
     collectvariantcallmetrics_out=collectvariantcallmetrics.out
 
-    conall=concat(qualimap_out,mosdepth_out,
+    conall=qualimap_out.concat(mosdepth_out,
         samtools_flagstats_out,bcftools_stats_out,
         gatk_varianteval_out,snpeff_out,vcftools_out,collectvariantcallmetrics_out,
-        somalier_analysis_out).flatten().toList()
+        somalier_analysis_out) 
+        | flatten | toList
     multiqc(conall)
 }
 
@@ -1375,5 +1390,9 @@ workflow INPUT_BAM {
         bambyinterval
         splitout=splitinterval.out
         sample_sheet
+        allbam=bambyinterval_tum | concat(bambyinterval_norm) | unique
 
 }
+
+
+

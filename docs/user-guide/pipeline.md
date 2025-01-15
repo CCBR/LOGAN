@@ -2,27 +2,15 @@
 
 ## Guide
 
-### Preview Run
-```bash
-git clone https://github.com/CCBR/LOGAN
-module load nextflow
-# Starts a next nextflow preview run to see the processes that will run
-nextflow run LOGAN/main.nf -profile ci_stub -preview`  
-```
-
-
-##Example run 
-## Usage
-
 ### Input Files
 LOGAN supports inputs of either 
 1) paired end fastq files
 
-`--fastq_input`- A glob can be used to include all FASTQ files. Like `--fastq_input "*R{1,2}.fastq.gz"` quotes.
+`--fastq_input`- A glob can be used to include all FASTQ files. Like `--fastq_input "*R{1,2}.fastq.gz"`. Globbing requires quotes.
 
 2) Pre aligned BAM files with BAI indices 
 
-`--bam_input`- A glob can be used to include all FASTQ files. Like `--bam_input *.bam`
+`--bam_input`- A glob can be used to include all FASTQ files. Like `--bam_input "*.bam"`. Globbing requires quotes.
 
 3) A sheet that indicates the sample name and either FASTQs or BAM file locations
 
@@ -34,7 +22,6 @@ c130863309_TUMOR   /data/nousomedr/c130863309_TUMOR.R1_001.fastq.gz  /data/nouso
 c130889189_PBMC  /data/nousomedr/c130889189_PBMC.R1_001.fastq.gz  /data/nousomedr/c130889189_PBMC.R2_001.fastq.gz
 ```
 
-
 `--bam_file_input` -  A headerless Tab delimited sheet that has the sample name, bam, and bam index (bai) file locations
 
 Example
@@ -44,16 +31,16 @@ c130889189_PBMC  /data/nousomedr/c130889189_PBMC.bam  /data/nousomedr/c130889189
 ```
 
 ### Genome
-`--genome` - A flag to indicate which genome to run for alignment/variant calling/etc. Like `--genome hg38` to run the hg38 genome
+`--genome` - A flag to indicate which genome to run. hg38, hg19 and mm10 are supported.  
+Example: `--genome hg38` to run the hg38 genome
 
 `--genome hg19` and `--genome mm10` are also supported 
 
 #### hg38 has options for either  
-`--genome hg38` - Based off the GRCh38.d1.vd1.fa which is consistent with TCGA and other GDC processing pipelines  
+`--genome hg38` - Based off the GRCh38.d1.vd1.fa which is consistent with TCGA/GDC processing pipelines  
 
-`--genome hg38_sf` - Based off the Homo_sapiens_assembly38.fasta which is derived from the Broad Institute/NCI Sequencing Facility.  
-The biggest difference between the two is that GRCh38.d1.vd1.fa has fewer contigs (especially related to HLA regions), so reads should map to chr6 vs the HLA contig directly
-
+`--genome hg38_sf` - Based off the Homo_sapiens_assembly38.fasta which is derived from the Broad Institute/NCI Sequencing Facility
+The biggest difference between the two is that GRCh38.d1.vd1.fa includes the GCA_000001405.15_GRCh38_no_alt_analysis_set, Sequence Decoys (GenBank Accession GCA_000786075), and Virus Sequences. Homo_sapiens_assembly38.fasta has HLA specific contigs which may not be compatible with certain downstream tools.
 
 ### Operating Modes
 
@@ -78,31 +65,32 @@ No addtional flags for sample sheet are required as all samples will be used to 
 
 Adding flags determines SNV (germline and/or somatic), SV, and/or CNV calling modes
 
-`--vc`- Enables somatic SNV calling using mutect2, vardict, varscan, octopus, strelka (TN only), MUSE (TN only), and lofreq (TN only)
+`--vc` or `--snv` - Enables somatic SNV calling using mutect2, vardict, varscan, octopus, deepsomatic, strelka (TN only), MUSE (TN only), and lofreq (TN only)
 
-`--germline`- Enables germline calling using Deepvariant
+`--gl` or `--germline` - Enables germline calling using Deepvariant
 
-`--sv`- Enables somatic SV calling using Manta, GRIDSS, and SVABA
+`--sv` or `--structural`- Enables somatic SV calling using Manta, GRIDSS, and SVABA
 
-`--cnv`- Enables somatic CNV calling using FREEC, Sequenza, ASCAT, CNVKit, and Purple (hg19/hg38 only)
+`--cnv` or `--copynumber`- Enables somatic CNV calling using FREEC, Sequenza, ASCAT, CNVKit, and Purple (hg19/hg38 only)
 
 
 
 #### Optional Arguments
-`--indelrealign` - Enables indel realignment when running alignment steps. May be helpful for certain callers (VarScan, VarDict)
-
-`--callers`- Comma separated argument for selecting only specified callers, the default is to use all available.  
+`--callers` - Comma separated argument for selecting only specified callers, the default is to use all.
 Example: `--callers mutect2,octopus`
 
-`--cnvcallers`- - Comma separated argument for selecting only specified CNV callers. Adding flag allows only certain callers to run.  
+`--cnvcallers` - Comma separated argument for selecting only specified CNV callers, the default is to use all.
 Example: `--cnvcallers purple`
 
-`--svcallers`- - Comma separated argument for selecting only specified SV vallers. Adding flag allows only certain callers to run.  
+`--svcallers` - Comma separated argument for selecting only specified SV callers, the default is to use all.
 Example: `--svcallers gridss`
 
-`--ffpe`- - Adds additional filtering for FFPE by detecting strand orientation bias using SOBDetector. 
+`--ffpe` - Adds additional filtering for FFPE by detecting strand orientation bias using SOBDetector. 
 
-`--exome`- - Limits calling to intervals provided in target bed to reduce time and to account for exome sequencing specific parameters.
+`--exome` - Limits calling to intervals provided in target bed to reduce time and to account for exome sequencing specific parameters.
+
+`--indelrealign` - Enables indel realignment using the GATK pipeline when running alignment steps. May be helpful for certain callers (VarScan, VarDict) that do not have local haplotype reassembly.
+
 
 ## Running LOGAN
 Example of Tumor_Normal calling mode 
