@@ -16,7 +16,6 @@ process splitinterval {
     path('bedout/*.bed')
 
     script:
-
     """
     mkdir -p bedout
     python $SPLIT_BED -infile ${BED_IN} -num ${SPLIT_REGIONS} -out 'bedout/bed'
@@ -34,16 +33,11 @@ process matchbed {
     path 'target.bed'
 
     script:
-
     """
     awk -F '\\t' '{printf("%s\\t0\\t%s\\n",\$1,\$2);}' $GENOMEFAI >temp.bed
     bedtools intersect -a ${bed} -b temp.bed > target.bed
     """
 
-    stub:
-    """
-    touch target.bed
-    """
 }
 
 
