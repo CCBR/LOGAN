@@ -23,9 +23,9 @@ print C '[general]' . "\n\n";
 
 print C "BedGraphOutput = TRUE\ndegree = 1\nforceGCcontentNormalization = 1\nminCNAlength = 3\nnoisyData = TRUE\nreadCountThreshold = 50\n";
 print C "chrLenFile = $chrLenFile\n";
-print C "ploidy = 2\nbreakPointThreshold = 0.8\nwindow = 0\n";
+print C "ploidy = 2,3,4\nbreakPointThreshold = 0.8\nwindow = 0\nbreakPointType=4\n";
 print C "chrFiles = $chrFiles\n";
-print C "minimalSubclonePresence = 30\nprintNA = FALSE\ncontaminationAdjustment = TRUE\nmaxThreads = 24\nnumberOfProcesses = 24\n";
+print C "minimalSubclonePresence = 30\nprintNA = FALSE\ncontaminationAdjustment = TRUE\nmaxThreads = 8\n";
 print C "outputDir = $ARGV[0]\n\n";
 
 print C '[sample]' . "\n\n";
@@ -46,5 +46,5 @@ print C '[BAF]' . "\n\n";
 
 print C "makePileup = $makePileup\n";
 print C "fastaFile = $fastaFile\n";
-print C "minimalCoveragePerPosition = 20\nminimalQualityPerPosition = 20\n";
+print C "minimalCoveragePerPosition = 5\n";
 print C "SNPfile = $SNPfile";
