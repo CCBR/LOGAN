@@ -50,5 +50,5 @@ jobs:
           --genome hg38 \
           --outdir output_tn_fqs \
           --intervals .tests/interval.bed \
-          -stub
+          -preview
 
