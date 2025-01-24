@@ -87,10 +87,11 @@ process deepsomatic_tonly_step1 {
 }
 
 
-//Step 2 requires GPU
+//Step 2 can run in CPU or GPU mode for now use only CPUs
 process deepsomatic_step2 {
     container = "${params.containers.deepsomatic}"
     label 'process_somaticcaller'
+    errorStrategy { task.exitStatus == 1 ? 'ignore' : 'terminate' }
 
     input:
         tuple val(samplename), path(tfrecords), path(json), path(bed)
@@ -122,6 +123,7 @@ process deepsomatic_step2 {
 process deepsomatic_tonly_step2 {
     container = "${params.containers.deepsomatic}"
     label 'process_somaticcaller'
+    errorStrategy { task.exitStatus == 1 ? 'ignore' : 'terminate' }
 
     input:
         tuple val(samplename), path(tfrecords), path(json), path(bed)

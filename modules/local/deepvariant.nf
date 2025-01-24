@@ -131,6 +131,7 @@ process bcfconcat {
 
 process glnexus {
     container = "${params.containers.logan}"
+    label 'process_medium'
 
     input:
         path(gvcfs)
