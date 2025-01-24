@@ -229,16 +229,17 @@ workflow GL {
         bambyinterval
     
     main:
-    //Keep Only the NormalSamples
-    bambyinterval_normonly=sample_sheet | map{t,n -> tuple(n)} | unique() | join(bambyinterval) 
+    //Keep Only the NormalSamples 
+    bambyinterval_normonly=sample_sheet | map{t,n -> tuple(n)} | combine(bambyinterval,by:[0]) 
+        | unique{it -> it[0]+ '~' + it[3] } 
 
     deepvariant_step1(bambyinterval_normonly) | deepvariant_step2  
         | deepvariant_step3 | groupTuple
         | multiMap{samplename,vcf,vcf_tbi,gvcf,gvcf_tbi -> 
-        vcf: tuple(samplename,vcf.toSorted{it -> (it.name =~ /${samplename}_(.*?).bed.vcf.gz/)[0][1].toInteger()},vcf_tbi,"vcf")
-        gvcf: tuple(samplename,gvcf.toSorted{it -> (it.name =~ /${samplename}_(.*?).bed.gvcf.gz/)[0][1].toInteger()},gvcf_tbi,"gvcf")
-            }
-    | set{dv_out} 
+            vcf: tuple(samplename,vcf.toSorted{it -> (it.name =~ /${samplename}_(.*?).bed.vcf.gz/)[0][1].toInteger()},vcf_tbi,"vcf")
+            gvcf: tuple(samplename,gvcf.toSorted{it -> (it.name =~ /${samplename}_(.*?).bed.gvcf.gz/)[0][1].toInteger()},gvcf_tbi,"gvcf")
+                }
+        | set{dv_out} 
     dv_out.vcf | bcfconcat_vcf 
     dv_out.gvcf | bcfconcat_gvcf | map{sample,gvcf,index -> gvcf} 
         | collect 
@@ -1306,7 +1307,7 @@ workflow QC_NOGL_BAM {
     mosdepth_out=mosdepth.out.collect()
     samtools_flagstats_out=samtools_flagstats.out.collect()
 
-    conall=fclane_out.concat(qualimap_out,
+    conall=qualimap_out.concat(
         samtools_flagstats_out,mosdepth_out, 
         somalier_analysis_out).flatten().toList()
     
@@ -1353,9 +1354,9 @@ workflow INPUT_BAM {
                                   } 
     }
     if (params.intervals){
-        intervalbedin = Channel.fromPath(params.intervals,checkIfExists: true,type: 'file')
+        intervalbedin = Channel.fromPath(params.intervals,checkIfExists: true, type: 'file')
     }else{
-        intervalbedin = Channel.fromPath(params.genomes[params.genome].intervals,checkIfExists: true,type: 'file')
+        intervalbedin = Channel.fromPath(params.genomes[params.genome].intervals,checkIfExists: true, type: 'file')
     }
     matchbed(intervalbedin) | splitinterval
     
