@@ -6,14 +6,14 @@ GENOMEFAI = file(params.genomes[params.genome].genomefai)
 
 // Split Bed Step to create the path 
 process splitinterval {
-    container = "${params.containers.logan}"
+    container "${params.containers.logan}"
     label "process_single"
 
     input:
-    path(BED_IN)
+        path(BED_IN)
 
     output:
-    path('bedout/*.bed')
+        path('bedout/*.bed')
 
     script:
     """
@@ -23,14 +23,14 @@ process splitinterval {
 }
 
 process matchbed {
-    container = "${params.containers.logan}"
+    container "${params.containers.logan}"
     label "process_single"
 
     input:
-    path bed
+        path(bed)
 
     output:
-    path 'target.bed'
+        path('target.bed')
 
     script:
     """
