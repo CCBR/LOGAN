@@ -46,5 +46,5 @@ print C '[BAF]' . "\n\n";
 
 print C "makePileup = $makePileup\n";
 print C "fastaFile = $fastaFile\n";
-print C "minimalCoveragePerPosition = 5\n";
+print C "minimalCoveragePerPosition = 10\n";
 print C "SNPfile = $SNPfile";
