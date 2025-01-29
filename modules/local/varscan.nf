@@ -6,6 +6,7 @@ GENOMEDICT=file(params.genomes[params.genome].genomedict)
 process varscan_tn {
     container "${params.containers.logan}"
     label 'process_somaticcaller'
+    errorStrategy 'ignore'
 
     input:
         tuple val(tumorname), path(tumor), path(tumorbai),
@@ -54,8 +55,9 @@ process varscan_tn {
 
 process varscan_tonly {
     container "${params.containers.logan}"
-
     label 'process_somaticcaller'
+    errorStrategy 'ignore'
+
     input:
         tuple val(tumorname), path(tumor), path(tumorbai),
         path(bed),
