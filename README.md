@@ -120,7 +120,9 @@ Example: `--svcallers gridss`
 
 `--ffpe` - Adds additional filtering for FFPE by detecting strand orientation bias using SOBDetector. 
 
-`--exome` - Limits calling to intervals provided in target bed to reduce time and to account for exome sequencing specific parameters.
+`--intervals` - Limits calling to intervals provided in target bed file (target bed should have three columns of chr, start, and end)
+
+`--exome` - When using exome data, this flag limits calling to intervals provided in target bed to reduce time and to account for exome sequencing specific parameters.
 
 `--indelrealign` - Enables indel realignment using the GATK pipeline when running alignment steps. May be helpful for certain callers (VarScan, VarDict) that do not have local haplotype reassembly.
 
