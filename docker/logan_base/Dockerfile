@@ -1,4 +1,4 @@
-FROM --platform=linux/amd64 nciccbr/ccbr_ubuntu_base_20.04:v6
+FROM nciccbr/ccbr_ubuntu_base_20.04:v6
 
 # build time variables
 ARG BUILD_DATE="000000"
@@ -69,13 +69,13 @@ RUN wget https://github.com/biod/sambamba/releases/download/v0.8.1/sambamba-0.8.
     && mv /opt2/sambamba-0.8.1-linux-amd64-static /opt2/sambamba \
     && chmod a+rx /opt2/sambamba
 
-# Install GATK4 (GATK/4.6.0.0)
+# Install GATK4 (GATK/4.6.1.0)
 # Requires Java17 
-RUN wget https://github.com/broadinstitute/gatk/releases/download/4.6.0.0/gatk-4.6.0.0.zip \
-    && unzip /opt2/gatk-4.6.0.0.zip \
-    && rm /opt2/gatk-4.6.0.0.zip \
-    && /opt2/gatk-4.6.0.0/gatk --list
-ENV PATH="/opt2/gatk-4.6.0.0:$PATH"
+RUN wget https://github.com/broadinstitute/gatk/releases/download/4.6.1.0/gatk-4.6.1.0.zip \
+    && unzip /opt2/gatk-4.6.1.0.zip \
+    && rm /opt2/gatk-4.6.1.0.zip \
+    && /opt2/gatk-4.6.1.0/gatk --list
+ENV PATH="/opt2/gatk-4.6.1.0:$PATH"
 
 # Picard
 RUN mkdir picard \

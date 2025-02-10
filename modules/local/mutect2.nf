@@ -83,6 +83,8 @@ process pileup_paired {
 process pileup_paired_t {
     container "${params.containers.logan}"
     label 'process_highmem'
+    errorStrategy { task.attempt <= 3 ? 'retry' : 'terminate' }
+    maxRetries 3
 
     input:
         tuple val(tumorname), path(tumor), path(tumorbai),
@@ -112,6 +114,8 @@ process pileup_paired_t {
 process pileup_paired_n {
     container "${params.containers.logan}"
     label 'process_highmem'
+    errorStrategy { task.attempt <= 3 ? 'retry' : 'terminate' }
+    maxRetries 3
 
     input:
         tuple val(tumorname), path(tumor), path(tumorbai),
@@ -142,6 +146,8 @@ process pileup_paired_n {
 process contamination_paired {
     container "${params.containers.logan}"
     label 'process_highmem'
+    errorStrategy { task.attempt <= 3 ? 'retry' : 'terminate' }
+    maxRetries 3
 
     input:
         tuple val(tumorname), val(normalname),
@@ -196,6 +202,8 @@ process contamination_paired {
 process learnreadorientationmodel {
     container "${params.containers.logan}"
     label 'process_highmem'
+    errorStrategy { task.attempt <= 3 ? 'retry' : 'terminate' }
+    maxRetries 3
 
     input:
         tuple val(sample), path(f1r2)
