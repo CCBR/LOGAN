@@ -39,3 +39,37 @@ process mosdepth {
     touch "${samplename}.regions.bed.gz.csi"
     """
 }
+
+
+process mosdepth_exome {
+    container = "${params.containers.loganqc}"
+    label 'process_medium'
+
+    input:
+        tuple val(samplename), path(bam), path(bai), path(bed)
+
+    output:
+        tuple path("${samplename}.mosdepth.global.dist.txt"),
+        path("${samplename}.mosdepth.region.dist.txt"),
+        path("${samplename}.mosdepth.summary.txt"),
+        path("${samplename}.per-base.bed.gz"),
+        path("${samplename}.per-base.bed.gz.csi"),
+        path("${samplename}.regions.bed.gz"),
+        path("${samplename}.regions.bed.gz.csi")
+
+    script:
+    """
+    mosdepth --by ${bed} $samplename $bam -t $task.cpus
+    """
+
+    stub:
+    """
+    touch "${samplename}.mosdepth.global.dist.txt"
+    touch "${samplename}.mosdepth.region.dist.txt"
+    touch "${samplename}.mosdepth.summary.txt"
+    touch "${samplename}.per-base.bed.gz"
+    touch "${samplename}.per-base.bed.gz.csi"
+    touch "${samplename}.regions.bed.gz"
+    touch "${samplename}.regions.bed.gz.csi"
+    """
+}

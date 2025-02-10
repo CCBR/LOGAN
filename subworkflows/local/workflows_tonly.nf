@@ -12,7 +12,7 @@ include {bcftools_stats} from '../../modules/local/bcftools_stats.nf'
 include {gatk_varianteval; collectvariantcallmetrics} from '../../modules/local/gatk_varianteval.nf'
 include {snpeff} from '../../modules/local/snpeff.nf'
 include {somalier_extract;somalier_analysis_human;somalier_analysis_mouse} from '../../modules/local/somalier.nf'
-include {mosdepth} from '../../modules/local/mosdepth.nf'
+include {mosdepth;mosdepth_exome} from '../../modules/local/mosdepth.nf'
 include {multiqc} from  '../../modules/local/multiqc.nf'
 
 include {fastp; bwamem2; indelrealign; bqsr_ir; 
@@ -183,6 +183,7 @@ workflow ALIGN_TONLY {
         bqsrbambyinterval
         sample_sheet
         bqsrout=applybqsr.out
+        fullinterval=matchbed.out
 
 }
 
@@ -606,7 +607,8 @@ workflow QC_TONLY {
         fastqin
         fastpout
         bqsrout
-
+        fullinterval
+    
     main:
     //QC Steps For Tumor-Only-No Germline Variant QC
     fc_lane(fastqin)
@@ -617,7 +619,12 @@ workflow QC_TONLY {
     fastqc(bqsrout)
     samtools_flagstats(bqsrout)
     qualimap_bamqc(bqsrout)
-    mosdepth(bqsrout)
+    if(params.exome){
+        mosdepth_out=bqsrout | combine(fullinterval) | mosdepth_exome | collect
+    }else{
+        mosdepth_out=bqsrout | combine(fullinterval) | mosdepth | collect
+    }
+
 
     somalier_extract(bqsrout) 
     som_in=somalier_extract.out.collect()
@@ -637,7 +644,6 @@ workflow QC_TONLY {
     kraken_out=kraken.out.map{samplename,taxa,krona -> tuple(taxa,krona)}.collect()
     qualimap_out=qualimap_bamqc.out.map{genome,rep->tuple(genome,rep)}.collect()
     fastqc_out=fastqc.out.map{samplename,html,zip->tuple(html,zip)}.collect()
-    mosdepth_out=mosdepth.out.collect()
     samtools_flagstats_out=samtools_flagstats.out.collect()
 
     conall=fclane_out.concat(fqs_out,kraken_out,qualimap_out,fastqc_out,
@@ -652,13 +658,19 @@ workflow QC_TONLY {
 workflow QC_TONLY_BAM {
     take:
         bams
-
+        fullinterval
+        
     main:
     //BQSR BAMs 
     fastqc(bams)
     samtools_flagstats(bams)
     qualimap_bamqc(bams)
-    mosdepth(bams)
+    if(params.exome){
+        mosdepth_out=bams | combine(fullinterval) | mosdepth_exome | collect
+    }else{
+        mosdepth_out=bams | combine(fullinterval) | mosdepth | collect
+    }
+
 
     somalier_extract(bams) 
     som_in=somalier_extract.out.collect()
@@ -673,7 +685,6 @@ workflow QC_TONLY_BAM {
     
     //Prep for MultiQC input
     qualimap_out=qualimap_bamqc.out.map{genome,rep->tuple(genome,rep)}.collect()
-    mosdepth_out=mosdepth.out.collect()
     samtools_flagstats_out=samtools_flagstats.out.collect()
 
     conall=qualimap_out | concat(
@@ -732,6 +743,7 @@ workflow INPUT_TONLY_BAM {
         bamwithsample
         splitout=splitinterval.out
         sample_sheet
+        fullinterval=matchbed.out
         
     
 }

@@ -66,9 +66,10 @@ workflow {
     }
         //QC Steps
         if (params.qc && (params.gl || params.germline)){
-            QC_GL(ALIGN.out.fastqin,ALIGN.out.fastpout,ALIGN.out.bqsrout,GL.out.glnexusout,GL.out.bcfout)
+            QC_GL(ALIGN.out.fastqin,ALIGN.out.fastpout,ALIGN.out.bqsrout,
+                GL.out.glnexusout,GL.out.bcfout,ALIGN.out.fullinterval)
         }else if (params.qc){
-            QC_NOGL(ALIGN.out.fastqin,ALIGN.out.fastpout,ALIGN.out.bqsrout)
+            QC_NOGL(ALIGN.out.fastqin,ALIGN.out.fastpout,ALIGN.out.bqsrout,ALIGN.out.fullinterval)
         }
 
     }
@@ -99,9 +100,9 @@ workflow {
         }
         //QC Steps
         if (params.qc && (params.gl || params.germline)){
-            QC_GL_BAM(INPUT_BAM.out.allbam,GL.out.glnexusout,GL.out.bcfout)
+            QC_GL_BAM(INPUT_BAM.out.allbam,GL.out.glnexusout,GL.out.bcfout,INPUT_BAM.out.fullinterval)
         }else if(params.qc){
-            QC_NOGL_BAM(INPUT_BAM.out.allbam)
+            QC_NOGL_BAM(INPUT_BAM.out.allbam,INPUT_BAM.out.fullinterval)
         }
 
 
@@ -131,7 +132,7 @@ workflow {
             }
         }
         if (params.qc){
-            QC_TONLY(ALIGN_TONLY.out.fastqin,ALIGN_TONLY.out.fastpout,ALIGN_TONLY.out.bqsrout)
+            QC_TONLY(ALIGN_TONLY.out.fastqin,ALIGN_TONLY.out.fastpout,ALIGN_TONLY.out.bqsrout,ALIGN_TONLY.out.fullinterval)
         }
     }
 
@@ -158,7 +159,7 @@ workflow {
             }
         }
         if (params.qc){
-            QC_TONLY_BAM(INPUT_TONLY_BAM.out.bamwithsample)
+            QC_TONLY_BAM(INPUT_TONLY_BAM.out.bamwithsample,INPUT_TONLY_BAM.out.fullinterval)
         }
 
     }

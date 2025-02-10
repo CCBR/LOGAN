@@ -12,7 +12,7 @@ include {bcftools_stats} from '../../modules/local/bcftools_stats.nf'
 include {gatk_varianteval; collectvariantcallmetrics} from '../../modules/local/gatk_varianteval.nf'
 include {snpeff} from '../../modules/local/snpeff.nf'
 include {somalier_extract;somalier_analysis_human;somalier_analysis_mouse} from '../../modules/local/somalier.nf'
-include {mosdepth} from '../../modules/local/mosdepth.nf'
+include {mosdepth;mosdepth_exome} from '../../modules/local/mosdepth.nf'
 include {multiqc} from  '../../modules/local/multiqc.nf'
 
 include {fastp; bwamem2; indelrealign; bqsr_ir;
@@ -221,6 +221,7 @@ workflow ALIGN {
         bqsrbambyinterval
         sample_sheet
         bqsrout=applybqsr.out
+        fullinterval=matchbed.out
 }
 
 workflow GL {
@@ -278,11 +279,6 @@ workflow VC {
     call_list = params.callers.split(',') as List
     call_list_tonly = params.tonlycallers.split(',') as List
     call_list_tonly = call_list.intersect(call_list_tonly)
-    
-    //Drop MUSE if using Exome
-    if (params.exome && "muse" in call_list){
-        call_list.removeIf { it == 'muse' }
-    }
     
     vc_all=Channel.empty()
     vc_tonly=Channel.empty()
@@ -530,14 +526,20 @@ workflow VC {
     }
 
     //MuSE TN
-    if ("muse" in call_list){
-        muse_in=muse_tn(bamwithsample)
-            | map{tumor,normal,vcf-> tuple("${tumor}_vs_${normal}",vcf,"muse")}
-            | combineVariants_muse | join(sample_sheet_paired)
-            | map{sample,marked,markedindex,normvcf,normindex,tumor,normal ->tuple(tumor,normal,"muse",normvcf,normindex)}
-        annotvep_tn_muse(muse_in)
+    if ("muse" in call_list){ 
+        if (!params.exome){
+            bamwithsample | map{tuname,tumor,tbai,nname,normal,nbai -> tuple(tuname,tumor,tbai,nname,normal,nbai,"-G")} 
+            | muse_tn
+        }else if (params.exome){
+        bamwithsample | map{tuname,tumor,tbai,nname,normal,nbai -> tuple(tuname,tumor,tbai,nname,normal,nbai,"-E")}  
+            | muse_tn
+        }
+    muse_in = muse_tn.out | map{tumor,normal,vcf-> tuple("${tumor}_vs_${normal}",vcf,"muse")}
+        | combineVariants_muse | join(sample_sheet_paired)
+        | map{sample,marked,markedindex,normvcf,normindex,tumor,normal ->tuple(tumor,normal,"muse",normvcf,normindex)}
+    annotvep_tn_muse(muse_in)
 
-        vc_all=vc_all|concat(muse_in)
+    vc_all=vc_all | concat(muse_in)
     }
 
     //Octopus TN
@@ -1119,6 +1121,7 @@ workflow QC_NOGL {
         fastqin
         fastpout
         applybqsr
+        fullinterval
 
     main:
     //QC Steps
@@ -1128,7 +1131,11 @@ workflow QC_NOGL {
     qualimap_bamqc(applybqsr)
     samtools_flagstats(applybqsr)
     fastqc(applybqsr)
-    mosdepth(applybqsr)
+    if(params.exome){
+        mosdepth_out=applybqsr | combine(fullinterval) | mosdepth_exome | collect
+    }else{
+        mosdepth_out=applybqsr | combine(fullinterval) | mosdepth | collect
+    }
 
     //Somalier
     somalier_extract(applybqsr)
@@ -1140,7 +1147,6 @@ workflow QC_NOGL {
 
     kraken_out=kraken.out.map{samplename,taxa,krona -> tuple(taxa,krona)}.collect()
     qualimap_out=qualimap_bamqc.out.map{genome,rep->tuple(genome,rep)}.collect()
-    mosdepth_out=mosdepth.out.collect()
     fastqc_out=fastqc.out.map{samplename,html,zip->tuple(html,zip)}.collect()
 
     samtools_flagstats_out=samtools_flagstats.out.collect()
@@ -1169,6 +1175,7 @@ workflow QC_GL {
         applybqsr
         glnexusout
         bcfout
+        fullinterval
 
     main:
     //QC Steps
@@ -1177,8 +1184,12 @@ workflow QC_GL {
     kraken(fastqin)
     qualimap_bamqc(applybqsr)
     samtools_flagstats(applybqsr)
-    mosdepth(applybqsr)
     fastqc(applybqsr)
+    if(params.exome){
+        mosdepth_out=applybqsr |combine(fullinterval) | mosdepth_exome | collect
+    }else{
+        mosdepth_out=applybqsr |combine(fullinterval) | mosdepth | collect
+    }
 
     //Cohort VCF
     glout=glnexusout.map{germlinev,germlinenorm,tbi->tuple(germlinenorm,tbi)}
@@ -1210,7 +1221,6 @@ workflow QC_GL {
     qualimap_out=qualimap_bamqc.out.map{genome,rep->tuple(genome,rep)}.collect()
     fastqc_out=fastqc.out.map{samplename,html,zip->tuple(html,zip)}.collect()
     samtools_flagstats_out=samtools_flagstats.out.collect()
-    mosdepth_out=mosdepth.out.collect()
     bcftools_stats_out= bcftools_stats.out.collect()
     gatk_varianteval_out= gatk_varianteval.out.collect()
     snpeff_out=snpeff.out.collect()
@@ -1230,13 +1240,18 @@ workflow QC_GL_BAM {
         applybqsr
         glnexusout
         bcfout
+        fullinterval
 
     main:
     //QC Steps
     qualimap_bamqc(applybqsr)
     samtools_flagstats(applybqsr)
-    mosdepth(applybqsr)
     fastqc(applybqsr)
+    if(params.exome){
+        mosdepth_out=applybqsr |combine(fullinterval) | mosdepth_exome | collect
+    }else{
+        mosdepth_out=applybqsr |combine(fullinterval) | mosdepth | collect
+    }
 
     //Cohort VCF
     glout=glnexusout.map{germlinev,germlinenorm,tbi->tuple(germlinenorm,tbi)}
@@ -1263,7 +1278,6 @@ workflow QC_GL_BAM {
 
     qualimap_out=qualimap_bamqc.out.map{genome,rep->tuple(genome,rep)}.collect()
     samtools_flagstats_out=samtools_flagstats.out.collect()
-    mosdepth_out=mosdepth.out.collect()
     bcftools_stats_out=bcftools_stats.out.collect()
     gatk_varianteval_out=gatk_varianteval.out.collect()
     snpeff_out=snpeff.out.collect()
@@ -1283,13 +1297,19 @@ workflow QC_GL_BAM {
 workflow QC_NOGL_BAM {
     take:
         bams
+        fullinterval
 
     main:
     //BQSR BAMs 
     fastqc(bams)
     samtools_flagstats(bams)
     qualimap_bamqc(bams)
-    mosdepth(bams)
+    if(params.exome){
+        mosdepth_out=bams | combine(fullinterval) | mosdepth_exome | collect
+    }else{
+        mosdepth_out=bams | combine(fullinterval) | mosdepth | collect
+    }
+
 
     somalier_extract(bams) 
     som_in=somalier_extract.out.collect()
@@ -1304,7 +1324,6 @@ workflow QC_NOGL_BAM {
     
     //Prep for MultiQC input
     qualimap_out=qualimap_bamqc.out.map{genome,rep->tuple(genome,rep)}.collect()
-    mosdepth_out=mosdepth.out.collect()
     samtools_flagstats_out=samtools_flagstats.out.collect()
 
     conall=qualimap_out.concat(
@@ -1392,7 +1411,7 @@ workflow INPUT_BAM {
         splitout=splitinterval.out
         sample_sheet
         allbam=bambyinterval_tum | concat(bambyinterval_norm) | unique
-
+        fullinterval=matchbed.out
 }
 
 
