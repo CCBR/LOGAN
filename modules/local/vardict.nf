@@ -29,15 +29,19 @@ process vardict_tn {
             -N "${tumor}|${normal}" \
             -Q 20 \
             -d 10 \
-            -v 6 \
             -S \
-            -f 0.05 >  ${tumorname}_vs_${normalname}_${bed.simpleName}.vardict.vcf
-
+            -M \
+            -f 0.01 >  ${tumorname}_vs_${normalname}_${bed.simpleName}.vardict.vcf
+    
+    bcftools filter \
+    --exclude 'STATUS="Germline" | STATUS="LikelyLOH" | STATUS="AFDiff"' \
+    ${tumorname}_vs_${normalname}_${bed.simpleName}.vardict.vcf >
+    ${tumorname}_vs_${normalname}_${bed.simpleName}.vardict.filtered.vcf 
+    
     printf "${normal.Name}\t${normalname}\n${tumor.Name}\t${tumorname}\n" > sampname
 
-    bcftools reheader -s sampname ${tumorname}_vs_${normalname}_${bed.simpleName}.vardict.vcf \
+    bcftools reheader -s sampname ${tumorname}_vs_${normalname}_${bed.simpleName}.vardict.filtered.vcf \
         | bcftools view -Oz -o ${tumorname}_vs_${normalname}_${bed.simpleName}.vardict.vcf.gz
-
 
     """
 
@@ -76,10 +80,10 @@ process vardict_tonly {
             -N ${tumor} \
             -Q 20 \
             -d 10 \
-            -v 6 \
             -S \
             -E \
-            -f 0.05 >  ${tumorname}_${bed.simpleName}_temp.tonly.vardict.vcf
+            -v 5 \
+            -f 0.01 >  ${tumorname}_${bed.simpleName}_temp.tonly.vardict.vcf
 
     printf "${tumor.Name}\t${tumorname}\n" > sampname
 
