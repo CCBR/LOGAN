@@ -417,7 +417,7 @@ workflow VC {
         vardict_in_tonly=vardict_tonly(bambyinterval_t) 
         | groupTuple()
         | map{tumor,vcf-> 
-            tuple(tumor,vcf.toSorted{it -> (it.name =~ /${tumor}_(.*?).tonly.vardict.vcf/)[0][1].toInteger()},"vardict_tonly","-i 'SBF<0.1 && QUAL >20 && DP >20'")}
+            tuple(tumor,vcf.toSorted{it -> (it.name =~ /${tumor}_(.*?).tonly.vardict.vcf/)[0][1].toInteger()},"vardict_tonly","-i 'SBF<0.1 && QUAL >20 && INFO/DP >20'")}
         | combineVariants_vardict_tonly | join(sample_sheet)
         | map{tumor,marked,markedindex,normvcf,normindex,normal ->tuple(tumor,"vardict_tonly",normvcf,normindex)}
         annotvep_tonly_vardict(vardict_in_tonly)
