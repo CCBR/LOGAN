@@ -9,7 +9,7 @@ process combineVariants {
     label 'process_highmem'
 
     input:
-        tuple val(sample), path(inputvcf), val(vc)
+        tuple val(sample), path(inputvcf), val(vc), val(filterparams)
 
     output:
         tuple val(sample),
@@ -42,7 +42,7 @@ process combineVariants {
         awk '{{gsub(/\\y[W|K|Y|R|S|M|B|D|H|V]\\y/,"N",\$4); OFS = "\t"; print}}' |\
         sed '/^\$/d' > ${sample}.${vc}.temp.vcf
 
-    bcftools view ${sample}.${vc}.temp.vcf -f PASS -s $samporder -Oz -o ${vc}/${sample}.${vc}.norm.vcf.gz
+    bcftools view ${sample}.${vc}.temp.vcf -f PASS -s $samporder -Oz -o ${vc}/${sample}.${vc}.norm.vcf.gz ${filterparams}
     bcftools index ${vc}/${sample}.${vc}.norm.vcf.gz -t
 
     mv ${sample}.${vc}.marked.vcf.gz ${vc}
@@ -68,7 +68,7 @@ process combineVariants_alternative {
     label 'process_highmem'
 
     input:
-        tuple val(sample), path(vcfs), path(vcfsindex), val(vc)
+        tuple val(sample), path(vcfs), path(vcfsindex), val(vc), val(filterparams)
 
     output:
         tuple val(sample),
@@ -98,13 +98,12 @@ process combineVariants_alternative {
         awk '{{gsub(/\\y[W|K|Y|R|S|M|B|D|H|V]\\y/,"N",\$4); OFS = "\t"; print}}' |\
         sed '/^\$/d' > ${sample}.${vc}.temp.vcf
 
-        bcftools view ${sample}.${vc}.temp.vcf -f PASS -Oz -o ${vc}/${sample}.${vc}.norm.vcf.gz
+        bcftools view ${sample}.${vc}.temp.vcf -f PASS -Oz -o ${vc}/${sample}.${vc}.norm.vcf.gz ${filterparams}
         mv ${sample}.${vc}.marked.vcf.gz ${vc}
 
         bcftools index ${vc}/${sample}.${vc}.marked.vcf.gz -t
         bcftools index ${vc}/${sample}.${vc}.norm.vcf.gz -t
         """
-    
     }else{
         """
         mkdir ${vc}
@@ -115,7 +114,7 @@ process combineVariants_alternative {
         awk '{{gsub(/\\y[W|K|Y|R|S|M|B|D|H|V]\\y/,"N",\$4); OFS = "\t"; print}}' |\
         sed '/^\$/d' > ${sample}.${vc}.temp.vcf
 
-        bcftools view ${sample}.${vc}.temp.vcf -f PASS -Oz -o ${vc}/${sample}.${vc}.norm.vcf.gz
+        bcftools view ${sample}.${vc}.temp.vcf -f PASS -Oz -o ${vc}/${sample}.${vc}.norm.vcf.gz ${filterparams}
         mv ${sample}.${vc}.marked.vcf.gz ${vc}
 
         bcftools index ${vc}/${sample}.${vc}.marked.vcf.gz -t

@@ -35,8 +35,8 @@ process vardict_tn {
     
     bcftools filter \
     --exclude 'STATUS="Germline" | STATUS="LikelyLOH" | STATUS="AFDiff"' \
-    ${tumorname}_vs_${normalname}_${bed.simpleName}.vardict.vcf >
-    ${tumorname}_vs_${normalname}_${bed.simpleName}.vardict.filtered.vcf 
+    ${tumorname}_vs_${normalname}_${bed.simpleName}.vardict.vcf \
+    > ${tumorname}_vs_${normalname}_${bed.simpleName}.vardict.filtered.vcf 
     
     printf "${normal.Name}\t${normalname}\n${tumor.Name}\t${tumorname}\n" > sampname
 

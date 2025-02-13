@@ -45,9 +45,10 @@ include {deepsomatic_tn_step1; deepsomatic_step2; deepsomatic_step3;
 
 include {combineVariants as combineVariants_vardict; combineVariants as combineVariants_vardict_tonly;
     combineVariants as combineVariants_varscan; combineVariants as combineVariants_varscan_tonly;
-    combineVariants_alternative as combineVariants_deepsomatic; combineVariants_alternative as combineVariants_deepsomatic_tonly;
     combineVariants as combineVariants_sage; combineVariants as combineVariants_sage_tonly;
-    combineVariants_alternative as combineVariants_lofreq; combineVariants as combineVariants_muse;
+    combineVariants_alternative as combineVariants_deepsomatic; combineVariants_alternative as combineVariants_deepsomatic_tonly;
+    combineVariants_alternative as combineVariants_lofreq; 
+    combineVariants as combineVariants_muse;
     combineVariants_alternative as combineVariants_octopus; 
     combineVariants_alternative as combineVariants_octopus_tonly;
     combinemafs_tn; somaticcombine; somaticcombine as somaticcombine_ffpe;
@@ -76,7 +77,6 @@ include {sobdetect_pass1 as sobdetect_pass1_mutect2; sobdetect_pass2 as sobdetec
     sobdetect_metrics as sobdetect_metrics_vardict_tonly; sobdetect_cohort_params as sobdetect_cohort_params_vardict_tonly;
     sobdetect_pass1 as sobdetect_pass1_varscan_tonly; sobdetect_pass2 as sobdetect_pass2_varscan_tonly; 
     sobdetect_metrics as sobdetect_metrics_varscan_tonly; sobdetect_cohort_params as sobdetect_cohort_params_varscan_tonly
-
     } from "../../modules/local/ffpe.nf"
 
 
@@ -404,7 +404,8 @@ workflow VC {
     if ("vardict" in call_list){
         //Vardict TN
         vardict_in=vardict_tn(bambyinterval) | groupTuple(by:[0,1])
-        | map{tumor,normal,vcf-> tuple("${tumor}_vs_${normal}",vcf.toSorted{it -> (it.name =~ /${tumor}_vs_${normal}_(.*?).vardict.vcf/)[0][1].toInteger()},"vardict")}
+        | map{tumor,normal,vcf -> 
+            tuple("${tumor}_vs_${normal}",vcf.toSorted{it -> (it.name =~ /${tumor}_vs_${normal}_(.*?).vardict.vcf/)[0][1].toInteger()},"vardict","")}
         | combineVariants_vardict | join(sample_sheet_paired)
         | map{sample,marked,markedindex,normvcf,normindex,tumor,normal ->tuple(tumor,normal,"vardict",normvcf,normindex)}
         annotvep_tn_vardict(vardict_in)
@@ -415,7 +416,8 @@ workflow VC {
         if (!params.no_tonly){
         vardict_in_tonly=vardict_tonly(bambyinterval_t) 
         | groupTuple()
-        | map{tumor,vcf-> tuple(tumor,vcf.toSorted{it -> (it.name =~ /${tumor}_(.*?).tonly.vardict.vcf/)[0][1].toInteger()},"vardict_tonly")}
+        | map{tumor,vcf-> 
+            tuple(tumor,vcf.toSorted{it -> (it.name =~ /${tumor}_(.*?).tonly.vardict.vcf/)[0][1].toInteger()},"vardict_tonly","-i 'SBF<0.1 && QUAL >20 && DP >20'")}
         | combineVariants_vardict_tonly | join(sample_sheet)
         | map{tumor,marked,markedindex,normvcf,normindex,normal ->tuple(tumor,"vardict_tonly",normvcf,normindex)}
         annotvep_tonly_vardict(vardict_in_tonly)
@@ -429,7 +431,8 @@ workflow VC {
         //VarScan TN
         varscan_in=bambyinterval.combine(contamination_paired.out,by:0) 
         | varscan_tn | groupTuple(by:[0,1]) 
-        | map{tumor,normal,vcf-> tuple("${tumor}_vs_${normal}",vcf.toSorted{it -> (it.name =~ /${tumor}_vs_${normal}_(.*?).varscan.vcf.gz/)[0][1].toInteger()},"varscan")}
+        | map{tumor,normal,vcf -> 
+            tuple("${tumor}_vs_${normal}",vcf.toSorted{it -> (it.name =~ /${tumor}_vs_${normal}_(.*?).varscan.vcf.gz/)[0][1].toInteger()},"varscan","-i 'SOMATIC==1'")}
         | combineVariants_varscan | join(sample_sheet_paired)
         | map{sample,marked,markedindex,normvcf,normindex,tumor,normal ->tuple(tumor,normal,"varscan",normvcf,normindex)}
         annotvep_tn_varscan(varscan_in)
@@ -440,7 +443,7 @@ workflow VC {
         //VarScan TOnly
         varscan_in_tonly=bambyinterval_t.combine(contamination_tumoronly.out,by:0)  
         | varscan_tonly  | groupTuple 
-        | map{tumor,vcf-> tuple(tumor,vcf.toSorted{it -> (it.name =~ /${tumor}_(.*?).tonly.varscan.vcf.gz/)[0][1].toInteger()},"varscan_tonly")}  
+        | map{tumor,vcf-> tuple(tumor,vcf.toSorted{it -> (it.name =~ /${tumor}_(.*?).tonly.varscan.vcf.gz/)[0][1].toInteger()},"varscan_tonly","")}  
         | combineVariants_varscan_tonly 
         | join(sample_sheet)
         | map{tumor,marked,markedindex,normvcf,normindex,normal ->tuple(tumor,"varscan_tonly",normvcf,normindex)}
@@ -455,7 +458,7 @@ workflow VC {
     //SAGE TN
     if ("sage" in call_list){
         sage_in=sage_tn(bamwithsample)
-            | map{tu,no,vcf,vcfindex-> tuple("${tu}_vs_${no}",vcf,"sage")}
+            | map{tu,no,vcf,vcfindex-> tuple("${tu}_vs_${no}",vcf,"sage","")}
             | combineVariants_sage 
             | join(sample_sheet_paired)
             | map{sample,marked,markedindex,normvcf,normindex,tumor,normal->tuple(tumor,normal,"sage",normvcf,normindex)}
@@ -466,7 +469,7 @@ workflow VC {
         if (!params.no_tonly){ 
         sage_in_tonly=bamwithsample | map{tumor,tbam,tbai,norm,nbam,nbai -> tuple(tumor,tbam,tbai)} 
             | sage_tonly 
-            | map{samplename,vcf,vcfindex->tuple(samplename,vcf,"sage_tonly")} 
+            | map{samplename,vcf,vcfindex->tuple(samplename,vcf,"sage_tonly","")} 
             | combineVariants_sage_tonly
             | join(sample_sheet) 
             | map{tumor,marked,markedindex,normvcf,normindex,normal ->tuple(tumor,"sage_tonly",normvcf,normindex)}
@@ -478,7 +481,7 @@ workflow VC {
     //Lofreq TN
     if ("lofreq" in call_list){
         lofreq_in=lofreq_tn(bambyinterval) | groupTuple(by:[0,1])
-            | map{tu,no,snv,dbsnv,indel,dbindel,vcf,vcfindex-> tuple("${tu}_vs_${no}",vcf.toSorted{it -> (it.name =~ /${tu}_vs_${no}_(.*?)_lofreq.vcf.gz/)[0][1].toInteger()},vcfindex,"lofreq")}
+            | map{tu,no,snv,dbsnv,indel,dbindel,vcf,vcfindex-> tuple("${tu}_vs_${no}",vcf.toSorted{it -> (it.name =~ /${tu}_vs_${no}_(.*?)_lofreq.vcf.gz/)[0][1].toInteger()},vcfindex,"lofreq","")}
             | combineVariants_lofreq | join(sample_sheet_paired)
             | map{sample,marked,markedindex,normvcf,normindex,tumor,normal->tuple(tumor,normal,"lofreq",normvcf,normindex)}
         annotvep_tn_lofreq(lofreq_in)
@@ -494,7 +497,7 @@ workflow VC {
             | deepsomatic_step2  
             | deepsomatic_step3 | groupTuple 
             | map{samplename,vcf,vcf_tbi -> 
-                tuple(samplename,vcf.toSorted{it -> (it.name =~ /${samplename}_(.*?).bed.vcf.gz/)[0][1].toInteger()},vcf_tbi,"deepsomatic")
+                tuple(samplename,vcf.toSorted{it -> (it.name =~ /${samplename}_(.*?).bed.vcf.gz/)[0][1].toInteger()},vcf_tbi,"deepsomatic","")
                 }
             | combineVariants_deepsomatic             
             | join(sample_sheet_paired)
@@ -510,7 +513,7 @@ workflow VC {
             | deepsomatic_tonly_step3 | groupTuple 
 
             | map{samplename,vcf,vcf_tbi -> 
-                tuple(samplename,vcf.toSorted{it -> (it.name =~ /${samplename}_(.*?).bed.vcf.gz/)[0][1].toInteger()},vcf_tbi,"deepsomatic_tonly")
+                tuple(samplename,vcf.toSorted{it -> (it.name =~ /${samplename}_(.*?).bed.vcf.gz/)[0][1].toInteger()},vcf_tbi,"deepsomatic_tonly","")
              } 
 
             | combineVariants_deepsomatic_tonly           
@@ -534,7 +537,7 @@ workflow VC {
         bamwithsample | map{tuname,tumor,tbai,nname,normal,nbai -> tuple(tuname,tumor,tbai,nname,normal,nbai,"-E")}  
             | muse_tn
         }
-    muse_in = muse_tn.out | map{tumor,normal,vcf-> tuple("${tumor}_vs_${normal}",vcf,"muse")}
+    muse_in = muse_tn.out | map{tumor,normal,vcf-> tuple("${tumor}_vs_${normal}",vcf,"muse","")}
         | combineVariants_muse | join(sample_sheet_paired)
         | map{sample,marked,markedindex,normvcf,normindex,tumor,normal ->tuple(tumor,normal,"muse",normvcf,normindex)}
     annotvep_tn_muse(muse_in)
@@ -546,7 +549,7 @@ workflow VC {
     if ("octopus" in call_list){
         octopus_in=octopus_tn(bambyinterval) | bcftools_index_octopus
             | groupTuple()
-            | map{samplename,vcf,vcfindex-> tuple(samplename,vcf.toSorted{it->(it.name =~ /${samplename}_(.*).octopus.vcf.gz/)[0][1].toInteger()},vcfindex,"octopus")}
+            | map{samplename,vcf,vcfindex-> tuple(samplename,vcf.toSorted{it->(it.name =~ /${samplename}_(.*).octopus.vcf.gz/)[0][1].toInteger()},vcfindex,"octopus","")}
             | combineVariants_octopus
             | map{samplename,marked,markedindex,normvcf,normindex ->
                 tuple(samplename.split('_vs_')[0],samplename.split('_vs_')[1],"octopus",normvcf,normindex)}
@@ -560,7 +563,7 @@ workflow VC {
         octopus_in_tonly=octopus_tonly(bambyinterval_t)
             | bcftools_index_octopus_tonly
             | groupTuple() 
-            | map{samplename,vcf,vcfindex->tuple(samplename,vcf.toSorted{it->(it.name =~ /${samplename}_(.*).tonly.octopus.vcf.gz/)[0][1].toInteger()},vcfindex,"octopus_tonly")} 
+            | map{samplename,vcf,vcfindex->tuple(samplename,vcf.toSorted{it->(it.name =~ /${samplename}_(.*).tonly.octopus.vcf.gz/)[0][1].toInteger()},vcfindex,"octopus_tonly","")} 
             | combineVariants_octopus_tonly
             | join(sample_sheet) 
             | map{tumor,marked,markedindex,normvcf,normindex,normal ->tuple(tumor,"octopus_tonly",normvcf,normindex)}

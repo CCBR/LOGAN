@@ -81,7 +81,7 @@ process varscan_tonly {
 
     eval "$varscan_cmd > !{tumor.simpleName}_!{bed.simpleName}.tonly.varscan.vcf_temp"
     
-    varscan filter !{tumor.simpleName}_!{bed.simpleName}.tonly.varscan.vcf_temp" \
+    varscan filter !{tumor.simpleName}_!{bed.simpleName}.tonly.varscan.vcf_temp \
     --strand-filter 1 --min-reads2 5 --min-strands2 2 --min-var-freq 0.05 --p-value 0.01 --min-avg-qual 30 > \
     !{tumor.simpleName}_!{bed.simpleName}.tonly.varscan.vcf_temp1
 
