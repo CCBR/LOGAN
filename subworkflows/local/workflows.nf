@@ -1137,7 +1137,7 @@ workflow QC_NOGL {
     if(params.exome){
         mosdepth_out=applybqsr | combine(fullinterval) | mosdepth_exome | collect
     }else{
-        mosdepth_out=applybqsr | combine(fullinterval) | mosdepth | collect
+        mosdepth_out=applybqsr | mosdepth | collect
     }
 
     //Somalier
@@ -1189,9 +1189,9 @@ workflow QC_GL {
     samtools_flagstats(applybqsr)
     fastqc(applybqsr)
     if(params.exome){
-        mosdepth_out=applybqsr |combine(fullinterval) | mosdepth_exome | collect
+        mosdepth_out=applybqsr | combine(fullinterval) | mosdepth_exome | collect
     }else{
-        mosdepth_out=applybqsr |combine(fullinterval) | mosdepth | collect
+        mosdepth_out=applybqsr | mosdepth | collect
     }
 
     //Cohort VCF
@@ -1251,9 +1251,9 @@ workflow QC_GL_BAM {
     samtools_flagstats(applybqsr)
     fastqc(applybqsr)
     if(params.exome){
-        mosdepth_out=applybqsr |combine(fullinterval) | mosdepth_exome | collect
+        mosdepth_out=applybqsr | combine(fullinterval) | mosdepth_exome | collect
     }else{
-        mosdepth_out=applybqsr |combine(fullinterval) | mosdepth | collect
+        mosdepth_out=applybqsr | mosdepth | collect
     }
 
     //Cohort VCF
@@ -1310,7 +1310,7 @@ workflow QC_NOGL_BAM {
     if(params.exome){
         mosdepth_out=bams | combine(fullinterval) | mosdepth_exome | collect
     }else{
-        mosdepth_out=bams | combine(fullinterval) | mosdepth | collect
+        mosdepth_out=bams | mosdepth | collect
     }
 
 

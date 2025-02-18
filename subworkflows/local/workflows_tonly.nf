@@ -624,7 +624,7 @@ workflow QC_TONLY {
     if(params.exome){
         mosdepth_out=bqsrout | combine(fullinterval) | mosdepth_exome | collect
     }else{
-        mosdepth_out=bqsrout | combine(fullinterval) | mosdepth | collect
+        mosdepth_out=bqsrout | mosdepth | collect
     }
 
 
@@ -670,7 +670,7 @@ workflow QC_TONLY_BAM {
     if(params.exome){
         mosdepth_out=bams | combine(fullinterval) | mosdepth_exome | collect
     }else{
-        mosdepth_out=bams | combine(fullinterval) | mosdepth | collect
+        mosdepth_out=bams | mosdepth | collect
     }
 
 
