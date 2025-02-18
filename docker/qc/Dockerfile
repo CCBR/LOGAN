@@ -20,8 +20,8 @@ WORKDIR /opt2
 RUN apt-get update \
  && apt-get -y upgrade \
  && DEBIAN_FRONTEND=noninteractive apt-get install -y \
-      bc  \
-      libgd-perl
+      bc \
+      libgd-perl 
 
 #FASTQ Screen 'fastq_screen/0.15.3:bowtie/2-2.5.3'
 RUN yes | perl -MCPAN -e "install GD"
@@ -56,6 +56,23 @@ RUN mkdir somalier  \
     && wget -O somalier/somalier https://github.com/brentp/somalier/releases/download/v0.2.19/somalier \
     && chmod a+rx /opt2/somalier/somalier
 ENV PATH="/opt2/somalier:$PATH"
+
+## Prep for R installation
+RUN DEBIAN_FRONTEND=noninteractive apt-get install -y \
+      gnupg \
+      dirmngr \
+      ca-certificates \
+      apt-transport-https \
+      software-properties-common
+
+##Install R and dependencies
+RUN apt-key adv --keyserver keyserver.ubuntu.com --recv-keys E298A3A825C0D65DFD57CBB651716619E084DAB9 \
+    && add-apt-repository 'deb https://cloud.r-project.org/bin/linux/ubuntu focal-cran40/' \
+    && add-apt-repository --enable-source --yes 'ppa:c2d4u.team/c2d4u4.0+' \
+    && apt-get -y install r-base r-base-core r-recommended r-base-dev \
+    && apt-get -y install libcurl4-openssl-dev libssl-dev libboost-dev libxml2-dev 
+RUN apt-get -y install r-cran-tidyverse r-cran-plyr
+RUN apt-get -y install r-cran-plotly r-cran-htmlwidgets r-cran-tidyr
 
 ##KRAKEN kraken/2.1.2','kronatools/2.8.1']
 RUN wget https://github.com/DerrickWood/kraken2/archive/refs/tags/v2.1.3.tar.gz \
