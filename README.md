@@ -1,8 +1,17 @@
-# LOGAN 🔬 [![Docker Pulls](https://img.shields.io/docker/pulls/nciccbr/ccbr_wes_base)](https://hub.docker.com/r/nciccbr/ccbr_wes_base) [![GitHub issues](https://img.shields.io/github/issues/ccbr/LOGAN?color=brightgreen)](https://github.com/ccbr/LOGAN/issues)  [![GitHub license](https://img.shields.io/github/license/ccbr/LOGAN)](https://github.com/ccbr/LOGAN/blob/master/LICENSE) 
+# LOGAN 🔬 
 
-> **_LOGAN-whoLe genOme-sequencinG Analysis pipeliNe_**. Call germline and somatic variants, CNVs, and SVs and  annotate variants!
+**_whoLe genOme-sequencinG Analysis pipeliNe_**
+
+[![build](https://github.com/abcsFrederick/LOGAN/actions/workflows/build.yml/badge.svg)](https://github.com/abcsFrederick/LOGAN/actions/workflows/build.yml)
+[![Docker Pulls](https://img.shields.io/docker/pulls/nciccbr/ccbr_wes_base)](https://hub.docker.com/r/nciccbr/ccbr_wes_base)
+[![issues](https://img.shields.io/github/issues/ccbr/LOGAN?color=brightgreen)](https://github.com/ccbr/LOGAN/issues)
+[![license](https://img.shields.io/github/license/ccbr/LOGAN)](https://github.com/ccbr/LOGAN/blob/master/LICENSE)
+[![release](https://img.shields.io/github/v/release/CCBR/LOGAN?color=blue&label=latest%20release)](https://github.com/ccbr/LOGAN/releases/latest)
+
+Call germline and somatic variants, CNVs, and SVs and annotate variants!
 
 ## Overview
+
 Welcome to LOGAN! Before getting started, we highly recommend reading through [LOGAN's documentation](https://ccbr.github.io/LOGAN).
 
 LOGAN is a comprehensive whole genome-sequencing pipeline following the Broad's set of best practices. It relies on technologies like [Singularity<sup>1</sup>](https://singularity.lbl.gov/) to maintain the highest-level of reproducibility. The pipeline consists of a series of data processing and quality-control steps orchestrated by [Nextflow<sup>2</sup>](https://nextflow.io/), a flexible and scalable workflow management system, to submit jobs to a cluster or cloud provider.
