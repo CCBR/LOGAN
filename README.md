@@ -28,19 +28,20 @@ Original pipelining and code forked from the CCBR Exome-seek Pipeline [Exome-see
 [singularity](https://singularity.lbl.gov/all-releases) must be installed on the target system. Snakemake orchestrates the execution of each step in the pipeline. To guarantee the highest level of reproducibility, each step relies on versioned images from [DockerHub](https://hub.docker.com/orgs/nciccbr/repositories). Nextflow uses singularity to pull these images onto the local filesystem prior to job execution, and as so, nextflow and singularity are the only two dependencies.
 
 ## Setup
-LOGAN can be used with the Nextflow pipelining software
+LOGAN can be used with the Nextflow pipelining software in 
 Please clone this repository to your local filesystem using the following command on Biowulf:
+
 ```bash
 # start an interactive node
 sinteractive --mem=2g --cpus-per-task=2 --gres=lscratch:200
+
 git clone https://github.com/CCBR/LOGAN
 module load nextflow
 ##Example run 
-nextflow run /data/LOGAN//main.nf
+nextflow run LOGAN/main.nf -profile ci_stub -preview
 ```
 
 ## Usage
-LOGAN supports 
 
 ### Input Files
 LOGAN supports inputs of either 
@@ -72,15 +73,16 @@ c130889189_PBMC  /data/nousomedr/c130889189_PBMC.bam  /data/nousomedr/c130889189
 ```
 
 ### Genome
-`--genome` - A flag to indicate which genome to run for alignment/variant calling/etc. Like `--genome hg38` to run the hg38 genome
+`--genome` - A flag to indicate which genome to run. hg38, hg19 and mm10 are supported.  
+Example: `--genome hg38` to run the hg38 genome
 
 `--genome hg19` and `--genome mm10` are also supported 
 
 #### hg38 has options for either  
-`--genome hg38` - Based off the GRCh38.d1.vd1.fa which is consistent with TCGA and other GDC processing pipelines  
+`--genome hg38` - Based off the GRCh38.d1.vd1.fa which is consistent with TCGA/GDC processing pipelines  
 
 `--genome hg38_sf` - Based off the Homo_sapiens_assembly38.fasta which is derived from the Broad Institute/NCI Sequencing Facility
-The biggest difference between the two is that GRCh38.d1.vd1.fa has fewer contigs (especially related to HLA regions), so reads should map to chr6 vs the HLA contig directly
+The biggest difference between the two is that GRCh38.d1.vd1.fa only the GCA_000001405.15_GRCh38_no_alt_analysis_set, Sequence Decoys (GenBank Accession GCA_000786075), and Virus Sequences. Homo_sapiens_assembly38.fasta has HLA specific contigs which may not be compatible with certain downstream tools.
 
 
 ### Operating Modes
@@ -106,50 +108,57 @@ No addtional flags for sample sheet are required as all samples will be used to 
 
 Adding flags determines SNV (germline and/or somatic), SV, and/or CNV calling modes
 
-`--vc`- Enables somatic SNV calling using mutect2, vardict, varscan, octopus, strelka (TN only), MUSE (TN only), and lofreq (TN only)
+`--vc` or `--snv` - Enables somatic SNV calling using mutect2, vardict, varscan, octopus, deepsomatic, strelka (TN only), MUSE (TN only), and lofreq (TN only)
 
-`--germline`- Enables germline using Deepvariant
+`--gl` or `--germline` - Enables germline calling using Deepvariant
 
-`--sv`- Enables somatic SV calling using Manta, SVABA, and GRIDSS (coming soon)
+`--sv` or `--structural`- Enables somatic SV calling using Manta, GRIDSS, and SVABA
 
-`--cnv`- Enables somatic CNV calling using FREEC, Sequenza, and Purple (hg19/hg38 only)
-
+`--cnv` or `--copynumber`- Enables somatic CNV calling using FREEC, Sequenza, ASCAT, CNVKit, and Purple (hg19/hg38 only)
 
 
 #### Optional Arguments
-`--indelrealign` - Enables indel realignment when running alignment steps. May be helpful for certain callers (VarScan, VarDict)
-
-`--callers`- Comma separated argument for callers, the default is to use all available.  
+`--callers` - Comma separated argument for selecting only specified callers, the default is to use all.
 Example: `--callers mutect2,octopus`
 
-`--cnvcallers`- - Comma separated argument for CNV callers to use. Adding flag allows only certain callers to run.  
+`--cnvcallers` - Comma separated argument for selecting only specified CNV callers, the default is to use all.
 Example: `--cnvcallers purple`
 
-`--svcallers`- - Comma separated argument for SV callers. Adding flag allows only certain callers to run.  
-Example: `--cnvcallers manta`
+`--svcallers` - Comma separated argument for selecting only specified SV callers, the default is to use all.
+Example: `--svcallers gridss`
 
+`--ffpe` - Adds additional filtering for FFPE by detecting strand orientation bias using SOBDetector. 
+
+`--intervals` - Limits calling to intervals provided in target bed file (target bed should have three columns of chr, start, and end)
+
+`--exome` - When using exome data, this flag limits calling to intervals provided in target bed to reduce time and to account for exome sequencing specific parameters.
+
+`--indelrealign` - Enables indel realignment using the GATK pipeline when running alignment steps. May be helpful for certain callers (VarScan, VarDict) that do not have local haplotype reassembly.
 
 ## Running LOGAN
 Example of Tumor_Normal calling mode 
 ```bash
 # preview the logan jobs that will run 
-nextflow run /data/LOGAN/main.nf --mode local -profile ci_stub --genome hg38 --sample_sheet samplesheet.tsv --outdir out --fastq_input "*R{1,2}.fastq.gz" -preview --vc --sv --cnv
+nextflow run LOGAN/main.nf --mode local -profile ci_stub --genome hg38 --sample_sheet samplesheet.tsv --outdir out --fastq_input "*R{1,2}.fastq.gz" -preview --vc --sv --cnv
 # run a stub/dryrun of the logan jobs 
-nextflow run /data/LOGAN/main.nf --mode local -profile ci_stub --genome hg38 --sample_sheet samplesheet.tsv --outdir out --fastq_input "*R{1,2}.fastq.gz" -stub --vc --sv --cnv
+nextflow run LOGAN/main.nf --mode local -profile ci_stub --genome hg38 --sample_sheet samplesheet.tsv --outdir out --fastq_input "*R{1,2}.fastq.gz" -stub --vc --sv --cnv
 # launch a logan run on slurm with the test dataset
-nextflow run /data/LOGAN/main.nf --mode slurm -profile biowulf,slurm --genome hg38 --sample_sheet samplesheet.tsv --outdir out --fastq_input "*R{1,2}.fastq.gz" --vc --sv --cnv 
+nextflow run LOGAN/main.nf --mode slurm -profile biowulf,slurm --genome hg38 --sample_sheet samplesheet.tsv --outdir out --fastq_input "*R{1,2}.fastq.gz" --vc --sv --cnv 
 ```
 
 Example of Tumor only calling mode 
 ```bash
 # preview the logan jobs that will run 
-nextflow run /data/LOGAN/main.nf --mode local -profile ci_stub --genome hg38 --outdir out --fastq_input "*R{1,2}.fastq.gz" --callers octopus,mutect2 -preview --vc --sv --cnv
+nextflow run LOGAN/main.nf --mode local -profile ci_stub --genome hg38 --outdir out --fastq_input "*R{1,2}.fastq.gz" --callers octopus,mutect2 -preview --vc --sv --cnv
 # run a stub/dryrun of the logan jobs 
-nextflow run /data/LOGAN/main.nf --mode local -profile ci_stub --genome hg38 --outdir out --fastq_input "*R{1,2}.fastq.gz" --callers octopus,mutect2 -stub --vc --sv --cnv
+nextflow run LOGAN/main.nf --mode local -profile ci_stub --genome hg38 --outdir out --fastq_input "*R{1,2}.fastq.gz" --callers octopus,mutect2 -stub --vc --sv --cnv
 # launch a logan run on slurm with the test dataset
-nextflow run /data/LOGAN/main.nf --mode slurm -profile biowulf,slurm --genome hg38 --outdir out --fastq_input "*R{1,2}.fastq.gz" --callers octopus,mutect2 --vc --sv --cnv
+nextflow run LOGAN/main.nf --mode slurm -profile biowulf,slurm --genome hg38 --outdir out --fastq_input "*R{1,2}.fastq.gz" --callers octopus,mutect2 --vc --sv --cnv
 ```
 
+
+### Pipeline Tools and Overview
+![alt text](docs/LOGAN.png)
 
 
 

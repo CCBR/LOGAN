@@ -1,5 +1,19 @@
 # LOGAN development version
 
+## LOGAN 0.2.0
+### New features
+- Added additional SV callers(GRIDSS) and annotation for SV (GRIPSS) + CNV Callers (ASCAT, CNVKit) + SNV ([#66](https://github.com/CCBR/LOGAN/issues/66)Deepsomatic)
+- Adds ffpe filtering [#67](https://github.com/CCBR/LOGAN/issues/67)
+- Bugfixes for hg19 by fixing references
+- Updated PON for hg38 using TCGA/GDC references [#59](https://github.com/CCBR/LOGAN/issues/59)
+- In development: adding exome support by using bed file to restrict calling regions
+- Refactored modules to be similar to nf-core
+- Fix error in varscan [#71](https://github.com/CCBR/LOGAN/issues/71)
+- Created separate docker [#63](https://github.com/CCBR/LOGAN/issues/63)
+
+
+## LOGAN 0.1.0
+### Features
 - Changed over to Nextflow CCBR template and pip packaging
     - Processes moved to `modules/local` directory
     - Workflows under the `subworkflows/local` directory

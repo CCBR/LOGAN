@@ -1,4 +1,4 @@
-FROM --platform=linux/amd64 nciccbr/ccbr_ubuntu_base_20.04:v6
+FROM nciccbr/ccbr_ubuntu_base_20.04:v6
 
 # build time variables
 ARG BUILD_DATE="000000"
@@ -21,23 +21,46 @@ RUN apt-get update \
  && apt-get -y upgrade \
  && DEBIAN_FRONTEND=noninteractive apt-get install -y \
       bc \
-      openjdk-17-jdk   #Needed for GATK >4
+      openjdk-17-jdk   
 
 # Common bioinformatics tools 
 # bwa/0.7.17-4  bowtie/1.2.3  bowtie2/2.3.5.1 
-# bedtools/2.27.1  bedops/2.4.37  samtools/1.10 
-# bcftools/1.10.2  vcftools/0.1.16  
-# Previous tools already installed  tabix/1.10.2 trimmomatic/0.39 
+# bedtools/2.27.1  bedops/2.4.37 
+# vcftools/0.1.16  
+# Previous tools already installed 
+# tabix/1.10.2 
 RUN DEBIAN_FRONTEND=noninteractive apt-get install -y \
     tabix \
     libhts-dev
-
       
 # Install BWA-MEM2 v2.2.1
 RUN wget https://github.com/bwa-mem2/bwa-mem2/releases/download/v2.2.1/bwa-mem2-2.2.1_x64-linux.tar.bz2 \
     && tar -xvjf /opt2/bwa-mem2-2.2.1_x64-linux.tar.bz2 \
-    && rm /opt2/bwa-mem2-2.2.1_x64-linux.tar.bz2 
+    && rm /opt2/bwa-mem2-2.2.1_x64-linux.tar.bz2  
 ENV PATH="/opt2/bwa-mem2-2.2.1_x64-linux:$PATH"
+
+# samtools/1.10  # bcftools/1.10.2  are dated in package
+RUN wget https://github.com/samtools/htslib/releases/download/1.20/htslib-1.20.tar.bz2 \
+    && tar -vxjf htslib-1.20.tar.bz2 \
+    && cd htslib-1.20 \
+    && make \
+    && rm /opt2/htslib-1.20.tar.bz2
+ENV PATH="/opt2/htslib-1.20:$PATH"
+
+RUN wget https://github.com/samtools/samtools/releases/download/1.20/samtools-1.20.tar.bz2 \
+    && tar -vxjf samtools-1.20.tar.bz2 \
+    && cd samtools-1.20 \
+    && make \
+    && rm /opt2/samtools-1.20.tar.bz2
+ENV PATH="/opt2/samtools-1.20:$PATH"
+
+RUN wget https://github.com/samtools/bcftools/releases/download/1.20/bcftools-1.20.tar.bz2 \
+    && tar -vxjf bcftools-1.20.tar.bz2 \
+    && cd bcftools-1.20 \
+    && make \
+    && rm /opt2/bcftools-1.20.tar.bz2
+ENV PATH="/opt2/bcftools-1.20:$PATH"
+
 
 # Install Sambamba/0.8.1 for CTRL-Freec
 # not available to apt-get on Ubuntu 20.04
@@ -46,14 +69,18 @@ RUN wget https://github.com/biod/sambamba/releases/download/v0.8.1/sambamba-0.8.
     && mv /opt2/sambamba-0.8.1-linux-amd64-static /opt2/sambamba \
     && chmod a+rx /opt2/sambamba
 
-# Install GATK4 (GATK/4.5.0.0)
+# Install GATK4 (GATK/4.6.1.0)
 # Requires Java17 
-RUN wget https://github.com/broadinstitute/gatk/releases/download/4.6.0.0/gatk-4.6.0.0.zip \
-    && unzip /opt2/gatk-4.6.0.0.zip \
-    && rm /opt2/gatk-4.6.0.0.zip \
-    && /opt2/gatk-4.6.0.0/gatk --list
-ENV PATH="/opt2/gatk-4.6.0.0:$PATH"
+RUN wget https://github.com/broadinstitute/gatk/releases/download/4.6.1.0/gatk-4.6.1.0.zip \
+    && unzip /opt2/gatk-4.6.1.0.zip \
+    && rm /opt2/gatk-4.6.1.0.zip \
+    && /opt2/gatk-4.6.1.0/gatk --list
+ENV PATH="/opt2/gatk-4.6.1.0:$PATH"
 
+# Picard
+RUN mkdir picard \
+ && wget -O picard/picard.jar https://github.com/broadinstitute/picard/releases/download/3.2.0/picard.jar 
+ENV PICARDJARPATH="/opt2/picard"
 
 #Use DISCVRSeq For CombineVariants Replacement
 #RUN wget https://github.com/BimberLab/DISCVRSeq/releases/download/1.3.62/DISCVRSeq-1.3.62.jar 
@@ -117,14 +144,6 @@ ENV PATH="/opt2/FREEC-11.6/src:$PATH"
 WORKDIR /opt2 
 
 
-# Install Somalier/v0.2.19
-# download static binary
-RUN mkdir somalier  \
-    && wget -O somalier/somalier https://github.com/brentp/somalier/releases/download/v0.2.19/somalier \
-    && chmod a+rx /opt2/somalier/somalier
-ENV PATH="/opt2/somalier:$PATH"
-
-
 # Install VarScan/v2.4.4
 # Works with java8
 # and each wrapper script similar to HPC module
@@ -178,13 +197,13 @@ RUN wget https://github.com/AstraZeneca-NGS/VarDictJava/releases/download/v1.8.3
 ENV PATH="/opt2/VarDict-1.8.3/bin:$PATH"
 
 # Fastp From Opengene github
-RUN wget http://opengene.org/fastp/fastp.0.23.4 \
+RUN wget http://opengene.org/fastp/fastp.0.24.0 \
     && mkdir fastp \
-    && mv fastp.0.23.4 fastp/fastp \
+    && mv fastp.0.24.0 fastp/fastp \
     && chmod a+x fastp/fastp
 ENV PATH="/opt2/fastp:$PATH"
 
-# ASCAT 
+#ASCAT 
 RUN Rscript -e 'devtools::install_github("VanLoo-lab/ascat/ASCAT")'
 
 # SvABA
@@ -206,7 +225,7 @@ WORKDIR /opt2
 RUN wget https://github.com/hartwigmedical/hmftools/releases/download/amber-v4.0.1/amber_v4.0.1.jar \
     && wget https://github.com/hartwigmedical/hmftools/releases/download/cobalt-v1.16/cobalt_v1.16.jar \
     && wget https://github.com/hartwigmedical/hmftools/releases/download/purple-v4.0.2/purple_v4.0.2.jar \
-    && wget https://github.com/hartwigmedical/hmftools/releases/download/sage-v3.4.4/sage_v3.4.4.jar \ 
+    && wget https://github.com/hartwigmedical/hmftools/releases/download/sage-v3.4.4/sage_v3.4.4.jar \
     && mkdir hmftools \
     && mv amber_v4.0.1.jar hmftools/amber.jar \
     && mv cobalt_v1.16.jar hmftools/cobalt.jar \
@@ -214,6 +233,11 @@ RUN wget https://github.com/hartwigmedical/hmftools/releases/download/amber-v4.0
     && mv sage_v3.4.4.jar hmftools/sage.jar \
     && chmod a+x hmftools/amber.jar
 ENV PATH="/opt2/hmftools:$PATH"
+WORKDIR /opt2
+
+#GLNEXUS
+RUN wget https://github.com/dnanexus-rnd/GLnexus/releases/download/v1.4.1/glnexus_cli \
+    && chmod +x glnexus_cli
 
 # Add Dockerfile and argparse.bash script
 # and export environment variables

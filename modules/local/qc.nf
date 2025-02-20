@@ -1,5 +1,6 @@
 ///References to assign
 GENOMEREF=file(params.genomes[params.genome].genome)
+
 DBSNP=file(params.genomes[params.genome].dbsnp) //dbsnp_138.hg38.vcf.gz"
 FASTQ_SCREEN_CONF=file(params.fastq_screen_conf)
 BACDB=file(params.genomes[params.genome].KRAKENBACDB)
@@ -45,6 +46,9 @@ process fc_lane {
 
 process fastq_screen {
     //Uses Trimmed Files
+    container = "${params.containers.loganqc}"
+    label 'process_medium'
+
     input:
     tuple val(samplename),
         path("${samplename}.R1.trimmed.fastq.gz"),
@@ -93,6 +97,8 @@ process kraken {
     @Output:
         Kraken logfile and interactive krona report
     */
+    container = "${params.containers.loganqc}"
+    label 'process_high'
 
     input:
         tuple val(samplename),
@@ -122,7 +128,7 @@ process kraken {
         --gzip-compressed \
         --paired ${fqs[0]} ${fqs[1]}
     # Generate Krona Report
-    cut -f2,3 ${samplename}.trimmed.kraken_bacteria.taxa.txt} | \
+    cut -f2,3 ${samplename}.trimmed.kraken_bacteria.taxa.txt | \
         ktImportTaxonomy - -o ${samplename}.trimmed.kraken_bacteria.krona.html
     """
 
@@ -143,8 +149,11 @@ process fastqc {
     @Output:
         FastQC report and zip file containing sequencing quality information
     """
+    container = "${params.containers.loganqc}"
+    label 'process_medium'
+
     input:
-        tuple val(samplename), path("${samplename}.bqsr.bam"), path("${samplename}.bqsr.bai")
+        tuple val(samplename), path(bam), path(bai)
     output:
         tuple val(samplename), path("${samplename}_fastqc.html"), path("${samplename}_fastqc.zip")
 
@@ -155,7 +164,7 @@ process fastqc {
     fastqc -t 8 \
         -f bam \
         -o fastqc \
-        ${samplename}.bqsr.bam
+        $bam
     mv fastqc/${samplename}.bqsr_fastqc.html ${samplename}_fastqc.html
     mv fastqc/${samplename}.bqsr_fastqc.zip ${samplename}_fastqc.zip
     """
@@ -177,6 +186,8 @@ process qualimap_bamqc {
     @Output:
         Report containing post-aligment quality-control metrics
     */
+    container = "${params.containers.loganqc}"
+    label 'process_medium'
 
     input:
         tuple val(samplename), path(bam), path(bai)
@@ -218,6 +229,7 @@ process samtools_flagstats {
     @Output:
         Text file containing alignment statistics
     */
+    container = "${params.containers.logan}"
     label 'process_medium'
 
     input:
@@ -252,11 +264,14 @@ process mosdepth {
         `{prefix}.quantized.bed.gz` (if --quantize is specified)
         `{prefix}.thresholds.bed.gz` (if --thresholds is specified)
     */
+    container = "${params.containers.loganqc}"
+    label 'process_medium'
+
     input:
         tuple val(samplename), path(bam), path(bai)
 
     output:
-        path("${samplename}.mosdepth.region.dist.txt"),
+        tuple path("${samplename}.mosdepth.region.dist.txt"),
         path("${samplename}.mosdepth.summary.txt"),
         path("${samplename}.regions.bed.gz"),
         path("${samplename}.regions.bed.gz.csi")
@@ -264,7 +279,7 @@ process mosdepth {
 
     script:
     """
-    mosdepth -n --fast-mode --by 500  ${samplename} ${bam} -t $task.cpus
+    mosdepth -n --fast-mode --by 500  $samplename $bam -t $task.cpus
     """
 
     stub:
@@ -288,11 +303,12 @@ process vcftools {
     @Output:
         Text file containing a measure of heterozygosity
     */
+    container = "${params.containers.logan}"
     label 'process_medium'
-
 
     input:
         tuple path(germlinevcf),path(germlinetbi)
+
     output:
        path("variants_raw_variants.het")
 
@@ -319,6 +335,9 @@ process collectvariantcallmetrics {
     @Output:
         Text file containing a collection of metrics relating to snps and indels
     */
+    container = "${params.containers.logan}"
+    label 'process_medium'
+
     input:
         tuple path(germlinevcf),path(germlinetbi)
 
@@ -357,7 +376,7 @@ process bcftools_stats {
     @Output:
         Text file containing a collection of summary statistics
     */
-
+    container = "${params.containers.logan}"
     label 'process_medium'
 
     input:
@@ -390,6 +409,7 @@ process gatk_varianteval {
     @Output:
         Evaluation table containing a collection of summary statistics
     */
+    container = "${params.containers.logan}"
     label 'process_medium'
 
     input:
@@ -424,6 +444,7 @@ process snpeff {
     @Output:
         Evaluation table containing a collection of summary statistics
     */
+    container = "${params.containers.logan}"
     label 'process_medium'
 
     input:
@@ -466,10 +487,12 @@ process somalier_extract {
         rname = 'somalier_extract'
     container: config['images']['wes_base']
     */
+    container = "${params.containers.loganqc}"
     label 'process_low'
 
     input:
-        tuple val(samplename), path("${samplename}.bam"), path("${samplename}.bai")
+        tuple val(samplename), path(bam), path(bai)
+
     output:
         path("output/${samplename}.somalier")
 
@@ -480,7 +503,7 @@ process somalier_extract {
         -d output \
         --sites $SITES_VCF \
         -f $GENOMEREF \
-        ${samplename}.bam
+        $bam
     """
 
     stub:
@@ -501,8 +524,9 @@ process somalier_analysis_human {
         Separate tab-separated value (TSV) files with relatedness and ancestry outputs
 
     */
+    container = "${params.containers.loganqc}"
     label 'process_low'
-
+    errorStrategy='ignore'
 
     input:
         path(somalierin)
@@ -565,7 +589,10 @@ process somalier_analysis_mouse {
         Separate tab-separated value (TSV) files with relatedness and ancestry outputs
 
     */
+    container = "${params.containers.loganqc}"
     label 'process_low'
+    errorStrategy='ignore'
+
 
     input:
         path(somalierin)
@@ -605,7 +632,6 @@ process somalier_analysis_mouse {
 }
 
 process multiqc {
-
     """
     Reporting step to aggregate sample summary statistics and quality-control
     information across all samples. This will be one of the last steps of the
@@ -617,6 +643,8 @@ process multiqc {
     @Output:
         Interactive MulitQC report and a QC metadata table
     """
+    container = "${params.containers.multiqc}"
+    label 'process_low'
 
     input:
         path(allqcin)

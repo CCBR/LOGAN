@@ -13,6 +13,7 @@ keywords = ["bioinformatics", "nextflow"]
 authors = [
     {name = 'Darryl Nousome', email = 'darryl.nousome@nih.gov'},
     {name = "Kelly Sovacool", email = "kelly.sovacool@nih.gov"},
+    {name = 'Samarth Mathur', email = 'samarth.mathur@nih.gov'},
     {name = "Vishal Koparde", email = "vishal.koparde@nih.gov"},
 ]
 maintainers = [
@@ -32,11 +33,12 @@ classifiers = [
     "Programming Language :: Python :: 3.9",
     "Topic :: Scientific/Engineering :: Bio-Informatics",
 ]
-requires-python = ">=3.8"
+requires-python = ">=3.10"
 dependencies = [
-    "pyyaml >= 6.0",
+    "ccbr_tools@git+https://github.com/CCBR/Tools",
+    "cffconvert >= 2.0.0",
     "Click >= 8.1.3",
-    "cffconvert"
+    "pyyaml >= 6.0"
 ]
 
 [project.optional-dependencies]
