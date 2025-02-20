@@ -11,6 +11,7 @@ GERMLINE_FOREST=params.genomes[params.genome].octopus_gforest
 process octopus_tn {
     container "${params.containers.octopus}"
     label 'process_somaticcaller_high'
+    errorStrategy { task.attempt <= 3 ? 'retry' : 'terminate' }
 
     input:
         tuple val(tumorname), path(tumor), path(tumorbai),
@@ -102,6 +103,7 @@ process octopus_convertvcf {
 process octopus_tonly {
     container "${params.containers.octopus}"
     label 'process_somaticcaller_high'
+    errorStrategy { task.attempt <= 3 ? 'retry' : 'terminate' }
 
     input:
         tuple val(tumorname), path(tumor), path(tumorbai), path(bed)
