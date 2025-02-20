@@ -13,6 +13,7 @@ if(params.exome && params.ffpe) {
 process deepsomatic_tn_step1 {
     container = "${params.containers.deepsomatic}"
     label 'process_somaticcaller'
+    errorStrategy { task.exitStatus == 1 ? 'ignore' : 'terminate' }
 
     input:
         tuple val(tname), path(tbam), path(tbai), 
@@ -53,6 +54,7 @@ process deepsomatic_tn_step1 {
 process deepsomatic_tonly_step1 {
     container = "${params.containers.deepsomatic}"
     label 'process_somaticcaller'
+    errorStrategy { task.exitStatus == 1 ? 'ignore' : 'terminate' }
 
     input:
         tuple val(tname), path(tbam), path(tbai), 
@@ -157,6 +159,7 @@ process deepsomatic_tonly_step2 {
 process deepsomatic_step3 {
     container = "${params.containers.deepsomatic}"
     label 'process_somaticcaller'
+    errorStrategy { task.exitStatus == 1 ? 'ignore' : 'terminate' }
 
     input:
         tuple val(samplename), path(tfrecords),
