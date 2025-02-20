@@ -1,8 +1,15 @@
 GENOMEREF=file(params.genomes[params.genome].genome)
 MODEL="/opt/models/wgs/"
+/*
+//Note 
+Duplicate marking may be performed, in our
+analyses there is almost no difference in accuracy except at lower (<20x)
+coverages. Finally, we recommend that you do not perform
+[BQSR](https://gatk.broadinstitute.org/hc/en-us/articles/360035890531-Base-Quality-Score-Recalibration-BQSR).
+Running BQSR results in a small decrease in accuracy. It is not necessary to do
+any form of indel realignment,
+*/
 
-
-//Processes
 //Deep Variant
 process deepvariant_step1 {
     container = "${params.containers.deepvariant}"
