@@ -40,5 +40,5 @@ print C "inputFormat = BAM\nmateOrientation = FR\n\n";
 print C '[BAF]' . "\n\n";
 print C "makePileup = $makePileup\n";
 print C "fastaFile = $fastaFile\n";
-print C "minimalCoveragePerPosition = 20\nminimalQualityPerPosition = 20\n";
+print C "minimalCoveragePerPosition = 5\nminimalQualityPerPosition = 5\n";
 print C "SNPfile = $SNPfile";

@@ -1,0 +1,28 @@
+name: docs
+# this workflow requires:
+#  - an mkdocs config file (`mkdocs.yml`)
+#  - website dependencies in `docs/requirements.txt`
+on:
+  workflow_dispatch:
+  release:
+    types:
+      - published
+  push:
+    branches:
+      - main
+    paths:
+      - "docs/**"
+      - "**.md"
+      - .github/workflows/docs-mkdocs.yml
+      - mkdocs.yml
+
+jobs:
+  mkdocs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: CCBR/actions/mkdocs-mike@v0.1
+        with:
+          github-token: ${{ github.token }}
