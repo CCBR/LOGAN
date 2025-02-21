@@ -4,7 +4,9 @@ site_description: >-
 nav:
   - Home: 'index.md'
   - Pipeline:
-    - Tumor-Normal:  'user-guide/pipeline.md'
+    - Tumor-Normal: 'user-guide/pipeline.md'
+  - Tools:
+    - Comparisons: 'user-guide/tool_comparisons.md'
 theme:
     name: readthedocs
     highlightjs: true
