@@ -21,16 +21,16 @@ process fastqc {
 
     """
     mkdir -p fastqc
-    fastqc -t 8 \
+    fastqc -t $task.cpus \
         -f bam \
         -o fastqc \
-        $bam
-    mv fastqc/${samplename}_fastqc.html ${samplename}_fastqc.html
-    mv fastqc/${samplename}_fastqc.zip ${samplename}_fastqc.zip
+        ${bam}
+    mv fastqc/${bam.simpleName}_fastqc.html ${samplename}_fastqc.html
+    mv fastqc/${bam.simpleName}_fastqc.zip ${samplename}_fastqc.zip
     """
 
     stub:
     """
-    touch  ${samplename}_fastqc.html ${samplename}_fastqc.zip
+    touch ${samplename}_fastqc.html ${samplename}_fastqc.zip
     """
 }
