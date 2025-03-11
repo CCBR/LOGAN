@@ -2,78 +2,6 @@ GENOMEREF = file(params.genomes[params.genome].genome)
 KNOWNRECAL = params.genomes[params.genome].KNOWNRECAL
 KNOWNINDELS = params.genomes[params.genome].KNOWNINDELS
 
-process fastp {
-    container = "${params.containers.logan}"
-    label 'process_medium'
-    tag { name }
-
-    input:
-    tuple val(samplename), path(fqs)
-
-    output:
-    tuple val(samplename),
-    path("${samplename}.R1.trimmed.fastq.gz"),
-    path("${samplename}.R2.trimmed.fastq.gz"),
-    path("${samplename}.fastp.json"),
-    path("${samplename}.fastp.html")
-
-    script:
-    """
-    fastp -w $task.cpus \
-        --detect_adapter_for_pe \
-        --in1 ${fqs[0]} \
-        --in2 ${fqs[1]} \
-        --out1 ${samplename}.R1.trimmed.fastq.gz \
-        --out2 ${samplename}.R2.trimmed.fastq.gz  \
-        --json ${samplename}.fastp.json \
-        --html ${samplename}.fastp.html
-    """
-
-    stub:
-    """
-    touch ${samplename}.R1.trimmed.fastq.gz
-    touch ${samplename}.R2.trimmed.fastq.gz
-    touch ${samplename}.fastp.json
-    touch ${samplename}.fastp.html
-
-    """
-}
-
-
-process bwamem2 {
-    container = "${params.containers.logan}"
-    tag { name }
-
-    input:
-        tuple val(samplename),
-        path("${samplename}.R1.trimmed.fastq.gz"),
-        path("${samplename}.R2.trimmed.fastq.gz"),
-        path("${samplename}.fastp.json"),
-        path("${samplename}.fastp.html")
-
-    output:
-        tuple val(samplename), path("${samplename}.bam"), path("${samplename}.bam.bai")
-
-    script:
-    sub_cpus = "$task.cpus".toInteger()/2
-
-    """
-    mkdir -p tmp
-    bwa-mem2 mem -M \
-        -R '@RG\\tID:${samplename}\\tSM:${samplename}\\tPL:illumina\\tLB:${samplename}\\tPU:${samplename}\\tCN:hgsc\\tDS:wgs' \
-        -t $task.cpus \
-        ${GENOMEREF} \
-        ${samplename}.R1.trimmed.fastq.gz ${samplename}.R2.trimmed.fastq.gz | \
-    samblaster -M | \
-    samtools sort -T tmp/ -@ $sub_cpus -m 10G - --write-index -o ${samplename}.bam##idx##${samplename}.bam.bai
-    """
-
-    stub:
-    """
-    touch ${samplename}.bam ${samplename}.bam.bai
-    """
-}
-
 
 
 process indelrealign {
@@ -250,8 +178,9 @@ process samtoolsindex {
     """
     touch ${bam}.bai
     """
-
 }
+
+
 
 //Save to CRAM for output
 process bamtocram_tonly {
