@@ -51,10 +51,7 @@ process fastq_screen {
 
     input:
     tuple val(samplename),
-        path("${samplename}.R1.trimmed.fastq.gz"),
-        path("${samplename}.R2.trimmed.fastq.gz"),
-        path("${samplename}.fastp.json"),
-        path("${samplename}.fastp.html")
+        path(fqs)
 
     output:
         tuple path("${samplename}.R1.trimmed_screen.html"),
@@ -74,7 +71,7 @@ process fastq_screen {
         --subset 1000000 \
         --aligner bowtie2 \
         --force \
-        ${samplename}.R1.trimmed.fastq.gz ${samplename}.R2.trimmed.fastq.gz
+        ${fqs[0]} ${fqs[1]}
 
         """
 
