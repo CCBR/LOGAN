@@ -15,8 +15,11 @@ include {somalier_extract;somalier_analysis_human;somalier_analysis_mouse} from 
 include {mosdepth;mosdepth_exome} from '../../modules/local/mosdepth.nf'
 include {multiqc} from  '../../modules/local/multiqc.nf'
 
-include {fastp; bwamem2; indelrealign; bqsr_ir;
-    bqsr; gatherbqsr; applybqsr; samtoolsindex} from  '../../modules/local/trim_align.nf'
+include {fastp; fastp_split} from '../../modules/local/fastp/fastp.nf'
+include {bwamem2; BWAMEM2_SPLIT; COMBINE_ALIGNMENTS} from '../../modules/local/bwamem/bwamem2.nf'
+include {indelrealign; bqsr_ir;
+    bqsr; gatherbqsr; applybqsr; samtoolsindex
+    } from  '../../modules/local/trim_align.nf'
 
 include {deepvariant_step1; deepvariant_step2; deepvariant_step3;
     deepvariant_combined; glnexus;
@@ -172,12 +175,36 @@ workflow ALIGN {
     }
     matchbed(intervalbedin) | splitinterval
 
-    fastp(fastqinput)
-    bwamem2(fastp.out)
-    
+    //Trim and split | align | combine/mark duplicates
+    if (params.split_fastq>0){
+        fastp_split(fastqinput) 
+            | flatMap{samplename, fqs, json, html -> 
+                def pairsfq = fqs.collate(2)
+                pairsfq.collect { pair -> 
+                    def chunkId = pair[0].getBaseName().toString().tokenize('_').first().tokenize('.')[0]
+                return [samplename, pair, chunkId]
+                }
+            } 
+            | BWAMEM2_SPLIT 
+            | groupTuple 
+            | map { samplename,bam -> 
+                    tuple( samplename, bam.toSorted{ it -> (it.name =~ /${samplename}_(.*?).bam/)[0][1].toInteger() } )}
+            | COMBINE_ALIGNMENTS
+        alignment_out=COMBINE_ALIGNMENTS.out.bams
+        fastp_out=fastp_split.out 
+            | map{samplename, fqs, json,html -> 
+                fqs.collect {fq -> 
+                return tuple(samplename,fq)
+                }
+        } | flatten()
+    }else{
+        fastp_out = fastp(fastqinput) | map{sample,f1,f2,json,html -> tuple(sample,f1,f2)} 
+        bwamem2(fastp_out)
+        alignment_out=bwamem2.out
+    }
     //Indel Realignment
     if (params.indelrealign){ 
-        bwaindelre = bwamem2.out | indelrealign 
+        bwaindelre = alignment_out | indelrealign 
         bqsrbambyinterval = bwaindelre.combine(splitinterval.out.flatten())
         bambyinterval = bwaindelre.combine(splitinterval.out.flatten())
 
@@ -195,8 +222,8 @@ workflow ALIGN {
         bamwithsample=applybqsr.out.combine(sample_sheet,by:0).map{it.swap(3,0)}.combine(applybqsr.out,by:0).map{it.swap(3,0)}  
 
     }else{ 
-        bqsrbambyinterval=bwamem2.out.combine(splitinterval.out.flatten())
-        bambyinterval=bwamem2.out.combine(splitinterval.out.flatten())
+        bqsrbambyinterval=alignment_out.combine(splitinterval.out.flatten())
+        bambyinterval=alignment_out.combine(splitinterval.out.flatten())
 
         bqsr(bqsrbambyinterval)
         bqsrs=bqsr.out | groupTuple
@@ -205,7 +232,7 @@ workflow ALIGN {
                 beds.toSorted{ it -> (it.name =~ /${samplename}_(.*?).recal_data.grp/)[0][1].toInteger() } )}
         gatherbqsr(bqsrs)
 
-        tobqsr=bwamem2.out.combine(gatherbqsr.out,by:0)
+        tobqsr=alignment_out.combine(gatherbqsr.out,by:0)
         applybqsr(tobqsr)
 
         bamwithsample=applybqsr.out.combine(sample_sheet,by:0).map{it.swap(3,0)}.combine(applybqsr.out,by:0).map{it.swap(3,0)}
@@ -215,7 +242,7 @@ workflow ALIGN {
     emit:
         bamwithsample
         bambyinterval
-        fastpout=fastp.out
+        fastpout=fastp_out
         fastqin=fastqinput
         splitout=splitinterval.out
         bqsrbambyinterval

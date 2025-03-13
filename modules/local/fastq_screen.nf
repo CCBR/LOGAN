@@ -8,9 +8,7 @@ process fastq_screen {
     input:
     tuple val(samplename),
         path("${samplename}.R1.trimmed.fastq.gz"),
-        path("${samplename}.R2.trimmed.fastq.gz"),
-        path("${samplename}.fastp.json"),
-        path("${samplename}.fastp.html")
+        path("${samplename}.R2.trimmed.fastq.gz")
 
     output:
         tuple path("${samplename}.R1.trimmed_screen.html"),
