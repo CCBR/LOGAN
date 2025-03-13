@@ -25,8 +25,8 @@ process fastqc {
         -f bam \
         -o fastqc \
         ${bam}
-    mv fastqc/${bam.simpleName}_fastqc.html ${samplename}_fastqc.html
-    mv fastqc/${bam.simpleName}_fastqc.zip ${samplename}_fastqc.zip
+    mv fastqc/${bam.BaseName}_fastqc.html ${samplename}_fastqc.html
+    mv fastqc/${bam.BaseName}_fastqc.zip ${samplename}_fastqc.zip
     """
 
     stub:

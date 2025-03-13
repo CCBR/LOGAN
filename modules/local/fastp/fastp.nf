@@ -45,8 +45,8 @@ process fastp_split {
 
     output:
     tuple val(samplename), path("*_R{1,2}.trimmed.fastq.gz"),
-    path("${samplename}.json"),
-    path("${samplename}.html")
+    path("${samplename}.fastp.json"),
+    path("${samplename}.fastp.html")
     
         
 
@@ -59,8 +59,8 @@ process fastp_split {
         --in2 ${fqs[1]} \
         --out1 ${samplename}_R1.trimmed.fastq.gz \
         --out2 ${samplename}_R2.trimmed.fastq.gz  \
-        --json ${samplename}.json \
-        --html ${samplename}.html
+        --json ${samplename}.fastp.json \
+        --html ${samplename}.fastp.html
     """
 
     stub:
