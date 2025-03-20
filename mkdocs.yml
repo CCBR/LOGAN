@@ -1,6 +1,7 @@
 site_name: CCBR LOGAN
+site_url: https://ccbr.github.io/LOGAN
 site_description: >-
-  CCBR Whole Genome Sequencing Pipeline 
+  CCBR whoLe genOme-sequencinG Analysis pipeliNe (LOGAN)
 nav:
   - Home: 'index.md'
   - Pipeline:
@@ -10,3 +11,6 @@ nav:
 theme:
     name: readthedocs
     highlightjs: true
+extra:
+  version:
+    provider: mike
