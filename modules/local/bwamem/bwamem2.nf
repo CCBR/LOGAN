@@ -22,6 +22,7 @@ process bwamem2 {
 
     script:
     sub_cpus = "$task.cpus".toInteger()/2
+    def sub_mem= (task.memory.toGiga().toInteger()/task.cpus.toInteger())-2
 
     """
     # Check for AVX512 then AVX2 then SSE41
@@ -42,7 +43,7 @@ process bwamem2 {
         ${GENOMEREF} \
         ${samplename}.R1.trimmed.fastq.gz ${samplename}.R2.trimmed.fastq.gz |\
     samblaster -M | \
-    samtools sort -T tmp/ -@ $sub_cpus -m 10G - --write-index -o ${samplename}.bam##idx##${samplename}.bam.bai
+    samtools sort -T tmp/ -@ $sub_cpus -m ${sub_mem}G - --write-index -o ${samplename}.bam##idx##${samplename}.bam.bai
     """
 
     stub:
