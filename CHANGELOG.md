@@ -1,5 +1,10 @@
 # LOGAN development version
 
+## LOGAN 0.2.1
+### New features
+- Fixes #72 for fastq naming in fastp
+- Fixes #78 for qualimap bamqc
+
 ## LOGAN 0.2.0
 ### New features
 - Added additional SV callers(GRIDSS) and annotation for SV (GRIPSS) + CNV Callers (ASCAT, CNVKit) + SNV ([#66](https://github.com/CCBR/LOGAN/issues/66)Deepsomatic)
