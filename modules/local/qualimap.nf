@@ -15,7 +15,6 @@ process qualimap_bamqc {
         Report containing post-aligment quality-control metrics
     */
     container = "${params.containers.loganqc}"
-    label 'process_high'
 
     input:
         tuple val(samplename), path(bam), path(bai)
@@ -27,7 +26,7 @@ process qualimap_bamqc {
     """
     unset DISPLAY
     qualimap bamqc -bam ${bam} \
-        --java-mem-size=70G \
+        --java-mem-size=96G \
         -c -ip \
         -outdir ${samplename} \
         -outformat HTML \
