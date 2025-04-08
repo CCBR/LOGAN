@@ -1,7 +1,7 @@
 # LOGAN development version
 
 - Now using the readthedocs theme for the docs website. (#84, @kelly-sovacool)
-- LOGAN is now archived in Zenodo with DOI `10.5281/zenodo.14907169`.
+- LOGAN is now archived in Zenodo with DOI `10.5281/zenodo.14907169`. (#87, @kelly-sovacool)
 
 ## LOGAN 0.2.1
 
