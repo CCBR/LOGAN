@@ -1,13 +1,8 @@
 # LOGAN development version
 
+- Fix fastq naming in fastp. (#73, @dnousome)
+- Fix resources for qualimap bamqc. (#79, @dnousome)
 - Now using the readthedocs theme for the docs website. (#84, @kelly-sovacool)
-
-## LOGAN 0.2.1
-
-### New features
-
-- Fixes #72 for fastq naming in fastp
-- Fixes #78 for qualimap bamqc
 
 ## LOGAN 0.2.0
 
