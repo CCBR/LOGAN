@@ -3,6 +3,7 @@
 - Fix fastq naming in fastp. (#73, @dnousome)
 - Fix resources for qualimap bamqc. (#79, @dnousome)
 - Now using the readthedocs theme for the docs website. (#84, @kelly-sovacool)
+- LOGAN is now archived in Zenodo with DOI `10.5281/zenodo.14907169`. (#87, @kelly-sovacool)
 
 ## LOGAN 0.2.0
 

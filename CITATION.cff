@@ -21,3 +21,10 @@ title: "LOGAN: whoLe genOme-sequencinG Analysis pipeliNe"
 url: https://ccbr.github.io/LOGAN/
 repository-code: https://github.com/CCBR/LOGAN
 license: MIT
+type: software
+identifiers:
+  - description: Archived snapshots of all versions
+    type: doi
+    value: 10.5281/zenodo.14907169
+version: v0.2.0
+date-released: "2025-02-21"
