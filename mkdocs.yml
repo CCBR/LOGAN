@@ -1,16 +1,46 @@
 site_name: CCBR LOGAN
+site_author: CCR Collaborative Bioinformatics Resource
 site_url: https://ccbr.github.io/LOGAN
 site_description: >-
   CCBR whoLe genOme-sequencinG Analysis pipeliNe (LOGAN)
-nav:
-  - Home: 'index.md'
-  - Pipeline:
-    - Tumor-Normal: 'user-guide/pipeline.md'
-  - Tools:
-    - Comparisons: 'user-guide/tool_comparisons.md'
+repo_name: CCBR/LOGAN
+repo_url: https://github.com/CCBR/LOGAN
+edit_uri: https://github.com/CCBR/LOGAN/edit/main/
+
+# Copyright
+copyright: Copyright &copy; 2023-{{ now().year }} CCR Collaborative Bioinformatics Resource
+
+# Configuration
 theme:
-    name: readthedocs
-    highlightjs: true
+  name: readthedocs
+  locale: en
+  custom_dir: docs/overrides
+
+# Plugins
+plugins:
+  - search
+  - git-revision-date
+  - minify:
+      minify_html: true
+
+# Customization
 extra:
-  version:
-    provider: mike
+  social:
+    - icon: fontawesome/solid/users
+      link: http://bioinformatics.cancer.gov
+    - icon: fontawesome/brands/github
+      link: https://github.com/CCBR
+    - icon: fontawesome/brands/docker
+      link: https://hub.docker.com/orgs/nciccbr/repositories
+
+extra_css:
+  - css/custom.css
+extra_javascript:
+  - js/custom.js
+
+nav:
+  - Home: "index.md"
+  - Pipeline:
+      - Tumor-Normal: "user-guide/pipeline.md"
+  - Tools:
+      - Comparisons: "user-guide/tool_comparisons.md"
