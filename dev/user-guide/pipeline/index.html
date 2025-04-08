@@ -1,179 +1,24 @@
-<!DOCTYPE html>
-<html class="writer-html5" lang="en" >
-<head>
-    <meta charset="utf-8" />
-    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><link rel="canonical" href="https://ccbr.github.io/LOGAN/dev/user-guide/pipeline/" />
-      <link rel="shortcut icon" href="../../img/favicon.ico" />
-    <title>Tumor-Normal - CCBR LOGAN</title>
-    <link rel="stylesheet" href="../../css/theme.css" />
-    <link rel="stylesheet" href="../../css/theme_extra.css" />
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
-        <link href="../../css/version-select.css" rel="stylesheet" />
-    
-      <script>
+<!DOCTYPE html><html class=writer-html5 lang=en> <head><meta charset=utf-8><meta http-equiv=X-UA-Compatible content="IE=edge"><meta name=viewport content="width=device-width, initial-scale=1.0"><meta name=author content="CCR Collaborative Bioinformatics Resource"><link href=https://ccbr.github.io/LOGAN/dev/user-guide/pipeline/ rel=canonical><link rel="shortcut icon" href=../../img/favicon.ico><title>Tumor-Normal - CCBR LOGAN</title><link rel=stylesheet href=../../css/theme.css><link rel=stylesheet href=../../css/theme_extra.css><link rel=stylesheet href=https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css><link href=../../css/custom.css rel=stylesheet><link href=../../css/version-select.css rel=stylesheet><script>
         // Current page data
         var mkdocs_page_name = "Tumor-Normal";
         var mkdocs_page_input_path = "user-guide/pipeline.md";
         var mkdocs_page_url = "/LOGAN/dev/user-guide/pipeline/";
-      </script>
-    
-    <!--[if lt IE 9]>
+      </script><!--[if lt IE 9]>
       <script src="../../js/html5shiv.min.js"></script>
-    <![endif]-->
-      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
-      <script>hljs.highlightAll();</script> 
-</head>
-
-<body class="wy-body-for-nav" role="document">
-
-  <div class="wy-grid-for-nav">
-    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
-    <div class="wy-side-scroll">
-      <div class="wy-side-nav-search">
-          <a href="../.." class="icon icon-home"> CCBR LOGAN
-        </a>
-        <div class="version">
-          {'provider': 'mike'}
-        </div><div role="search">
-  <form id ="rtd-search-form" class="wy-form" action="../../search.html" method="get">
-      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
-  </form>
-</div>
-      </div>
-
-      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <ul>
-                <li class="toctree-l1"><a class="reference internal" href="../..">Home</a>
-                </li>
-              </ul>
-              <p class="caption"><span class="caption-text">Pipeline</span></p>
-              <ul class="current">
-                  <li class="toctree-l1 current"><a class="reference internal current" href="./">Tumor-Normal</a>
-    <ul class="current">
-    <li class="toctree-l2"><a class="reference internal" href="#guide">Guide</a>
-        <ul>
-    <li class="toctree-l3"><a class="reference internal" href="#input-files">Input Files</a>
-    </li>
-    <li class="toctree-l3"><a class="reference internal" href="#genome">Genome</a>
-        <ul>
-    <li class="toctree-l4"><a class="reference internal" href="#hg38-has-options-for-either">hg38 has options for either</a>
-    </li>
-        </ul>
-    </li>
-    <li class="toctree-l3"><a class="reference internal" href="#operating-modes">Operating Modes</a>
-        <ul>
-    <li class="toctree-l4"><a class="reference internal" href="#1-paired-tumornormal-mode">1.  Paired Tumor/Normal Mode</a>
-    </li>
-    <li class="toctree-l4"><a class="reference internal" href="#2-tumor-only-mode">2.  Tumor only mode</a>
-    </li>
-    <li class="toctree-l4"><a class="reference internal" href="#calling-mode">Calling Mode</a>
-    </li>
-    <li class="toctree-l4"><a class="reference internal" href="#optional-arguments">Optional Arguments</a>
-    </li>
-        </ul>
-    </li>
-        </ul>
-    </li>
-    <li class="toctree-l2"><a class="reference internal" href="#running-logan">Running LOGAN</a>
-    </li>
-    </ul>
-                  </li>
-              </ul>
-              <p class="caption"><span class="caption-text">Tools</span></p>
-              <ul>
-                  <li class="toctree-l1"><a class="reference internal" href="../tool_comparisons/">Comparisons</a>
-                  </li>
-              </ul>
-      </div>
-    </div>
-    </nav>
-
-    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
-      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
-          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-          <a href="../..">CCBR LOGAN</a>
-        
-      </nav>
-      <div class="wy-nav-content">
-        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
-  <ul class="wy-breadcrumbs">
-    <li><a href="../.." class="icon icon-home" aria-label="Docs"></a></li>
-          <li class="breadcrumb-item">Pipeline</li>
-      <li class="breadcrumb-item active">Tumor-Normal</li>
-    <li class="wy-breadcrumbs-aside">
-    </li>
-  </ul>
-  <hr/>
-</div>
-          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
-            <div class="section" itemprop="articleBody">
-              
-                <h1 id="how-to-run-logan">How to run LOGAN</h1>
-<h2 id="guide">Guide</h2>
-<h3 id="input-files">Input Files</h3>
-<p>LOGAN supports inputs of either 
-1) paired end fastq files</p>
-<p><code>--fastq_input</code>- A glob can be used to include all FASTQ files. Like <code>--fastq_input "*R{1,2}.fastq.gz"</code>. Globbing requires quotes.</p>
-<p>2) Pre aligned BAM files with BAI indices </p>
-<p><code>--bam_input</code>- A glob can be used to include all FASTQ files. Like <code>--bam_input "*.bam"</code>. Globbing requires quotes.</p>
-<p>3) A sheet that indicates the sample name and either FASTQs or BAM file locations</p>
-<p><code>--fastq_file_input</code>-  A headerless tab delimited sheet that has the sample name, R1, and R2 file locations</p>
-<p>Example</p>
-<pre><code class="language-bash">c130863309_TUMOR   /data/nousomedr/c130863309_TUMOR.R1_001.fastq.gz  /data/nousomedr/c130863309_TUMOR.R2_001.fastq.gz
+    <![endif]--><script src=https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js></script><script>hljs.highlightAll();</script></head> <body class=wy-body-for-nav role=document> <div class=wy-grid-for-nav> <nav data-toggle=wy-nav-shift class="wy-nav-side stickynav"> <div class=wy-side-scroll> <div class=wy-side-nav-search> <a href=../.. class="icon icon-home"> CCBR LOGAN </a><div role=search> <form id=rtd-search-form class=wy-form action=../../search.html method=get> <input type=text name=q placeholder="Search docs" aria-label="Search docs" title="Type search term here"> </form> </div> </div> <div class="wy-menu wy-menu-vertical" data-spy=affix role=navigation aria-label="Navigation menu"> <ul> <li class=toctree-l1><a class="reference internal" href=../..>Home</a> </li> </ul> <p class=caption><span class=caption-text>Pipeline</span></p> <ul class=current> <li class="toctree-l1 current"><a class="reference internal current" href=#>Tumor-Normal</a> <ul class=current> <li class=toctree-l2><a class="reference internal" href=#guide>Guide</a> <ul> <li class=toctree-l3><a class="reference internal" href=#input-files>Input Files</a> </li> <li class=toctree-l3><a class="reference internal" href=#genome>Genome</a> <ul> <li class=toctree-l4><a class="reference internal" href=#hg38-has-options-for-either>hg38 has options for either</a> </li> </ul> </li> <li class=toctree-l3><a class="reference internal" href=#operating-modes>Operating Modes</a> <ul> <li class=toctree-l4><a class="reference internal" href=#1-paired-tumornormal-mode>1. Paired Tumor/Normal Mode</a> </li> <li class=toctree-l4><a class="reference internal" href=#2-tumor-only-mode>2. Tumor only mode</a> </li> <li class=toctree-l4><a class="reference internal" href=#calling-mode>Calling Mode</a> </li> <li class=toctree-l4><a class="reference internal" href=#optional-arguments>Optional Arguments</a> </li> </ul> </li> </ul> </li> <li class=toctree-l2><a class="reference internal" href=#running-logan>Running LOGAN</a> </li> </ul> </li> </ul> <p class=caption><span class=caption-text>Tools</span></p> <ul> <li class=toctree-l1><a href=../tool_comparisons/ class="reference internal">Comparisons</a> </li> </ul> </div> </div> </nav> <section data-toggle=wy-nav-shift class=wy-nav-content-wrap> <nav class=wy-nav-top role=navigation aria-label="Mobile navigation menu"> <i data-toggle=wy-nav-top class="fa fa-bars"></i> <a href=../..>CCBR LOGAN</a> </nav> <div class=wy-nav-content> <div class=rst-content><div role=navigation aria-label="breadcrumbs navigation"> <ul class=wy-breadcrumbs> <li><a href=../.. class="icon icon-home" aria-label=Docs></a></li> <li class=breadcrumb-item>Pipeline</li> <li class="breadcrumb-item active">Tumor-Normal</li> <li class=wy-breadcrumbs-aside> <a href=https://github.com/CCBR/LOGAN/edit/main/user-guide/pipeline.md>Edit on CCBR/LOGAN</a> </li> </ul> <hr> </div> <div role=main class=document itemscope=itemscope itemtype=http://schema.org/Article> <div class=section itemprop=articleBody> <h1 id=how-to-run-logan>How to run LOGAN</h1> <h2 id=guide>Guide</h2> <h3 id=input-files>Input Files</h3> <p>LOGAN supports inputs of either 1) paired end fastq files</p> <p><code>--fastq_input</code>- A glob can be used to include all FASTQ files. Like <code>--fastq_input "*R{1,2}.fastq.gz"</code>. Globbing requires quotes.</p> <p>2) Pre aligned BAM files with BAI indices </p> <p><code>--bam_input</code>- A glob can be used to include all FASTQ files. Like <code>--bam_input "*.bam"</code>. Globbing requires quotes.</p> <p>3) A sheet that indicates the sample name and either FASTQs or BAM file locations</p> <p><code>--fastq_file_input</code>- A headerless tab delimited sheet that has the sample name, R1, and R2 file locations</p> <p>Example</p> <pre><code class=language-bash>c130863309_TUMOR   /data/nousomedr/c130863309_TUMOR.R1_001.fastq.gz  /data/nousomedr/c130863309_TUMOR.R2_001.fastq.gz
 c130889189_PBMC  /data/nousomedr/c130889189_PBMC.R1_001.fastq.gz  /data/nousomedr/c130889189_PBMC.R2_001.fastq.gz
-</code></pre>
-<p><code>--bam_file_input</code> -  A headerless Tab delimited sheet that has the sample name, bam, and bam index (bai) file locations</p>
-<p>Example</p>
-<pre><code class="language-bash">c130863309_TUMOR   /data/nousomedr/c130863309_TUMOR.bam  /data/nousomedr/c130863309_TUMOR.bam.bai
+</code></pre> <p><code>--bam_file_input</code> - A headerless Tab delimited sheet that has the sample name, bam, and bam index (bai) file locations</p> <p>Example</p> <pre><code class=language-bash>c130863309_TUMOR   /data/nousomedr/c130863309_TUMOR.bam  /data/nousomedr/c130863309_TUMOR.bam.bai
 c130889189_PBMC  /data/nousomedr/c130889189_PBMC.bam  /data/nousomedr/c130889189_PBMC.bam.bai
-</code></pre>
-<h3 id="genome">Genome</h3>
-<p><code>--genome</code> - A flag to indicate which genome to run. hg38, hg19 and mm10 are supported.<br />
-Example: <code>--genome hg38</code> to run the hg38 genome</p>
-<p><code>--genome hg19</code> and <code>--genome mm10</code> are also supported </p>
-<h4 id="hg38-has-options-for-either">hg38 has options for either</h4>
-<p><code>--genome hg38</code> - Based off the GRCh38.d1.vd1.fa which is consistent with TCGA/GDC processing pipelines  </p>
-<p><code>--genome hg38_sf</code> - Based off the Homo_sapiens_assembly38.fasta which is derived from the Broad Institute/NCI Sequencing Facility
-The biggest difference between the two is that GRCh38.d1.vd1.fa includes the GCA_000001405.15_GRCh38_no_alt_analysis_set, Sequence Decoys (GenBank Accession GCA_000786075), and Virus Sequences. Homo_sapiens_assembly38.fasta has HLA specific contigs which may not be compatible with certain downstream tools.</p>
-<h3 id="operating-modes">Operating Modes</h3>
-<h4 id="1-paired-tumornormal-mode">1.  Paired Tumor/Normal Mode</h4>
-<p>Required for Paired Tumor/Normal Mode</p>
-<p><code>--sample_sheet</code> In Paired mode a sample sheet must be provided with the basename of the Tumor and Normal samples. This sheet must be Tab separated with a header for Tumor and Normal.  </p>
-<p>Example</p>
-<pre><code class="language-bash">Tumor  Normal
+</code></pre> <h3 id=genome>Genome</h3> <p><code>--genome</code> - A flag to indicate which genome to run. hg38, hg19 and mm10 are supported.<br> Example: <code>--genome hg38</code> to run the hg38 genome</p> <p><code>--genome hg19</code> and <code>--genome mm10</code> are also supported </p> <h4 id=hg38-has-options-for-either>hg38 has options for either</h4> <p><code>--genome hg38</code> - Based off the GRCh38.d1.vd1.fa which is consistent with TCGA/GDC processing pipelines </p> <p><code>--genome hg38_sf</code> - Based off the Homo_sapiens_assembly38.fasta which is derived from the Broad Institute/NCI Sequencing Facility The biggest difference between the two is that GRCh38.d1.vd1.fa includes the GCA_000001405.15_GRCh38_no_alt_analysis_set, Sequence Decoys (GenBank Accession GCA_000786075), and Virus Sequences. Homo_sapiens_assembly38.fasta has HLA specific contigs which may not be compatible with certain downstream tools.</p> <h3 id=operating-modes>Operating Modes</h3> <h4 id=1-paired-tumornormal-mode>1. Paired Tumor/Normal Mode</h4> <p>Required for Paired Tumor/Normal Mode</p> <p><code>--sample_sheet</code> In Paired mode a sample sheet must be provided with the basename of the Tumor and Normal samples. This sheet must be Tab separated with a header for Tumor and Normal. </p> <p>Example</p> <pre><code class=language-bash>Tumor  Normal
 c130863309_TUMOR  c130863309_PBMC
 c130889189_TUMOR  c130889189_PBMC
-</code></pre>
-<h4 id="2-tumor-only-mode">2.  Tumor only mode</h4>
-<p>No addtional flags for sample sheet are required as all samples will be used to call variants</p>
-<h4 id="calling-mode">Calling Mode</h4>
-<p>Adding flags determines SNV (germline and/or somatic), SV, and/or CNV calling modes</p>
-<p><code>--vc</code> or <code>--snv</code> - Enables somatic SNV calling using mutect2, vardict, varscan, octopus, deepsomatic, strelka (TN only), MUSE (TN only), and lofreq (TN only)</p>
-<p><code>--gl</code> or <code>--germline</code> - Enables germline calling using Deepvariant</p>
-<p><code>--sv</code> or <code>--structural</code>- Enables somatic SV calling using Manta, GRIDSS, and SVABA</p>
-<p><code>--cnv</code> or <code>--copynumber</code>- Enables somatic CNV calling using FREEC, Sequenza, ASCAT, CNVKit, and Purple (hg19/hg38 only)</p>
-<h4 id="optional-arguments">Optional Arguments</h4>
-<p><code>--callers</code> - Comma separated argument for selecting only specified callers, the default is to use all.
-Example: <code>--callers mutect2,octopus</code></p>
-<p><code>--cnvcallers</code> - Comma separated argument for selecting only specified CNV callers, the default is to use all.
-Example: <code>--cnvcallers purple</code></p>
-<p><code>--svcallers</code> - Comma separated argument for selecting only specified SV callers, the default is to use all.
-Example: <code>--svcallers gridss</code></p>
-<p><code>--ffpe</code> - Adds additional filtering for FFPE by detecting strand orientation bias using SOBDetector. </p>
-<p><code>--exome</code> - When using exome data, this flag limits calling to intervals provided in target bed to reduce time and to account for exome sequencing specific parameters. An intervals file is required.</p>
-<p><code>--indelrealign</code> - Enables indel realignment using the GATK pipeline when running alignment steps. May be helpful for certain callers (VarScan, VarDict) that do not have local haplotype reassembly.</p>
-<h2 id="running-logan">Running LOGAN</h2>
-<p>Example of Tumor_Normal calling mode </p>
-<pre><code class="language-bash"># preview the logan jobs that will run 
+</code></pre> <h4 id=2-tumor-only-mode>2. Tumor only mode</h4> <p>No addtional flags for sample sheet are required as all samples will be used to call variants</p> <h4 id=calling-mode>Calling Mode</h4> <p>Adding flags determines SNV (germline and/or somatic), SV, and/or CNV calling modes</p> <p><code>--vc</code> or <code>--snv</code> - Enables somatic SNV calling using mutect2, vardict, varscan, octopus, deepsomatic, strelka (TN only), MUSE (TN only), and lofreq (TN only)</p> <p><code>--gl</code> or <code>--germline</code> - Enables germline calling using Deepvariant</p> <p><code>--sv</code> or <code>--structural</code>- Enables somatic SV calling using Manta, GRIDSS, and SVABA</p> <p><code>--cnv</code> or <code>--copynumber</code>- Enables somatic CNV calling using FREEC, Sequenza, ASCAT, CNVKit, and Purple (hg19/hg38 only)</p> <h4 id=optional-arguments>Optional Arguments</h4> <p><code>--callers</code> - Comma separated argument for selecting only specified callers, the default is to use all. Example: <code>--callers mutect2,octopus</code></p> <p><code>--cnvcallers</code> - Comma separated argument for selecting only specified CNV callers, the default is to use all. Example: <code>--cnvcallers purple</code></p> <p><code>--svcallers</code> - Comma separated argument for selecting only specified SV callers, the default is to use all. Example: <code>--svcallers gridss</code></p> <p><code>--ffpe</code> - Adds additional filtering for FFPE by detecting strand orientation bias using SOBDetector. </p> <p><code>--exome</code> - When using exome data, this flag limits calling to intervals provided in target bed to reduce time and to account for exome sequencing specific parameters. An intervals file is required.</p> <p><code>--indelrealign</code> - Enables indel realignment using the GATK pipeline when running alignment steps. May be helpful for certain callers (VarScan, VarDict) that do not have local haplotype reassembly.</p> <h2 id=running-logan>Running LOGAN</h2> <p>Example of Tumor_Normal calling mode </p> <pre><code class=language-bash># preview the logan jobs that will run 
 nextflow run LOGAN/main.nf --mode local -profile ci_stub --genome hg38 --sample_sheet samplesheet.tsv --outdir out --fastq_input &quot;*R{1,2}.fastq.gz&quot; -preview --vc --sv --cnv
 # run a stub/dryrun of the logan jobs 
 nextflow run LOGAN/main.nf --mode local -profile ci_stub --genome hg38 --sample_sheet samplesheet.tsv --outdir out --fastq_input &quot;*R{1,2}.fastq.gz&quot; -stub --vc --sv --cnv
 # launch a logan run on slurm with the test dataset
 nextflow run LOGAN/main.nf --mode slurm -profile biowulf,slurm --genome hg38 --sample_sheet samplesheet.tsv --outdir out --fastq_input &quot;*R{1,2}.fastq.gz&quot; --vc --sv --cnv 
-</code></pre>
-<p>Example of Tumor only calling mode </p>
-<pre><code class="language-bash"># preview the logan jobs that will run 
+</code></pre> <p>Example of Tumor only calling mode </p> <pre><code class=language-bash># preview the logan jobs that will run 
 nextflow run LOGAN/main.nf --mode local -profile ci_stub --genome hg38 --outdir out --fastq_input &quot;*R{1,2}.fastq.gz&quot; --callers octopus,mutect2 -preview --vc --sv --cnv
 
 # run a stub/dryrun of the logan jobs 
@@ -182,53 +27,13 @@ nextflow run LOGAN/main.nf --mode local -profile ci_stub --genome hg38 --outdir 
 
 # launch a logan run on slurm with the test dataset
 nextflow run LOGAN/main.nf --mode slurm -profile biowulf,slurm --genome hg38 --outdir out --fastq_input &quot;*R{1,2}.fastq.gz&quot; --callers octopus,mutect2 --vc --sv --cnv
-</code></pre>
-              
-            </div>
-          </div><footer>
-    <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
-        <a href="../.." class="btn btn-neutral float-left" title="Home"><span class="icon icon-circle-arrow-left"></span> Previous</a>
-        <a href="../tool_comparisons/" class="btn btn-neutral float-right" title="Comparisons">Next <span class="icon icon-circle-arrow-right"></span></a>
-    </div>
-
-  <hr/>
-
-  <div role="contentinfo">
-    <!-- Copyright etc -->
-  </div>
-
-  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
-</footer>
-          
-        </div>
-      </div>
-
-    </section>
-
-  </div>
-
-  <div class="rst-versions" role="note" aria-label="Versions">
-  <span class="rst-current-version" data-toggle="rst-current-version">
-    
-    
-      <span><a href="../.." style="color: #fcfcfc">&laquo; Previous</a></span>
-    
-    
-      <span><a href="../tool_comparisons/" style="color: #fcfcfc">Next &raquo;</a></span>
-    
-  </span>
-</div>
-    <script src="../../js/jquery-3.6.0.min.js"></script>
-    <script>var base_url = "../..";</script>
-    <script src="../../js/theme_extra.js"></script>
-    <script src="../../js/theme.js"></script>
-      <script src="../../search/main.js"></script>
-      <script src="../../js/version-select.js"></script>
-    <script>
+</code></pre> </div> </div><script async src="https://www.googletagmanager.com/gtag/js?id=G-D3SL9V30KL"></script> <script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-D3SL9V30KL'); // Replace with your tracking ID
+</script> </div> </div> </section> </div> <div class=rst-versions role=note aria-label=Versions> <span class=rst-current-version data-toggle=rst-current-version> <span> <a href=https://github.com/CCBR/LOGAN class="fa fa-code-fork" style="color: #fcfcfc"> CCBR/LOGAN</a> </span> <span><a href=../.. style="color: #fcfcfc">&laquo; Previous</a></span> <span><a href=../tool_comparisons/ style="color: #fcfcfc">Next &raquo;</a></span> </span> </div> <script src=../../js/jquery-3.6.0.min.js></script> <script>var base_url = "../..";</script> <script src=../../js/theme_extra.js></script> <script src=../../js/theme.js></script> <script src=../../js/custom.js></script> <script src=../../search/main.js></script> <script src=../../js/version-select.js></script> <script>
         jQuery(function () {
             SphinxRtdTheme.Navigation.enable(true);
         });
-    </script>
-
-</body>
-</html>
+    </script> </body> </html> 
