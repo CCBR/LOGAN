@@ -152,19 +152,19 @@ process glnexus {
 
     """
     glnexus_cli --config DeepVariant_unfiltered \
-        *.gvcf.gz --threads 8 > germline.v.bcf
+        *.gvcf.gz --threads $task.cpus > germline.v.bcf
 
     bcftools norm \
         -m - \
         -Oz \
-        --threads 8 \
+        --threads $task.cpus \
         -f $GENOMEREF \
         -o germline.norm.vcf.gz \
         germline.v.bcf
 
     bcftools index \
         -f -t \
-        --threads 8 \
+        --threads $task.cpus \
         germline.norm.vcf.gz
     """
 
@@ -199,7 +199,7 @@ process deepvariant_combined {
         --reads=${bam} \
         --output_gvcf=${samplename}.gvcf.gz \
         --output_vcf=${samplename}.vcf.gz \
-        --num_shards=16
+        --num_shards=$task.cpus
     """
 
 
