@@ -95,6 +95,7 @@ process deepvariant_step3 {
     """
     postprocess_variants \
         --ref $GENOMEREF \
+        --sample_name ${samplename} \
         --infile outdv/${samplename}_call_variants_output.tfrecord.gz \
         --outfile ${samplename}_${bed}.vcf.gz \
         --gvcf_outfile ${samplename}_${bed}.gvcf.gz \
