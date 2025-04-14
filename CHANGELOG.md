@@ -4,6 +4,14 @@
 - Fix resources for qualimap bamqc. (#79, @dnousome)
 - Now using the readthedocs theme for the docs website. (#84, @kelly-sovacool)
 - LOGAN is now archived in Zenodo with DOI `10.5281/zenodo.14907169`. (#87, @kelly-sovacool)
+- CLI updates: (#93, @kelly-sovacool)
+  - Use `nextflow run -resume` by default, or turn it off with `logan run --forceall`.
+  - Add `--output` argument for `logan init` and `logan run`.
+    - If not provided, commands are run in the current working directory.
+    - This is equivalent to the nextflow `$launchDir` constant.
+  - The nextflow preview is printed before launching the actual run.
+  - Set the `publish_dir_mode` nextflow option to `link` by default.
+  - Set the `process.cache` nextflow option to `deep` by default rather than lenient on biowulf.
 
 ## LOGAN 0.2.0
 
