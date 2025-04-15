@@ -129,7 +129,7 @@ process applybqsr {
     Base quality recalibration for all samples to
     */
     container = "${params.containers.logan}"
-    label 'process_long'
+    label 'process_highmem'
 
     input:
         tuple val(samplename), path(bam), path(bai), path("${samplename}.recal_data.grp")
@@ -140,7 +140,7 @@ process applybqsr {
     script:
 
     """
-    gatk --java-options '-Xmx16g' ApplyBQSR \
+    gatk --java-options '-Xmx20g' ApplyBQSR \
         --reference ${GENOMEREF} \
         --input ${bam} \
         --bqsr-recal-file ${samplename}.recal_data.grp \
