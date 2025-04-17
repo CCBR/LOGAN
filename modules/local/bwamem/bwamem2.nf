@@ -11,7 +11,6 @@ process bwamem2 {
         else if (task.attempt == 3) return '200 GB'
     }
     
-
     input:
         tuple val(samplename),
         path("${samplename}.R1.trimmed.fastq.gz"),

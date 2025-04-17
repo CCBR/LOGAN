@@ -965,11 +965,10 @@ workflow CNVmouse {
         seqzin=bamwithsample.map{tname,tumor,tbai,nname,norm,nbai->
             tuple("${tname}_${nname}",tname,tumor,tbai,nname,norm,nbai)}
         seqzin.combine(chrs) | seqz_sequenza_bychr
-        seqz_sequenza_bychr.out.groupTuple()
-            .map{pair, seqz -> tuple(pair, seqz.sort{it.name})}
+        seqz_sequenza_bychr.out.groupTuple() 
             | sequenza
-        }
 
+        }
         //FREEC Paired Mode
         if ("freec" in cnvcall_list){
             if(params.exome){
@@ -1033,10 +1032,9 @@ workflow CNVhuman {
             seqzin=bamwithsample.map{tname,tumor,tbai,nname,norm,nbai->
                 tuple("${tname}_${nname}",tname,tumor,tbai,nname,norm,nbai)}
             seqzin.combine(chrs) | seqz_sequenza_bychr
-            seqz_sequenza_bychr.out.groupTuple()
-                .map{pair, seqz -> tuple(pair, seqz.sort{it.name})}
+            seqz_sequenza_bychr.out.groupTuple() 
                 | sequenza
-        }
+            }
 
         //FREEC
         if ("freec" in cnvcall_list){
@@ -1105,8 +1103,7 @@ workflow CNVhuman_novc {
             seqzin=bamwithsample.map{tname,tumor,tbai,nname,norm,nbai->
                 tuple("${tname}_${nname}",tname,tumor,tbai,nname,norm,nbai)}
             seqzin.combine(chrs) | seqz_sequenza_bychr
-            seqz_sequenza_bychr.out.groupTuple()
-                .map{pair, seqz -> tuple(pair, seqz.sort{it.name})}
+            seqz_sequenza_bychr.out.groupTuple() 
                 | sequenza
         }
         
