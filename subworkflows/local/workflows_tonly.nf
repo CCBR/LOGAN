@@ -157,6 +157,10 @@ workflow ALIGN_TONLY {
                 return tuple(samplename,fq)
                 }
         } | flatten()
+    }else if (params.no_trim){
+        fastp_out=fastqinput | map{sample,fqs -> tuple(sample,fqs[0],fqs[1])}
+        fastqinput | map{sample,fqs -> tuple(sample,fqs[0],fqs[1])}| bwamem2
+        alignment_out=bwamem2.out
     }else{
         fastp_out = fastp(fastqinput) | map{sample,f1,f2,json,html -> tuple(sample,f1,f2)} 
         bwamem2(fastp_out)

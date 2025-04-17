@@ -197,6 +197,10 @@ workflow ALIGN {
                 return tuple(samplename,fq)
                 }
         } | flatten()
+    }else if (params.no_trim){
+        fastp_out=fastqinput | map{sample,fqs -> tuple(sample,fqs[0],fqs[1])}
+        fastqinput | map{sample,fqs -> tuple(sample,fqs[0],fqs[1])}| bwamem2
+        alignment_out=bwamem2.out
     }else{
         fastp_out = fastp(fastqinput) | map{sample,f1,f2,json,html -> tuple(sample,f1,f2)} 
         bwamem2(fastp_out)
@@ -959,16 +963,22 @@ workflow CNVmouse {
     main:
         cnvcall_list = params.cnvcallers.split(',') as List
 
-        //Sequenza (Preferred for Paired)
+        //Sequenza
         if ("sequenza" in cnvcall_list){
-        chrs=Channel.fromList(params.genomes[params.genome].chromosomes)
-        seqzin=bamwithsample.map{tname,tumor,tbai,nname,norm,nbai->
-            tuple("${tname}_${nname}",tname,tumor,tbai,nname,norm,nbai)}
-        seqzin.combine(chrs) | seqz_sequenza_bychr
-        seqz_sequenza_bychr.out.groupTuple() 
-            | sequenza
+            if (params.exome){
+                windowsize=Channel.value(50) 
+            }else{
+                windowsize=Channel.value(200)
+            }
+            chrs=Channel.fromList(params.genomes[params.genome].chromosomes)
+            seqzin=bamwithsample.map{tname,tumor,tbai,nname,norm,nbai->
+                tuple("${tname}_${nname}",tname,tumor,tbai,nname,norm,nbai)}
+            seqzin.combine(chrs) | seqz_sequenza_bychr
+            seqz_sequenza_bychr.out.groupTuple()
+                | combine(windowsize)
+                | sequenza
+            }
 
-        }
         //FREEC Paired Mode
         if ("freec" in cnvcall_list){
             if(params.exome){
@@ -1028,11 +1038,17 @@ workflow CNVhuman {
 
         //Sequenza
         if ("sequenza" in cnvcall_list){
+            if (params.exome){
+                windowsize=Channel.value(50) 
+            }else{
+                windowsize=Channel.value(200)
+            }
             chrs=Channel.fromList(params.genomes[params.genome].chromosomes)
             seqzin=bamwithsample.map{tname,tumor,tbai,nname,norm,nbai->
                 tuple("${tname}_${nname}",tname,tumor,tbai,nname,norm,nbai)}
             seqzin.combine(chrs) | seqz_sequenza_bychr
-            seqz_sequenza_bychr.out.groupTuple() 
+            seqz_sequenza_bychr.out.groupTuple()
+                | combine(windowsize)
                 | sequenza
             }
 
@@ -1098,14 +1114,19 @@ workflow CNVhuman_novc {
 
 
         if ("sequenza" in cnvcall_list){
-            //Sequenza
+            if (params.exome){
+                windowsize=Channel.value(50) 
+            }else{
+                windowsize=Channel.value(200)
+            }
             chrs=Channel.fromList(params.genomes[params.genome].chromosomes)
             seqzin=bamwithsample.map{tname,tumor,tbai,nname,norm,nbai->
                 tuple("${tname}_${nname}",tname,tumor,tbai,nname,norm,nbai)}
             seqzin.combine(chrs) | seqz_sequenza_bychr
-            seqz_sequenza_bychr.out.groupTuple() 
+            seqz_sequenza_bychr.out.groupTuple()
+                | combine(windowsize)
                 | sequenza
-        }
+            }
         
         if ("freec" in cnvcall_list){
             //FREEC
