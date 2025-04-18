@@ -11,6 +11,7 @@ SEQUENZA_SCRIPT = params.script_sequenza
 process seqz_sequenza_bychr {
     container = "${params.containers.logan}"
     label 'process_long'
+    errorStrategy 'ignore'
 
     input:
         tuple val(pairid), val(tumorname), path(tumor), path(tumorbai),
@@ -41,6 +42,7 @@ process seqz_sequenza_bychr {
 process sequenza {
     container = "${params.containers.logan}"
     label 'process_medium'
+    errorStrategy 'ignore'
 
     input:
         tuple val(pairid), path(seqz), val(window)
@@ -62,10 +64,8 @@ process sequenza {
         path("${pairid}_gc_plots.pdf"),
         path("${pairid}_sequenza_extract.RData")
 
-
     shell:
     '''
-
     zcat !{seqz} | awk '{if (NR==1) {print $0} else {if ($1!="chromosome"){print $0}}}' |\
     sequenza-utils seqz_binning \
         -w !{window} \
@@ -76,11 +76,9 @@ process sequenza {
         . \
         !{pairid} \
         !{task.cpus}
-
     '''
 
     stub:
-
     """
     touch "${pairid}_alternative_solutions.txt"
     touch "${pairid}_alternative_fit.pdf"
@@ -104,10 +102,12 @@ process sequenza {
 
 
 
+//**NOTE**: This process is not used in the pipeline, but is kept for reference
 
 process pileup_sequenza {
     container = "${params.containers.logan}"
     label 'process_low'
+    errorStrategy 'ignore'
 
     input:
         tuple val(pairid), val(name), 
@@ -133,6 +133,7 @@ process pileup_sequenza {
 process seqz_sequenza_reg {
     container = "${params.containers.logan}"
     label 'process_low'
+    errorStrategy 'ignore'
 
     input:
         tuple val(pairid), val(tumorname), path(tumor), path(tumorbai),

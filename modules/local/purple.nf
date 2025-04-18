@@ -16,8 +16,9 @@ GERMLINEHOTSPOTS = file(params.genomes[params.genome].GERMLINEHOTSPOTS)
 
 process amber_tonly {
     container = "${params.containers.logan}"
-
     label 'process_medium'
+    errorStrategy 'ignore'
+
 
     input:
         tuple val(tumorname), path(tumor), path(tumorbai)
@@ -49,8 +50,8 @@ process amber_tonly {
 
 process amber_tn {
     container = "${params.containers.logan}"
-
     label 'process_medium'
+    errorStrategy 'ignore'
 
     input:
         tuple val(tumorname), path(tumor), path(tumorbai),
@@ -85,6 +86,7 @@ process amber_tn {
 process cobalt_tonly {
     container = "${params.containers.logan}"
     label 'process_medium'
+    errorStrategy 'ignore'
 
     input:
         tuple val(tumorname), path(tumor), path(tumorbai)
@@ -116,6 +118,7 @@ process cobalt_tonly {
 process cobalt_tn {
     container = "${params.containers.logan}"
     label 'process_medium'
+    errorStrategy 'ignore'
 
     input:
         tuple val(tumorname), path(tumor), path(tumorbai),
@@ -149,6 +152,7 @@ process cobalt_tn {
 process purple {
     container = "${params.containers.logan}"
     label 'process_medium'
+    errorStrategy 'ignore'
 
     input:
         tuple val(id), val(tumorname), val(normalname),
@@ -190,6 +194,7 @@ process purple {
 process purple_novc {
     container = "${params.containers.logan}"
     label 'process_medium'
+    errorStrategy 'ignore'
 
     input:
         tuple val(id), val(tumorname), val(normalname),
@@ -229,6 +234,7 @@ process purple_novc {
 process purple_tonly {
     container = "${params.containers.logan}"
     label 'process_medium'
+    errorStrategy 'ignore'
 
     input:
         tuple val(tumorname), 
@@ -269,7 +275,8 @@ process purple_tonly {
 process purple_tonly_novc {
     container = "${params.containers.logan}"
     label 'process_medium'
-
+    errorStrategy 'ignore'
+    
     input:
         tuple val(tumorname), val(normalname),
         path(cobaltin), path(amberin)
