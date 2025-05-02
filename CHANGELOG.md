@@ -12,12 +12,12 @@
   - The nextflow preview is printed before launching the actual run.
   - Set the `publish_dir_mode` nextflow option to `link` by default.
   - Set the `process.cache` nextflow option to `deep` by default rather than lenient on biowulf.
-- Sequenza chromosome M was removed for CNV analysis and all chromosomes used by default
-- Increased memory and lscratch allocation for applybqsr process
-- Manta output order was listed incorrectly
-- Additional hg19 genome references were fixed
-- Vardict Tumor only mode filtering using INFO/DP vs DP only
-- Fix for Deepvariant to allow sample name filtering 
+- Sequenza chromosome M was removed for CNV analysis and all chromosomes used by default (#91, @dnousome)
+- Increased memory and lscratch allocation for applybqsr process (#91, @dnousome)
+- Manta output order was listed incorrectly (#91, @dnousome)
+- Additional hg19 genome references were fixed (#91, @dnousome)
+- Vardict Tumor only mode filtering using INFO/DP vs DP only (#91, @dnousome)
+- Fix for Deepvariant to allow sample name filtering (#91, @dnousome)
 
 ## LOGAN 0.2.0
 
