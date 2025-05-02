@@ -257,7 +257,7 @@ process purple_tonly {
     $ENSEMBLCACHE \
     -somatic_vcf ${somaticvcf} \
     -driver_gene_panel $DRIVERS \
-    -somatic_hotspots $HOTSPOTS \
+    -somatic_hotspots $SOMATICHOTSPOTS \
     -threads $task.cpus \
     -output_dir ${tumorname}
     """
