@@ -1,13 +1,17 @@
-GENOMEREF = file(params.genomes[params.genome].genome)
-
 //SEQUENZA
-SEQUENZAGC = file(params.genomes[params.genome].SEQUENZAGC)
+GENOMEREF = file(params.genomes[params.genome].genome)
+if(params.exome) {
+    GC = params.genomes[params.genome].SEQUENZAGC_EXOME
+}else{
+    GC = file(params.genomes[params.genome].SEQUENZAGC)
+}
 SEQUENZA_SCRIPT = params.script_sequenza
 
 
 process seqz_sequenza_bychr {
     container = "${params.containers.logan}"
     label 'process_long'
+    errorStrategy 'ignore'
 
     input:
         tuple val(pairid), val(tumorname), path(tumor), path(tumorbai),
@@ -17,9 +21,10 @@ process seqz_sequenza_bychr {
         tuple val(pairid), path("${tumorname}_${normalname}_${chr}.seqz.gz")
 
     script:
+
     """
         sequenza-utils bam2seqz \
-        -gc ${SEQUENZAGC} \
+        -gc $GC \
         -F $GENOMEREF \
         -C ${chr} \
         -n ${normal} \
@@ -33,9 +38,76 @@ process seqz_sequenza_bychr {
     """
 }
 
+
+process sequenza {
+    container = "${params.containers.logan}"
+    label 'process_medium'
+    errorStrategy 'ignore'
+
+    input:
+        tuple val(pairid), path(seqz), val(window)
+
+    output:
+        tuple val(pairid),
+        path("${pairid}_alternative_solutions.txt"),
+        path("${pairid}_alternative_fit.pdf"),
+        path("${pairid}_model_fit.pdf"),
+        path("${pairid}_confints_CP.txt"),
+        path("${pairid}_CN_bars.pdf"),
+        path("${pairid}_genome_view.pdf"),
+        path("${pairid}_chromosome_view.pdf"),
+        path("${pairid}_mutations.txt"),
+        path("${pairid}_segments.txt"),
+        path("${pairid}_CP_contours.pdf"),
+        path("${pairid}_sequenza_cp_table.RData"),
+        path("${pairid}_chromosome_depths.pdf"),
+        path("${pairid}_gc_plots.pdf"),
+        path("${pairid}_sequenza_extract.RData")
+
+    shell:
+    '''
+    zcat !{seqz} | awk '{if (NR==1) {print $0} else {if ($1!="chromosome"){print $0}}}' |\
+    sequenza-utils seqz_binning \
+        -w !{window} \
+        -s - > !{pairid}.bin!{window}.seqz
+
+    Rscript !{SEQUENZA_SCRIPT} \
+        !{pairid}.bin!{window}.seqz \
+        . \
+        !{pairid} \
+        !{task.cpus}
+    '''
+
+    stub:
+    """
+    touch "${pairid}_alternative_solutions.txt"
+    touch "${pairid}_alternative_fit.pdf"
+    touch "${pairid}_model_fit.pdf"
+    touch "${pairid}_confints_CP.txt"
+    touch "${pairid}_CN_bars.pdf"
+    touch "${pairid}_genome_view.pdf"
+    touch "${pairid}_chromosome_view.pdf"
+    touch "${pairid}_mutations.txt"
+    touch "${pairid}_segments.txt"
+    touch "${pairid}_CP_contours.pdf"
+    touch "${pairid}_sequenza_cp_table.RData"
+    touch "${pairid}_chromosome_depths.pdf"
+    touch "${pairid}_gc_plots.pdf"
+    touch "${pairid}_sequenza_extract.RData"
+
+    """
+
+}
+
+
+
+
+//**NOTE**: This process is not used in the pipeline, but is kept for reference
+
 process pileup_sequenza {
     container = "${params.containers.logan}"
     label 'process_low'
+    errorStrategy 'ignore'
 
     input:
         tuple val(pairid), val(name), 
@@ -61,6 +133,7 @@ process pileup_sequenza {
 process seqz_sequenza_reg {
     container = "${params.containers.logan}"
     label 'process_low'
+    errorStrategy 'ignore'
 
     input:
         tuple val(pairid), val(tumorname), path(tumor), path(tumorbai),
@@ -72,7 +145,7 @@ process seqz_sequenza_reg {
     script:
     """
         sequenza-utils bam2seqz \
-        -gc ${SEQUENZAGC} \
+        -gc $GC \
         -p \
         -F $GENOMEREF \
         -n ${normal} \
@@ -85,6 +158,7 @@ process seqz_sequenza_reg {
     touch "${tumorname}_${normalname}_${chr}.seqz.gz"
     """
 }
+
 
 process seqz_sequenza {
     container = "${params.containers.logan}"
@@ -100,7 +174,7 @@ process seqz_sequenza {
     script:
     """
         sequenza-utils bam2seqz \
-        -gc ${SEQUENZAGC} \
+        -gc $GC \
         -p \
         -F $GENOMEREF \
         -n ${normal} \
@@ -112,70 +186,4 @@ process seqz_sequenza {
     """
     touch "${tumorname}_${normalname}_${chr}.seqz.gz"
     """
-}
-
-
-
-
-process sequenza {
-    container = "${params.containers.logan}"
-    label 'process_medium'
-
-    input:
-        tuple val(pairid), path(seqz)
-
-    output:
-        tuple val(pairid),
-        path("${pairid}_alternative_solutions.txt"),
-        path("${pairid}_alternative_fit.pdf"),
-        path("${pairid}_model_fit.pdf"),
-        path("${pairid}_confints_CP.txt"),
-        path("${pairid}_CN_bars.pdf"),
-        path("${pairid}_genome_view.pdf"),
-        path("${pairid}_chromosome_view.pdf"),
-        path("${pairid}_mutations.txt"),
-        path("${pairid}_segments.txt"),
-        path("${pairid}_CP_contours.pdf"),
-        path("${pairid}_sequenza_cp_table.RData"),
-        path("${pairid}_chromosome_depths.pdf"),
-        path("${pairid}_gc_plots.pdf"),
-        path("${pairid}_sequenza_extract.RData")
-
-
-    shell:
-    '''
-
-    zcat !{seqz} | awk '{if (NR==1) {print $0} else {if ($1!="chromosome"){print $0}}}' |\
-    sequenza-utils seqz_binning \
-        -w 100 \
-        -s - > !{pairid}.bin100.seqz
-
-    Rscript !{SEQUENZA_SCRIPT} \
-        !{pairid}.bin100.seqz \
-        . \
-        !{pairid} \
-        !{task.cpus}
-
-    '''
-
-    stub:
-
-    """
-    touch "${pairid}_alternative_solutions.txt"
-    touch "${pairid}_alternative_fit.pdf"
-    touch "${pairid}_model_fit.pdf"
-    touch "${pairid}_confints_CP.txt"
-    touch "${pairid}_CN_bars.pdf"
-    touch "${pairid}_genome_view.pdf"
-    touch "${pairid}_chromosome_view.pdf"
-    touch "${pairid}_mutations.txt"
-    touch "${pairid}_segments.txt"
-    touch "${pairid}_CP_contours.pdf"
-    touch "${pairid}_sequenza_cp_table.RData"
-    touch "${pairid}_chromosome_depths.pdf"
-    touch "${pairid}_gc_plots.pdf"
-    touch "${pairid}_sequenza_extract.RData"
-
-    """
-
 }

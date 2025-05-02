@@ -82,13 +82,10 @@ process gridss_tonly {
 
     output:
         tuple val(tumorname),
-        path("${tumorname}.vcf.gz"),
-        path("${tumorname}.vcf.gz.tbi"),
+        path("${tumorname}.vcf.gz"), path("${tumorname}.vcf.gz.tbi"),
         path("${tumorname}.vcf.gz.assembly.bam"),
-        path("${tumorname}.gripss.vcf.gz"),
-        path("${tumorname}.gripss.vcf.gz.tbi"),
-        path("${tumorname}.gripss.filtered.vcf.gz"),
-        path("${tumorname}.gripss.filtered.vcf.gz.tbi")
+        path("${tumorname}.gripss.vcf.gz"), path("${tumorname}.gripss.vcf.gz.tbi"),
+        path("${tumorname}.gripss.filtered.vcf.gz"), path("${tumorname}.gripss.filtered.vcf.gz.tbi")
 
     script:
     """

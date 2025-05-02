@@ -48,19 +48,19 @@ CP.example <- sequenza.fit(seqzdata, mc.cores = n_cores)
 
 ## Sequenza.extract seems to fail if too few mutations
 num_mutations <- unlist(lapply(seqzdata$mutations, nrow))
-chrom_list1 <- names(num_mutations)[num_mutations > 3]
+chrom_list <- names(num_mutations)[num_mutations > 3]
 ## Also fails if segments <2
-num_segments <- unlist(lapply(seqzdata$segments, nrow))
-chrom_list2 <- names(num_mutations)[num_segments > 1]
+#num_segments <- unlist(lapply(seqzdata$segments, nrow))
+#chrom_list2 <- names(num_mutations)[num_segments > 1]
+#chrom_list <- intersect(chrom_list1,chrom_list2)
 
-chrom_list <- intersect(chrom_list1,chrom_list2)
 not_included <- setdiff(names(num_mutations), chrom_list)
 print("Printing results...")
 if (length(not_included) > 0) {
     print("Excluding these chromosomes because of too few mutations and/or segments...")
     print(not_included)
 }
-sequenza.results(sequenza.extract = seqzdata,cp.table = CP.example, sample.id = sampleid, out.dir=out_dir, chromosome.list=chrom_list)
+sequenza.results(sequenza.extract = seqzdata,cp.table = CP.example, sample.id = sampleid, out.dir=out_dir)
 
 date()
 print("Done")
