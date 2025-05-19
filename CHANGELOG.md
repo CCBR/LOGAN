@@ -1,5 +1,6 @@
 # LOGAN development version
 
+- LOGAN now depends on ccbr_tools v0.4 for updated jobby & spooker utilities. (#95, @kelly-sovacool)
 - Fix fastq naming in fastp. (#73, @dnousome)
 - Fix resources for qualimap bamqc. (#79, @dnousome)
 - Now using the readthedocs theme for the docs website. (#84, @kelly-sovacool)

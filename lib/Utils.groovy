@@ -8,7 +8,7 @@ class Utils {
         if (spooker_in_path) {
             try {
                 println "Running spooker"
-                def spooker_command = "spooker ${workflow.launchDir} ${pipeline_name} ${workflow.manifest.version}"
+                def spooker_command = "spooker --outdir ${workflow.launchDir} --name ${pipeline_name} --version ${workflow.manifest.version} --path ${workflow.projectDir}"
                 def command = spooker_command.execute()
                 command.consumeProcessOutput(out, err)
                 command.waitFor()
