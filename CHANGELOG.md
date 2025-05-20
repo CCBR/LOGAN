@@ -1,3 +1,5 @@
+## LOGAN development version
+
 # LOGAN 0.3.0
 
 - LOGAN now depends on ccbr_tools v0.4 for updated jobby & spooker utilities. (#95, @kelly-sovacool)
