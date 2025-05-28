@@ -1,6 +1,6 @@
 ## LOGAN development version
 
-- Improve help message for `logan run`. (#??, @kelly-sovacool)
+- Improve help message for `logan run`. (#97, @kelly-sovacool)
   - the default `--mode` is now `slurm`.
 
 # LOGAN 0.3.0
