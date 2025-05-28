@@ -53,17 +53,20 @@ def cli():
 
 help_msg_extra = """
 \b
+Nextflow options:
+-profile <profile>    Nextflow profile to use (e.g. test)
+-params-file <file>   Nextflow params file to use (e.g. assets/params.yml)
+-preview              Preview the processes that will run without executing them
+
+\b
 EXAMPLES:
 Execute with slurm:
-    logan run ... --mode slurm
+  logan run --output path/to/outdir --mode slurm
 Preview the processes that will run:
-    logan run ... --mode local -preview
+  logan run --output path/to/outdir --mode local -preview
 Add nextflow args (anything supported by `nextflow run`):
-    logan run ... -work-dir path/to/workDir
-Run with a specific installation of logan:
-    logan run --main path/to/logan/main.nf ...
-Run with a specific tag, branch, or commit from GitHub:
-    logan run --main CCBR/LOGAN -r v0.1.0 ...
+  logan run --output path/to/outdir --mode slurm -profile test
+  logan run --output path/to/outdir --mode slurm -profile test -params-file assets/params.yml
 """
 
 
@@ -82,6 +85,7 @@ Run with a specific tag, branch, or commit from GitHub:
     type=str,
     default=repo_base("main.nf"),
     show_default=True,
+    hidden=True,
 )
 @click.option(
     "--output",
@@ -95,7 +99,7 @@ Run with a specific tag, branch, or commit from GitHub:
     "_mode",
     help="Run mode (slurm, local)",
     type=str,
-    default="local",
+    default="slurm",
     show_default=True,
 )
 @click.option(
@@ -109,7 +113,12 @@ Run with a specific tag, branch, or commit from GitHub:
 )
 @click.argument("nextflow_args", nargs=-1)
 def run(main_path, output, _mode, force_all, **kwargs):
-    """Run the workflow"""
+    """
+    Run the workflow
+    
+    Note: you must first run `logan init --output <output_dir>` to initialize
+    the output directory.
+    """
     if (  # this is the only acceptable github repo option for logan
         main_path != "CCBR/LOGAN"
     ):
