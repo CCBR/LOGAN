@@ -43,12 +43,14 @@ jobs:
       - name: Test stub run for Fastqs
         run: |
           logan init
-          logan run -profile ci_stub \
-          --sample_sheet .tests/pairs.tsv \
-          --fastq_input ".tests/*R{1,2}_001.fastq.gz" \
-          --vc --cnv --sv --gl --qc \
-          --split_regions 2 \
-          --genome hg38 \
-          --outdir output_tn_fqs \
-          --intervals .tests/interval.bed \
-          -preview
+          logan run \
+            -profile ci_stub \
+            --mode local \
+            --sample_sheet .tests/pairs.tsv \
+            --fastq_input ".tests/*R{1,2}_001.fastq.gz" \
+            --vc --cnv --sv --gl --qc \
+            --split_regions 2 \
+            --genome hg38 \
+            --outdir output_tn_fqs \
+            --intervals .tests/interval.bed \
+            -preview
