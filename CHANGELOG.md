@@ -1,5 +1,5 @@
 ## LOGAN development version
-- Uses Nextflow v25 for logan run (#99, @samarth8392)
+- Uses Nextflow v25 for logan run; fixes the bug in stub run in nf v24.10 (see: https://github.com/nextflow-io/nextflow/issues/5456) (#99, @samarth8392)
 - 
 ## LOGAN 0.3.1
 
