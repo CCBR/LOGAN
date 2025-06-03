@@ -1,5 +1,6 @@
 ## LOGAN development version
-
+- Uses Nextflow v25 for logan run (#99, @samarth8392)
+- 
 ## LOGAN 0.3.1
 
 - Improve help message for `logan run`. (#97, @kelly-sovacool)
