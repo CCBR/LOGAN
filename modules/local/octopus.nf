@@ -1,3 +1,6 @@
+/* TODO do not set global variables like this.
+    These files should be passed as inputs to the processes that use them
+*/
 //References
 GENOMEREF=file(params.genomes[params.genome].genome)
 GENOMEFAI=file(params.genomes[params.genome].genomefai)
@@ -23,14 +26,17 @@ process octopus_tn {
 
     script:
     """
-    octopus -R $GENOMEREF -I ${normal} ${tumor} --normal-sample ${normalname} \
-    -C cancer \
-    --annotations AF AC AD DP SB -t ${bed} \
-    --threads $task.cpus \
-    $GERMLINE_FOREST \
-    $SOMATIC_FOREST \
-    -B 92Gb \
-    -o ${tumorname}_vs_${normalname}_${bed.simpleName}.octopus.vcf.gz
+    octopus \\
+        -R ${GENOMEREF} -I ${normal} ${tumor} \\
+        --normal-sample ${normalname} \\
+        -C cancer \\
+        --annotations AF AC AD DP SB \\
+        -t ${bed} \\
+        --threads ${task.cpus} \\
+        ${GERMLINE_FOREST} \\
+        ${SOMATIC_FOREST} \\
+        -B ${task.memory.toGiga()}Gb \\
+        -o ${tumorname}_vs_${normalname}_${bed.simpleName}.octopus.vcf.gz
     """
 
     stub:
@@ -43,17 +49,15 @@ process octopus_tn {
 
 
 process bcftools_index_octopus {
+    tag { vcf.getBaseName() }
     container "${params.containers.logan}"
     label 'process_low'
 
     input:
-        tuple val(tumor),
-        path(vcf)
+        tuple val(tumor), path(vcf)
 
     output:
-        tuple val(tumor),
-        path(vcf),
-        path("${vcf}.tbi")
+        tuple val(tumor), path(vcf), path("${vcf}.tbi")
 
     script:
     """
@@ -62,7 +66,6 @@ process bcftools_index_octopus {
 
     stub:
     """
-    touch ${vcf}
     touch ${vcf}.tbi
     """
 
@@ -73,13 +76,13 @@ process bcftools_index_octopus {
 process octopus_convertvcf {
     container "${params.containers.logan}"
     label 'process_low'
-    
+
     input:
-        tuple val(tumor), val(normal), 
+        tuple val(tumor), val(normal),
         val(oct), path(vcf), path(vcfindex)
 
     output:
-        tuple val(tumor), val(normal), path("${tumor}.octopus.norm.vcf.gz"), 
+        tuple val(tumor), val(normal), path("${tumor}.octopus.norm.vcf.gz"),
         path("${tumor}.octopus.norm.vcf.gz.tbi")
 
 
@@ -114,13 +117,15 @@ process octopus_tonly {
 
     script:
     """
-    octopus -R $GENOMEREF -C cancer -I ${tumor} \
-    --annotations AF AC AD DP SB \
-    -B 92Gb \
-    -t ${bed} \
-    --threads ${task.cpus}\
-    $SOMATIC_FOREST \
-    -o ${tumorname}_${bed.simpleName}.tonly.octopus.vcf.gz 
+    octopus -R ${GENOMEREF} \\
+        -C cancer \\
+        -I ${tumor} \\
+        --annotations AF AC AD DP SB \\
+        -B 92Gb \\
+        -t ${bed} \\
+        --threads ${task.cpus} \\
+        ${SOMATIC_FOREST} \\
+        -o ${tumorname}_${bed.simpleName}.tonly.octopus.vcf.gz
     """
 
     stub:
@@ -135,12 +140,12 @@ process octopus_tonly {
 process octopus_convertvcf_tonly {
     container "${params.containers.logan}"
     label 'process_low'
-    
+
     input:
         tuple val(tumor), val(oct), path(vcf), path(vcfindex)
 
     output:
-        tuple val(tumor), path("${tumor}.octopus_tonly.norm.vcf.gz"), 
+        tuple val(tumor), path("${tumor}.octopus_tonly.norm.vcf.gz"),
         path("${tumor}.octopus_tonly.norm.vcf.gz.tbi")
 
 
@@ -157,4 +162,3 @@ process octopus_convertvcf_tonly {
     touch ${tumor}.octopus_tonly.norm.vcf.gz ${tumor}.octopus_tonly.norm.vcf.gz.tbi
     """
 }
-
