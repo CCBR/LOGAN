@@ -27,21 +27,24 @@ Original pipelining and code forked from the CCBR Exome-seek Pipeline [Exome-see
 
 **Requires:** `singularity>=3.5` `nextflow>=22.10.2`
 
-[singularity](https://singularity.lbl.gov/all-releases) must be installed on the target system. Snakemake orchestrates the execution of each step in the pipeline. To guarantee the highest level of reproducibility, each step relies on versioned images from [DockerHub](https://hub.docker.com/orgs/nciccbr/repositories). Nextflow uses singularity to pull these images onto the local filesystem prior to job execution, and as so, nextflow and singularity are the only two dependencies.
+[singularity](https://singularity.lbl.gov/all-releases) must be installed on the target system. Nextflow orchestrates the execution of each step in the pipeline. To guarantee the highest level of reproducibility, each step relies on versioned images from [DockerHub](https://hub.docker.com/orgs/nciccbr/repositories). Nextflow uses singularity to pull these images onto the local filesystem prior to job execution, and as so, nextflow and singularity are the only two dependencies.
 
-## Setup
+## Set up
 
-LOGAN can be used with the Nextflow pipelining software in
-Please clone this repository to your local filesystem using the following command on Biowulf:
+LOGAN is installed on the [Biowulf HPC](#biowulf).
+For installation in other execution environments, refer to the [docs](https://ccbr.github.io/LOGAN/).
 
-```bash
+### Biowulf
+
+LOGAN is available on [Biowulf](https://hpc.nih.gov/) in the `ccbrpipeliner` module.
+You'll first need to start an interactive session, then load the module:
+
+```sh
 # start an interactive node
 sinteractive --mem=2g --cpus-per-task=2 --gres=lscratch:200
 
-git clone https://github.com/CCBR/LOGAN
-module load nextflow
-##Example run
-nextflow run LOGAN/main.nf -profile ci_stub -preview
+# load the ccbrpipeliner module
+module load ccbrpipeliner
 ```
 
 ## Usage
@@ -65,8 +68,10 @@ LOGAN supports inputs of either
 Example
 
 ```bash
-c130863309_TUMOR   /data/nousomedr/c130863309_TUMOR.R1_001.fastq.gz  /data/nousomedr/c130863309_TUMOR.R2_001.fastq.gz
-c130889189_PBMC  /data/nousomedr/c130889189_PBMC.R1_001.fastq.gz  /data/nousomedr/c130889189_PBMC.R2_001.fastq.gz
+Sample1_TUMOR  /path/to/the/fastq/folder/Sample1_TUMOR.R1.fq.gz /path/to/the/fastq/folder/Sample1_TUMOR.R2.fq.gz
+Sample1_NORMAL  /path/to/the/fastq/folder/Sample1_NORMAL.R1.fq.gz /path/to/the/fastq/folder/Sample1_NORMAL.R2.fq.gz
+Sample2_TUMOR  /path/to/the/fastq/folder/Sample2_TUMOR.R1.fq.gz /path/to/the/fastq/folder/Sample2_TUMOR.R2.fq.gz
+Sample2_NORMAL  /path/to/the/fastq/folder/Sample2_NORMAL.R1.fq.gz /path/to/the/fastq/folder/Sample2_NORMAL.R2.fq.gz
 ```
 
 `--bam_file_input` - A headerless tab delimited sheet that has the sample name, bam, and bam index (bai) file locations
@@ -74,8 +79,8 @@ c130889189_PBMC  /data/nousomedr/c130889189_PBMC.R1_001.fastq.gz  /data/nousomed
 Example
 
 ```bash
-c130863309_TUMOR   /data/nousomedr/c130863309_TUMOR.bam  /data/nousomedr/c130863309_TUMOR.bam.bai
-c130889189_PBMC  /data/nousomedr/c130889189_PBMC.bam  /data/nousomedr/c130889189_PBMC.bam.bai
+Sample1_TUMOR   /path/to/the/BAM/folder/Sample1_TUMOR.bam  /path/to/the/BAM/folder/Sample1_TUMOR.bam.bai
+Sample1_NORMAL  /path/to/the/BAM/folder/Sample1_NORMAL.bam  /path/to/the/BAM/folder/Sample1_NORMAL.bam.bai
 ```
 
 ### Genome
@@ -104,8 +109,8 @@ Example
 
 ```bash
 Tumor  Normal
-c130863309_TUMOR  c130863309_PBMC
-c130889189_TUMOR  c130889189_PBMC
+Sample1_TUMOR  Sample1_Normal
+Sample2_TUMOR  Sample1_Normal
 ```
 
 #### 2. Tumor only mode
@@ -146,23 +151,68 @@ Example: `--svcallers gridss`
 Example of Tumor_Normal calling mode
 
 ```bash
-# preview the logan jobs that will run
-nextflow run LOGAN/main.nf --mode local -profile ci_stub --genome hg38 --sample_sheet samplesheet.tsv --outdir out --fastq_input "*R{1,2}.fastq.gz" -preview --vc --sv --cnv
-# run a stub/dryrun of the logan jobs
-nextflow run LOGAN/main.nf --mode local -profile ci_stub --genome hg38 --sample_sheet samplesheet.tsv --outdir out --fastq_input "*R{1,2}.fastq.gz" -stub --vc --sv --cnv
-# launch a logan run on slurm with the test dataset
-nextflow run LOGAN/main.nf --mode slurm -profile biowulf,slurm --genome hg38 --sample_sheet samplesheet.tsv --outdir out --fastq_input "*R{1,2}.fastq.gz" --vc --sv --cnv
+# Step 0: Set up
+
+sinteractive --mem=8g -N 1 -n 4
+module load ccbrpipeliner # v8 
+
+# set up directories
+
+DATADIR="/path/to/fastq/folder"
+
+# Step1: Initilalization
+
+logan init \
+--output logan_output
+
+# Step2: stub-run
+
+logan run  \
+--output logan_output \
+--mode local -profile ci_stub \
+--genome hg38 \
+--sample_sheet samplesheet.txt \
+--fastq_file_input logan_fastq_input.txt \
+-stub --vc --sv --cnv
+
+# Step3: Full run
+logan run  \
+--output logan_output \
+--mode slurm -profile slurm \
+--genome hg38 \
+--sample_sheet samplesheet.txt \
+--fastq_file_input logan_fastq_input.txt \
+--vc --sv --cnv
+
+# NOTE: In case of globbing instead of using a fastq input sheet
+
+logan run  \
+--output logan_output \
+--mode local -profile ci_stub \
+--genome hg38 \
+--sample_sheet samplesheet.txt \
+--fastq_input "/path/to/fastq/folder/*R{1,2}.fastq.gz" \
+-stub --vc --sv --cnv
+
+logan run  \
+--output logan_output \
+--mode slurm -profile slurm \
+--genome hg38 \
+--sample_sheet samplesheet.txt \
+--fastq_input "/path/to/fastq/folder/*R{1,2}.fastq.gz" \
+--vc --sv --cnv
+
 ```
 
 Example of Tumor only calling mode
 
 ```bash
 # preview the logan jobs that will run
-nextflow run LOGAN/main.nf --mode local -profile ci_stub --genome hg38 --outdir out --fastq_input "*R{1,2}.fastq.gz" --callers octopus,mutect2 -preview --vc --sv --cnv
+logan run --mode local -profile ci_stub --genome hg38 --outdir logan_output --fastq_input "*R{1,2}.fastq.gz" --callers octopus,mutect2 -preview --vc --sv --cnv
 # run a stub/dryrun of the logan jobs
-nextflow run LOGAN/main.nf --mode local -profile ci_stub --genome hg38 --outdir out --fastq_input "*R{1,2}.fastq.gz" --callers octopus,mutect2 -stub --vc --sv --cnv
+logan run --mode local -profile ci_stub --genome hg38 --outdir logan_output --fastq_input "*R{1,2}.fastq.gz" --callers octopus,mutect2 -stub --vc --sv --cnv
 # launch a logan run on slurm with the test dataset
-nextflow run LOGAN/main.nf --mode slurm -profile biowulf,slurm --genome hg38 --outdir out --fastq_input "*R{1,2}.fastq.gz" --callers octopus,mutect2 --vc --sv --cnv
+logan run --mode slurm -profile slurm --genome hg38 --outdir logan_output --fastq_input "*R{1,2}.fastq.gz" --callers octopus,mutect2 --vc --sv --cnv
 ```
 
 ### Pipeline Tools and Overview
