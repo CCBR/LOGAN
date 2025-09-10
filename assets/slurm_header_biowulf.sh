@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #SBATCH --cpus-per-task=1
 #SBATCH --mem=1g
-#SBATCH --time=1-00:00:00
+#SBATCH --time=100:00:00
 #SBATCH --parsable
 #SBATCH -J "LOGAN"
 #SBATCH --mail-type=BEGIN,END,FAIL
