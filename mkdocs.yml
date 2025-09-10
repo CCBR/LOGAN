@@ -38,6 +38,11 @@ extra_css:
 extra_javascript:
   - js/custom.js
 
+# Extensions
+markdown_extensions:
+  - pymdownx.snippets:
+      check_paths: true
+
 nav:
   - Home: "index.md"
   - Pipeline:
