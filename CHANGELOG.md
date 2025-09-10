@@ -1,4 +1,7 @@
-## LOGAN development version
+## LOGAN 0.3.2
+- Removed old bindpaths and fixed ` /gs10 doesn't exist` error (#106, @samarth8392)
+- Increased pipeline walltime for slurm submission to 100 hours (#106, @samarth8392)
+- Minor documentation updates for setup and running LOGAN (#106, @samarth8392)
 - Uses Nextflow v25 for logan run; fixes the bug in stub run in nf v24.10 (see: https://github.com/nextflow-io/nextflow/issues/5456) (#99, @samarth8392)
 - 
 ## LOGAN 0.3.1
