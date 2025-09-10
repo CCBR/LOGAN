@@ -115,7 +115,7 @@ Add nextflow args (anything supported by `nextflow run`):
 def run(main_path, output, _mode, force_all, **kwargs):
     """
     Run the workflow
-    
+
     Note: you must first run `logan init --output <output_dir>` to initialize
     the output directory.
     """
@@ -142,6 +142,7 @@ def run(main_path, output, _mode, force_all, **kwargs):
             force_all=force_all,
             pipeline_name="LOGAN",
             hpc_modules="nextflow/25",
+            hpc_walltime="4-00:00:00",
             **kwargs,
         )
     finally:
