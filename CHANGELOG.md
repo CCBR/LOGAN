@@ -1,8 +1,8 @@
 ## LOGAN development version
 
-- Removed old bindpaths and fixed ` /gs10 doesn't exist` error (#107, @samarth8392)
-- Increased pipeline walltime for slurm submission to 100 hours (#107, @samarth8392)
-- Minor documentation updates for setup and running LOGAN (#107, @samarth8392)
+- Removed old bindpaths and fixed ` /gs10 doesn't exist` error. (#107, @samarth8392)
+- Increased pipeline walltime for slurm submission to 4 days (96 hours). (#107, #108, @samarth8392)
+- Minor documentation updates for setup and running LOGAN. (#107, @samarth8392)
 
 ## LOGAN 0.3.2
 
