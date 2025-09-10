@@ -10,7 +10,7 @@
 - Improve help message for `logan run`. (#97, @kelly-sovacool)
   - the default `--mode` is now `slurm`.
 
-# LOGAN 0.3.0
+## LOGAN 0.3.0
 
 - LOGAN now depends on ccbr_tools v0.4 for updated jobby & spooker utilities. (#95, @kelly-sovacool)
 - Fix fastq naming in fastp. (#73, @dnousome)
