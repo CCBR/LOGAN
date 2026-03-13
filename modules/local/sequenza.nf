@@ -110,11 +110,11 @@ process pileup_sequenza {
     errorStrategy 'ignore'
 
     input:
-        tuple val(pairid), val(name), 
+        tuple val(pairid), val(name),
         path(bam), path(bai), path(bed)
 
     output:
-        tuple val(pairid), path("${name}_${bed}.mpileup.gz"), path("${name}_${bed}.mpileup.gz.tbi") 
+        tuple val(pairid), path("${name}_${bed}.mpileup.gz"), path("${name}_${bed}.mpileup.gz.tbi")
 
     script:
     //Q20 is default in sequenza

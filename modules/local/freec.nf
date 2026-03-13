@@ -114,7 +114,7 @@ process freec_paired_exome {
     shell:
 
     """
-    python $REFORMATBED -i $CNVTARGETS 
+    python $REFORMATBED -i $CNVTARGETS
     perl $FREECPAIR_SCRIPT \
         . \
         $FREECLENGTHS \
@@ -179,8 +179,8 @@ process freec {
         path("${tumorname}_ratio.txt.png")
 
 
-    shell: 
-    
+    shell:
+
     """
     perl $FREEC_SCRIPT \
         . \

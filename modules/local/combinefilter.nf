@@ -34,9 +34,9 @@ process combineVariants {
         -O ${sample}.${vc}.markedtemp.vcf.gz \
         -SD $GENOMEDICT \
         -I $vcfin
-    
-    bcftools view ${sample}.${vc}.markedtemp.vcf.gz -s $samporder -Oz -o ${sample}.${vc}.marked.vcf.gz 
-    bcftools index -t ${sample}.${vc}.marked.vcf.gz 
+
+    bcftools view ${sample}.${vc}.markedtemp.vcf.gz -s $samporder -Oz -o ${sample}.${vc}.marked.vcf.gz
+    bcftools index -t ${sample}.${vc}.marked.vcf.gz
 
     bcftools norm ${sample}.${vc}.marked.vcf.gz -m- --threads $task.cpus --check-ref s -f $GENOMEREF -O v |\
         awk '{{gsub(/\\y[W|K|Y|R|S|M|B|D|H|V]\\y/,"N",\$4); OFS = "\t"; print}}' |\
@@ -121,7 +121,7 @@ process combineVariants_alternative {
         bcftools index ${vc}/${sample}.${vc}.norm.vcf.gz -t
         """
     }
-   
+
     stub:
 
     """
@@ -218,7 +218,7 @@ process somaticcombine {
         --filteredrecordsmergetype KEEP_IF_ANY_UNFILTERED \
         -o ${tumorsample}_vs_${normal}_combined.vcf.gz \
         $vcfin2
-        
+
     """
 
     stub:
@@ -272,10 +272,9 @@ process somaticcombine_tonly {
         vcfin1=[caller, vcfs].transpose().collect { a, b -> a + " " + b }
         vcfin2="-V:" + vcfin1.join(" -V:")
         callerin=caller.join(",")//.replaceAll("_tonly","")
-    
+
     """
     touch ${tumorsample}_combined_tonly.vcf.gz ${tumorsample}_combined_tonly.vcf.gz.tbi
-    """ 
+    """
 
 }
-

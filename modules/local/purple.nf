@@ -26,7 +26,7 @@ process amber_tonly {
 
     output:
         tuple val(tumorname), path("${tumorname}_amber")
-      
+
     script:
 
     """
@@ -60,7 +60,7 @@ process amber_tn {
     output:
         tuple val("${tumorname}_vs_${normalname}"),
         val(tumorname), val(normalname), path("${tumorname}_vs_${normalname}_amber")
-      
+
     script:
 
     """
@@ -201,7 +201,7 @@ process purple_novc {
         path(amberin), path(cobaltin)
 
     output:
-        tuple val(id), val(tumorname), val(normalname), 
+        tuple val(id), val(tumorname), val(normalname),
             path("${id}")
 
     script:
@@ -237,7 +237,7 @@ process purple_tonly {
     errorStrategy 'ignore'
 
     input:
-        tuple val(tumorname), 
+        tuple val(tumorname),
         path(amberin), path(cobaltin),
         path(somaticvcf), path(somaticvcfindex)
 
@@ -276,7 +276,7 @@ process purple_tonly_novc {
     container "${params.containers.logan}"
     label 'process_medium'
     errorStrategy 'ignore'
-    
+
     input:
         tuple val(tumorname), val(normalname),
         path(cobaltin), path(amberin)
@@ -307,4 +307,3 @@ process purple_tonly_novc {
     """
 
 }
-

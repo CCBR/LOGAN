@@ -10,8 +10,8 @@ ENV REPONAME=${REPONAME}
 
 LABEL maintainer <nousomedr@nih.gov>
 
-# Create Container filesystem specific 
-# working directory and opt directories 
+# Create Container filesystem specific
+# working directory and opt directories
 
 # This section installs system packages required for your project
 # If you need extra system packages add them here.
@@ -31,11 +31,11 @@ RUN apt-get update \
 	libncurses5-dev \
 	libssl-dev \
       python3-dev \
-	zlib1g-dev 
+	zlib1g-dev
 
 RUN ln -s /usr/bin/python3.10 /usr/bin/python
 
-WORKDIR /opt2 
+WORKDIR /opt2
 
 ARG htsversion=1.19
 
@@ -54,6 +54,6 @@ RUN git clone https://github.com/CSB5/lofreq \
     && ./bootstrap \
     && ./configure --with-htslib=/usr/local \
     && make \
-    && make install 
+    && make install
 
 ENV LD_LIBRARY_PATH /usr/local/lib:$LD_LIBRARY_PATH
