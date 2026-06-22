@@ -6,11 +6,11 @@ process bwamem2 {
     errorStrategy { task.exitStatus in [137,140,143] ? 'retry' : 'terminate' }
     maxRetries 2
 
-    memory { 
+    memory {
         if (task.attempt == 2) return '180 GB'
         else if (task.attempt == 3) return '200 GB'
     }
-    
+
     input:
         tuple val(samplename),
         path("${samplename}.R1.trimmed.fastq.gz"),
@@ -34,7 +34,7 @@ process bwamem2 {
     else
         BWA_BINARY="bwa-mem2"
     fi
-    
+
     mkdir -p tmp
     \$BWA_BINARY mem -M \
         -R '@RG\\tID:${samplename}\\tSM:${samplename}\\tPL:illumina\\tLB:${samplename}\\tPU:${samplename}\\tCN:hgsc\\tDS:wgs' \
@@ -58,18 +58,18 @@ process BWAMEM2_SPLIT {
     errorStrategy { task.exitStatus in [137,140,143] ? 'retry' : 'terminate' }
     maxRetries 2
 
-    memory { 
+    memory {
         if (task.attempt == 2) return '48 GB'
         else if (task.attempt == 3) return '64 GB'
     }
-    
+
 
     input:
         tuple val(samplename),
         path(reads), val(chunk)
 
     output:
-        tuple val(samplename), 
+        tuple val(samplename),
 		path("${samplename}_${chunk}.bam")
 
     script:
@@ -97,7 +97,7 @@ process BWAMEM2_SPLIT {
 
     stub:
     """
-    touch ${samplename}_${chunk}.bam 
+    touch ${samplename}_${chunk}.bam
     """
 }
 

@@ -101,7 +101,7 @@ process bqsr {
 process gatherbqsr {
     container "${params.containers.logan}"
     label 'process_low'
-    
+
     input:
         tuple val(samplename), path(recalgroups)
 
@@ -199,7 +199,7 @@ process bamtocram_tonly {
         samtools view -@ $task.cpus -C -T $GENOMEREF -o ${id}.cram $tumor
         samtools index ${id}.cram -@ $task.cpus
     """
-    
+
     stub:
     """
     touch ${id}.cram ${id}.cram.crai
@@ -223,10 +223,9 @@ process samtools2fq {
         -1 ${id}.R1.fastq -2 ${id}.R2.fastq -0 /dev/null -s /dev/null \
         -n $bam
     """
-    
+
     stub:
     """
-    touch ${id}.R1.fastq ${id}.R2.fastq 
+    touch ${id}.R1.fastq ${id}.R2.fastq
     """
 }
-

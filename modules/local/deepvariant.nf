@@ -1,7 +1,7 @@
 GENOMEREF=file(params.genomes[params.genome].genome)
 MODEL="/opt/models/wgs/"
 /*
-//Note 
+//Note
 Duplicate marking may be performed, in our
 analyses there is almost no difference in accuracy except at lower (<20x)
 coverages. Finally, we recommend that you do not perform
@@ -81,7 +81,7 @@ process deepvariant_step2 {
 process deepvariant_step3 {
     container "${params.containers.deepvariant}"
     label 'process_somaticcaller'
-    
+
     input:
         tuple val(samplename), path(tfrecords),
         path(tfgvcf), path("outdv/*"), path(bed)

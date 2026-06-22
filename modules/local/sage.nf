@@ -24,7 +24,7 @@ process sage_tn {
         path("${tumorname}_vs_${normalname}.sage.vcf.gz"),
         path("${tumorname}_vs_${normalname}.sage.vcf.gz.tbi")
 
-    
+
     script:
     """
     java -Xms4G -Xmx32G -cp /opt2/hmftools/sage.jar \
@@ -54,7 +54,7 @@ process sage_tonly {
         tuple val(tumorname), path(tumorbam), path(tumorbai)
 
     output:
-        tuple val(tumorname), 
+        tuple val(tumorname),
         path("${tumorname}.tonly.sage.vcf.gz"),
         path("${tumorname}.tonly.sage.vcf.gz.tbi")
 

@@ -12,7 +12,7 @@ cnvs<- data.frame(dataTable)
 
 ratio$Ratio[which(ratio$Ratio==-1)]=NA
 
-cnvs.bed=GRanges(cnvs[,1],IRanges(cnvs[,2],cnvs[,3]))  
+cnvs.bed=GRanges(cnvs[,1],IRanges(cnvs[,2],cnvs[,3]))
 ratio.bed=GRanges(ratio$Chromosome,IRanges(ratio$Start,ratio$Start),score=ratio$Ratio)
 
 overlaps <- subsetByOverlaps(ratio.bed,cnvs.bed)
@@ -46,13 +46,13 @@ ifelse(resultks == "try-error",kscore <- c(kscore, "NA"),kscore <- c(kscore, ks.
 cnvs = cbind(cnvs, as.numeric(wscore), as.numeric(kscore))
 
 if (numberOfCol==7) {
-  names(cnvs)=c("chr","start","end","copy number","status","WilcoxonRankSumTestPvalue","KolmogorovSmirnovPvalue")  
+  names(cnvs)=c("chr","start","end","copy number","status","WilcoxonRankSumTestPvalue","KolmogorovSmirnovPvalue")
 }
 if (numberOfCol==9) {
-  names(cnvs)=c("chr","start","end","copy number","status","genotype","uncertainty","WilcoxonRankSumTestPvalue","KolmogorovSmirnovPvalue")  
+  names(cnvs)=c("chr","start","end","copy number","status","genotype","uncertainty","WilcoxonRankSumTestPvalue","KolmogorovSmirnovPvalue")
 }
 if (numberOfCol==11) {
-  names(cnvs)=c("chr","start","end","copy number","status","genotype","uncertainty","somatic/germline","precentageOfGermline","WilcoxonRankSumTestPvalue","KolmogorovSmirnovPvalue")  
+  names(cnvs)=c("chr","start","end","copy number","status","genotype","uncertainty","somatic/germline","precentageOfGermline","WilcoxonRankSumTestPvalue","KolmogorovSmirnovPvalue")
 }
 write.table(cnvs, file=paste(args[4],".p.value.txt",sep=""),sep="\t",quote=F,row.names=F)
 

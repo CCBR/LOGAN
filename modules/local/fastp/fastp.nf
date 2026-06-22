@@ -47,8 +47,8 @@ process fastp_split {
     tuple val(samplename), path("*_R{1,2}.trimmed.fastq.gz"),
     path("${samplename}.fastp.json"),
     path("${samplename}.fastp.html")
-    
-        
+
+
 
     script:
     """

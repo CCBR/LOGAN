@@ -78,4 +78,3 @@ colnames(finalPredPairs)<-c("Sample1","Sample2","Som:relatedness","Som:hom_conco
 #mergedDF<-merge(x=finalPredPairs,y=finalpredictedPairsVerifyBAMID,by = "Sample1",all = TRUE)
 #write.table(mergedDF[,c(1:4,6)],file = user.input.3,sep = "\t",quote = FALSE,row.names = FALSE)
 write.table(finalPredPairs,file = user.input.3,sep = "\t",quote = FALSE,row.names = FALSE)
-

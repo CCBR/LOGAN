@@ -10,9 +10,9 @@ ENV REPONAME=${REPONAME}
 
 LABEL maintainer=<nousomedr@nih.gov>
 
-# Create Container filesystem specific 
-# working directory and opt directories 
-WORKDIR /opt2 
+# Create Container filesystem specific
+# working directory and opt directories
+WORKDIR /opt2
 
 # This section installs system packages required for your project
 # If you need extra system packages add them here.
@@ -21,7 +21,7 @@ RUN apt-get update \
  && apt-get -y upgrade \
  && DEBIAN_FRONTEND=noninteractive apt-get install -y \
       bc \
-      libgd-perl 
+      libgd-perl
 
 #FASTQ Screen 'fastq_screen/0.15.3:bowtie/2-2.5.3'
 RUN yes | perl -MCPAN -e "install GD"
@@ -29,7 +29,7 @@ RUN yes | perl -MCPAN -e "install GD::Graph"
 
 RUN wget https://github.com/StevenWingett/FastQ-Screen/archive/refs/tags/v0.15.3.tar.gz \
     && tar -xvzf /opt2/v0.15.3.tar.gz \
-    && rm /opt2/v0.15.3.tar.gz 
+    && rm /opt2/v0.15.3.tar.gz
 ENV PATH="/opt2/FastQ-Screen-0.15.3:$PATH"
 
 ##FASTQC   'fastqc/0.12.1'
@@ -39,7 +39,7 @@ RUN wget https://www.bioinformatics.babraham.ac.uk/projects/fastqc/fastqc_v0.12.
 ENV PATH="/opt2/FastQC:$PATH"
 
 ##QUALIMAP 'qualimap/2.3'
-RUN wget https://bitbucket.org/kokonech/qualimap/downloads/qualimap_v2.3.zip  \ 
+RUN wget https://bitbucket.org/kokonech/qualimap/downloads/qualimap_v2.3.zip  \
     && unzip qualimap_v2.3.zip \
     && rm qualimap_v2.3.zip
 ENV PATH="/opt2/qualimap_v2.3:$PATH"
@@ -70,7 +70,7 @@ RUN apt-key adv --keyserver keyserver.ubuntu.com --recv-keys E298A3A825C0D65DFD5
     && add-apt-repository 'deb https://cloud.r-project.org/bin/linux/ubuntu focal-cran40/' \
     && add-apt-repository --enable-source --yes 'ppa:c2d4u.team/c2d4u4.0+' \
     && apt-get -y install r-base r-base-core r-recommended r-base-dev \
-    && apt-get -y install libcurl4-openssl-dev libssl-dev libboost-dev libxml2-dev 
+    && apt-get -y install libcurl4-openssl-dev libssl-dev libboost-dev libxml2-dev
 RUN apt-get -y install r-cran-tidyverse r-cran-plyr
 RUN apt-get -y install r-cran-plotly r-cran-htmlwidgets r-cran-tidyr
 
@@ -88,20 +88,19 @@ RUN wget https://github.com/marbl/Krona/releases/download/v2.8.1/KronaTools-2.8.
     && cd KronaTools-2.8.1 \
     && ./install.pl --prefix . \
     && ./updateTaxonomy.sh \
-    && chmod 775 bin/ -R \ 
+    && chmod 775 bin/ -R \
     && chmod 775 lib/ -R \
     && chmod 775 src/ -R \
     && chmod 775 scripts/ -R \
     && cd /opt2 \
     && rm KronaTools-2.8.1.tar
 ENV PATH="/opt2/KronaTools-2.8.1/bin:$PATH"
-    
+
 # Clean-up step to reduce size
-# and install GNU awk to calculate mean and standard 
-# deviation, ensures backward compatibility with 
+# and install GNU awk to calculate mean and standard
+# deviation, ensures backward compatibility with
 # biowulf installation of awk is a pointer to gawk,
 RUN DEBIAN_FRONTEND=noninteractive apt-get install -y \
     gawk \
     && apt-get clean && apt-get purge \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
-

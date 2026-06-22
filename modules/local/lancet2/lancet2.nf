@@ -31,7 +31,7 @@ process lancet2_tn {
 
 	python3 score_variants.py \
     ${tumorname}_vs_${normalname}_${bed.simpleName}_temp.vcf.gz somatic_ebm.lancet_6ef7ba445a.v1.pkl > ${tumorname}_vs_${normalname}_${bed.simpleName}_scored.vcf
-	
+
 	bcftools view ${tumorname}_vs_${normalname}_${bed.simpleName}_scored.vcf -Oz -o ${tumorname}_vs_${normalname}_${bed.simpleName}_lancet.vcf.gz
     bcftools index -t ${tumorname}_vs_${normalname}_${bed.simpleName}_lancet.vcf.gz
 
@@ -48,5 +48,3 @@ process lancet2_tn {
 
     """
 }
-
-

@@ -15,7 +15,7 @@ process ascat_tn {
         val(normalname), path(normal), path(normalbai)
 
     output:
-    tuple val(tumorname), 
+    tuple val(tumorname),
     path("After_correction_${tumorname}.germline.png"),
     path("After_correction_${tumorname}.tumour.png"),
     path("Before_correction_${tumorname}.germline.png"),
@@ -66,7 +66,7 @@ process ascat_tn_exome {
         path(bed)
 
     output:
-    tuple val(tumorname), 
+    tuple val(tumorname),
     path("After_correction_${tumorname}.germline.png"),
     path("After_correction_${tumorname}.tumour.png"),
     path("Before_correction_${tumorname}.germline.png"),
