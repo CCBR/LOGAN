@@ -19,17 +19,17 @@ process sobdetect_pass1 {
         --input-variants ${vcf} \
         --input-bam ${bam} \
         --output-variants ${sample}.pass1.sobdetect.vcf \
-        --only-passed false 
+        --only-passed false
 
     bcftools query \
         -f '%INFO/numF1R2Alt\t%INFO/numF2R1Alt\t%INFO/numF1R2Ref\t%INFO/numF2R1Ref\t%INFO/numF1R2Other\t%INFO/numF2R1Other\t%INFO/SOB\n' \
         ${sample}.sobdetect.vcf \
         | awk '{if (\$1 != "."){tum_alt=\$1+\$2; tum_depth=\$1+\$2+\$3+\$4+\$5+\$6; if (tum_depth==0){tum_af=1} else {tum_af=tum_alt/tum_depth }; print tum_alt,tum_depth,tum_af,\$7}}' \
         > ${sample}.info
-    
+
     mv ${sample}.pass1.sobdetect.vcf ${vc}/pass1
     mv ${sample}.info ${vc}/pass1
- 
+
     """
 
     stub:
@@ -64,12 +64,12 @@ process sobdetect_cohort_params {
     grep -v '^#' all_samples.info \
         | awk '{ total1 += \$1; ss1 += \$1^2; total2 += \$2; ss2 += \$2^2; total3 += \$3; ss3 += \$3^2; total4 += \$4; ss4 += \$4^2 } END { print total1/NR,total2/NR,total3/NR,total4/NR; print sqrt(ss1/NR-(total1/NR)^2),sqrt(ss2/NR-(total2/NR)^2),sqrt(ss3/NR-(total3/NR)^3),sqrt(ss4/NR-(total4/NR)^2) }' > cohort_params.txt
     """
-    
+
     stub:
     """
     touch all_samples.info cohort_params.txt
     """
-}   
+}
 
 process sobdetect_pass2 {
     container "${params.containers.ffpe}"
@@ -77,9 +77,9 @@ process sobdetect_pass2 {
 
     input:
     tuple val(sample), path(vcf), path(bam), val(vc), path(sample_info), path(params_file)
-        
+
     output:
-    tuple val(sample), 
+    tuple val(sample),
         path("${vc}/pass2/${sample}.pass2.sobdetect.vcf"),
         path("${vc}/pass2/${sample}.info"),
         path("${vc}/pass2/${sample}_${vc}.artifact_filtered.vcf.gz"),
@@ -136,7 +136,7 @@ process sobdetect_metrics {
         path (pass2_vcfs)
 
     output:
-    tuple path("variant_count_table.txt"), 
+    tuple path("variant_count_table.txt"),
         path("all_metrics.txt")
 
     script:
@@ -148,7 +148,7 @@ process sobdetect_metrics {
     P2FILES=(\$(echo ${pass2_vcfs}))
     for (( i=0; i<\${#P1FILES[@]}; i++ )); do
         MYID=\$(basename -s ".sobdetect.vcf" \${P1FILES[\$i]})
-        
+
         total_count=\$(grep -v ^# \${P1FILES[\$i]} | wc -l) || total_count=0
         count_1p=\$(bcftools query -f '%INFO/pArtifact\n' \${P1FILES[\$i]} | awk '{if (\$1 != "." && \$1 < 0.05){print}}' | wc -l)
         count_2p=\$(bcftools query -f '%INFO/pArtifact\n' \${P2FILES[\$i]} | awk '{if (\$1 != "." && \$1 < 0.05){print}}' | wc -l)
@@ -166,4 +166,3 @@ process sobdetect_metrics {
     """
 
 }
-

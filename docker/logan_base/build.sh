@@ -1,6 +1,6 @@
 
 #Build image
-docker build --platform linux/amd64 --tag ccbr_logan_base:v0.3.9 -f Dockerfile . 
+docker build --platform linux/amd64 --tag ccbr_logan_base:v0.3.9 -f Dockerfile .
 
 docker tag ccbr_logan_base:v0.3.9 dnousome/ccbr_logan_base:v0.3.9
 docker tag ccbr_logan_base:v0.3.9 dnousome/ccbr_logan_base:latest

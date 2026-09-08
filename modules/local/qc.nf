@@ -477,7 +477,7 @@ process somalier_extract {
         Mapped and pre-processed BAM file
     @Output:
         Exracted sites in (binary) somalier format
-    
+
     params:
         sites_vcf = config['references']['SOMALIER']['SITES_VCF'],
         genomeFasta = config['references']['GENOME'],

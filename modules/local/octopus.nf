@@ -73,13 +73,13 @@ process bcftools_index_octopus {
 process octopus_convertvcf {
     container "${params.containers.logan}"
     label 'process_low'
-    
+
     input:
-        tuple val(tumor), val(normal), 
+        tuple val(tumor), val(normal),
         val(oct), path(vcf), path(vcfindex)
 
     output:
-        tuple val(tumor), val(normal), path("${tumor}.octopus.norm.vcf.gz"), 
+        tuple val(tumor), val(normal), path("${tumor}.octopus.norm.vcf.gz"),
         path("${tumor}.octopus.norm.vcf.gz.tbi")
 
 
@@ -120,7 +120,7 @@ process octopus_tonly {
     -t ${bed} \
     --threads ${task.cpus}\
     $SOMATIC_FOREST \
-    -o ${tumorname}_${bed.simpleName}.tonly.octopus.vcf.gz 
+    -o ${tumorname}_${bed.simpleName}.tonly.octopus.vcf.gz
     """
 
     stub:
@@ -135,12 +135,12 @@ process octopus_tonly {
 process octopus_convertvcf_tonly {
     container "${params.containers.logan}"
     label 'process_low'
-    
+
     input:
         tuple val(tumor), val(oct), path(vcf), path(vcfindex)
 
     output:
-        tuple val(tumor), path("${tumor}.octopus_tonly.norm.vcf.gz"), 
+        tuple val(tumor), path("${tumor}.octopus_tonly.norm.vcf.gz"),
         path("${tumor}.octopus_tonly.norm.vcf.gz.tbi")
 
 
@@ -157,4 +157,3 @@ process octopus_convertvcf_tonly {
     touch ${tumor}.octopus_tonly.norm.vcf.gz ${tumor}.octopus_tonly.norm.vcf.gz.tbi
     """
 }
-

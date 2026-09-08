@@ -62,5 +62,3 @@ process lofreq_tn {
 
     """
 }
-
-

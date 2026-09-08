@@ -10,9 +10,9 @@ ENV REPONAME=${REPONAME}
 
 LABEL maintainer <nousomedr@nih.gov>
 
-# Create Container filesystem specific 
-# working directory and opt directories 
-WORKDIR /opt2 
+# Create Container filesystem specific
+# working directory and opt directories
+WORKDIR /opt2
 
 # This section installs system packages required for your project
 # If you need extra system packages add them here.
@@ -21,22 +21,22 @@ RUN apt-get update \
  && apt-get -y upgrade \
  && DEBIAN_FRONTEND=noninteractive apt-get install -y \
       bc \
-      openjdk-17-jdk   
+      openjdk-17-jdk
 
-# Common bioinformatics tools 
-# bwa/0.7.17-4  bowtie/1.2.3  bowtie2/2.3.5.1 
-# bedtools/2.27.1  bedops/2.4.37 
-# vcftools/0.1.16  
-# Previous tools already installed 
-# tabix/1.10.2 
+# Common bioinformatics tools
+# bwa/0.7.17-4  bowtie/1.2.3  bowtie2/2.3.5.1
+# bedtools/2.27.1  bedops/2.4.37
+# vcftools/0.1.16
+# Previous tools already installed
+# tabix/1.10.2
 RUN DEBIAN_FRONTEND=noninteractive apt-get install -y \
     tabix \
     libhts-dev
-      
+
 # Install BWA-MEM2 v2.2.1
 RUN wget https://github.com/bwa-mem2/bwa-mem2/releases/download/v2.2.1/bwa-mem2-2.2.1_x64-linux.tar.bz2 \
     && tar -xvjf /opt2/bwa-mem2-2.2.1_x64-linux.tar.bz2 \
-    && rm /opt2/bwa-mem2-2.2.1_x64-linux.tar.bz2  
+    && rm /opt2/bwa-mem2-2.2.1_x64-linux.tar.bz2
 ENV PATH="/opt2/bwa-mem2-2.2.1_x64-linux:$PATH"
 
 # samtools/1.10  # bcftools/1.10.2  are dated in package
@@ -70,7 +70,7 @@ RUN wget https://github.com/biod/sambamba/releases/download/v0.8.1/sambamba-0.8.
     && chmod a+rx /opt2/sambamba
 
 # Install GATK4 (GATK/4.6.1.0)
-# Requires Java17 
+# Requires Java17
 RUN wget https://github.com/broadinstitute/gatk/releases/download/4.6.1.0/gatk-4.6.1.0.zip \
     && unzip /opt2/gatk-4.6.1.0.zip \
     && rm /opt2/gatk-4.6.1.0.zip \
@@ -79,11 +79,11 @@ ENV PATH="/opt2/gatk-4.6.1.0:$PATH"
 
 # Picard
 RUN mkdir picard \
- && wget -O picard/picard.jar https://github.com/broadinstitute/picard/releases/download/3.2.0/picard.jar 
+ && wget -O picard/picard.jar https://github.com/broadinstitute/picard/releases/download/3.2.0/picard.jar
 ENV PICARDJARPATH="/opt2/picard"
 
 #Use DISCVRSeq For CombineVariants Replacement
-#RUN wget https://github.com/BimberLab/DISCVRSeq/releases/download/1.3.62/DISCVRSeq-1.3.62.jar 
+#RUN wget https://github.com/BimberLab/DISCVRSeq/releases/download/1.3.62/DISCVRSeq-1.3.62.jar
 #ENV DISCVRSeq_JAR="/opt2/DISCVRSeq-1.3.62.jar"
 
 # Install last release of GATK3 (GATK/3.8-1)
@@ -111,8 +111,8 @@ RUN apt-key adv --keyserver keyserver.ubuntu.com --recv-keys E298A3A825C0D65DFD5
     && add-apt-repository 'deb https://cloud.r-project.org/bin/linux/ubuntu focal-cran40/' \
     && add-apt-repository --enable-source --yes 'ppa:c2d4u.team/c2d4u4.0+' \
     && apt-get -y install r-base r-base-core r-recommended r-base-dev \
-    && apt-get -y install libcurl4-openssl-dev libssl-dev libboost-dev libxml2-dev 
-RUN apt-get -y install r-cran-tidyverse r-cran-plyr r-cran-knitr 
+    && apt-get -y install libcurl4-openssl-dev libssl-dev libboost-dev libxml2-dev
+RUN apt-get -y install r-cran-tidyverse r-cran-plyr r-cran-knitr
 RUN apt-get -y install r-cran-plotly r-cran-rcolorbrewer r-cran-htmlwidgets r-cran-shiny r-cran-rmarkdown r-cran-crosstalk r-cran-dt r-cran-reshape2 r-cran-circlize r-cran-viridis r-cran-gridextra r-cran-rcurl r-cran-cowplot
 RUN apt-get -y install r-cran-biocmanager r-cran-devtools r-cran-snow r-bioc-limma r-bioc-edger r-bioc-complexheatmap r-bioc-genomicranges r-bioc-summarizedexperiment r-bioc-biocparallel
 RUN Rscript -e 'install.packages(c("argparse"), repos="http://cran.r-project.org")'
@@ -141,7 +141,7 @@ RUN wget https://github.com/BoevaLab/FREEC/archive/refs/tags/v11.6.zip \
     && cd /opt2/FREEC-11.6/src/ \
     && make
 ENV PATH="/opt2/FREEC-11.6/src:$PATH"
-WORKDIR /opt2 
+WORKDIR /opt2
 
 
 # Install VarScan/v2.4.4
@@ -203,12 +203,12 @@ RUN wget http://opengene.org/fastp/fastp.0.24.0 \
     && chmod a+x fastp/fastp
 ENV PATH="/opt2/fastp:$PATH"
 
-#ASCAT 
+#ASCAT
 RUN Rscript -e 'devtools::install_github("VanLoo-lab/ascat/ASCAT")'
 
 # SvABA
 RUN wget -O svaba_1.2.0 https://github.com/walaj/svaba/releases/download/v1.2.0/svaba \
-    && mkdir svaba \ 
+    && mkdir svaba \
     && mv svaba_1.2.0 svaba/svaba \
     && chmod a+x svaba/svaba
 ENV PATH="/opt2/svaba:$PATH"
@@ -247,10 +247,10 @@ COPY argparse.bash /opt2
 WORKDIR /data2
 
 # Clean-up step to reduce size
-# and install GNU awk to calculate mean and standard 
-# deviation, ensures backward compatibility with 
+# and install GNU awk to calculate mean and standard
+# deviation, ensures backward compatibility with
 # biowulf installation of awk is a pointer to gawk,
-# and install pandoc (>= 1.12.3 required for Rmarkdown)    
+# and install pandoc (>= 1.12.3 required for Rmarkdown)
 RUN DEBIAN_FRONTEND=noninteractive apt-get install -y \
     gawk \
     pandoc \
