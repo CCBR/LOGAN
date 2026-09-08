@@ -5,7 +5,7 @@ process manta_somatic {
     label 'process_high'
 
     input:
-        tuple val(tumorname), path(tumorbam), path(tumorbai), 
+        tuple val(tumorname), path(tumorbam), path(tumorbai),
         val(normalname), path(normalbam), path(normalbai)
 
     output:

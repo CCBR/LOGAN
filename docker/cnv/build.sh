@@ -9,4 +9,4 @@ docker push dnousome/ccbr_logan_cnv:latest
 
 
 #singularity pull dnousome-ccbr_logan_cnv-v0.0.1.img docker://dnousome/ccbr_logan_cnv:v0.0.1
-#docker run -it ccbr_logan_cnv:v0.0.1 
+#docker run -it ccbr_logan_cnv:v0.0.1

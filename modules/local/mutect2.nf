@@ -521,6 +521,3 @@ process mutect2filter_tonly {
     touch ${sample}.tonly.mut2.marked.vcf.gz.filteringStats.tsv
     """
 }
-
-
-

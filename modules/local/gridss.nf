@@ -16,7 +16,7 @@ process gridss_somatic {
     container "${params.containers.sv}"
 
     input:
-        tuple val(tumorname), path(tumor), path(tumorbai), 
+        tuple val(tumorname), path(tumor), path(tumorbai),
         val(normalname), path(normal), path(normalbai)
 
     output:
@@ -39,7 +39,7 @@ process gridss_somatic {
     --jvmheap 90g \
     --otherjvmheap 64g \
     -t $task.cpus \
-    ${normal} ${tumor} 
+    ${normal} ${tumor}
 
     mkdir -p ${tumorname}_vs_${normalname}
 

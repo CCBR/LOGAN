@@ -154,7 +154,7 @@ Example of Tumor_Normal calling mode
 # Step 0: Set up
 
 sinteractive --mem=8g -N 1 -n 4
-module load ccbrpipeliner # v8 
+module load ccbrpipeliner # v8
 
 # set up directories
 

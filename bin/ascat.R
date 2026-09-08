@@ -51,14 +51,14 @@ ascat.prepareHTS(
   normalBAF_file = sprintf("%s_BAF.txt",normal_name),
   BED_file=bed)
 
-ascat.bc = ascat.loadData(Tumor_LogR_file = sprintf("%s_LogR.txt",tumor_name), 
-    Tumor_BAF_file = sprintf("%s_BAF.txt",tumor_name), 
-    Germline_LogR_file = sprintf("%s_LogR.txt",normal_name), Germline_BAF_file = sprintf("%s_BAF.txt",normal_name), 
+ascat.bc = ascat.loadData(Tumor_LogR_file = sprintf("%s_LogR.txt",tumor_name),
+    Tumor_BAF_file = sprintf("%s_BAF.txt",tumor_name),
+    Germline_LogR_file = sprintf("%s_LogR.txt",normal_name), Germline_BAF_file = sprintf("%s_BAF.txt",normal_name),
     gender = gender, genomeVersion = genome)
 
 ascat.plotRawData(ascat.bc, img.prefix = "Before_correction_")
-ascat.bc = ascat.correctLogR(ascat.bc, 
-  GCcontentfile = sprintf("%s/GC_G1000/GC_G1000_%s.txt",genomebasedir,genome), 
+ascat.bc = ascat.correctLogR(ascat.bc,
+  GCcontentfile = sprintf("%s/GC_G1000/GC_G1000_%s.txt",genomebasedir,genome),
   replictimingfile = sprintf("%s/RT_G1000/RT_G1000_%s.txt",genomebasedir,genome))
 ascat.plotRawData(ascat.bc, img.prefix = "After_correction_")
 ascat.bc = ascat.aspcf(ascat.bc)

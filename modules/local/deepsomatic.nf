@@ -16,7 +16,7 @@ process deepsomatic_tn_step1 {
     errorStrategy { task.exitStatus == 1 ? 'ignore' : 'terminate' }
 
     input:
-        tuple val(tname), path(tbam), path(tbai), 
+        tuple val(tname), path(tbam), path(tbai),
         val(nname), path(nbam), path(nbai),
         path(bed)
 
@@ -57,7 +57,7 @@ process deepsomatic_tonly_step1 {
     errorStrategy { task.exitStatus == 1 ? 'ignore' : 'terminate' }
 
     input:
-        tuple val(tname), path(tbam), path(tbai), 
+        tuple val(tname), path(tbam), path(tbai),
         path(bed)
 
     output:
@@ -166,7 +166,7 @@ process deepsomatic_step3 {
         path("outds/*"), path(bed)
 
     output:
-        tuple val(samplename), path("${samplename}_${bed}.vcf.gz"), path("${samplename}_${bed}.vcf.gz.tbi")       
+        tuple val(samplename), path("${samplename}_${bed}.vcf.gz"), path("${samplename}_${bed}.vcf.gz.tbi")
 
 
     script:
@@ -210,4 +210,3 @@ process bcfconcat {
     """
 
 }
-

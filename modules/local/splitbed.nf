@@ -4,7 +4,7 @@ GENOMEFAI = file(params.genomes[params.genome].genomefai)
 
 
 
-// Split Bed Step to create the path 
+// Split Bed Step to create the path
 process splitinterval {
     container "${params.containers.logan}"
     label "process_single"
@@ -45,11 +45,11 @@ process matchbed {
 
 /*
 Code to convert beds to interval list
-#Subset current bed 
+#Subset current bed
 #hg38
 awk -F '\t' '{printf("%s\t0\t%s\n",$1,$2);}' genome.fa.fai
 bedtools subtract -a GRCh38.primary_assembly.genome.bed -b ../hg38.blacklist.bed > GRCh38.primary_assembly.genome.interval.bed
-gatk BedToIntervalList -I GRCh38.primary_assembly.genome.interval.bed -O \ 
+gatk BedToIntervalList -I GRCh38.primary_assembly.genome.interval.bed -O \
 GRCh38.primary_assembly.genome.interval_list -SD GRCh38.primary_assembly.genome.dict
 
 #hg19

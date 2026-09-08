@@ -70,7 +70,7 @@ process convert_strelka {
 
     output:
         tuple val(tumor), val(normal), val("strelka"),
-        path("${tumor}_vs_${normal}.filtered.strelka-fixed.vcf.gz"), 
+        path("${tumor}_vs_${normal}.filtered.strelka-fixed.vcf.gz"),
         path("${tumor}_vs_${normal}.filtered.strelka-fixed.vcf.gz.tbi")
 
 
