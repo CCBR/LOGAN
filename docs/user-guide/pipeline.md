@@ -36,7 +36,7 @@ c130889189_PBMC  /data/nousomedr/c130889189_PBMC.bam  /data/nousomedr/c130889189
 
 ### Genome
 
-`--genome` - A flag to indicate which genome to run. hg38, hg19 and mm10 are supported.  
+`--genome` - A flag to indicate which genome to run. hg38, hg19 and mm10 are supported.
 Example: `--genome hg38` to run the hg38 genome
 
 `--genome hg19` and `--genome mm10` are also supported
