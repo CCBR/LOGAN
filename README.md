@@ -85,7 +85,7 @@ Sample1_NORMAL  /path/to/the/BAM/folder/Sample1_NORMAL.bam  /path/to/the/BAM/fol
 
 ### Genome
 
-`--genome` - A flag to indicate which genome to run. hg38, hg19 and mm10 are supported.  
+`--genome` - A flag to indicate which genome to run. hg38, hg19 and mm10 are supported.
 Example: `--genome hg38` to run the hg38 genome
 
 `--genome hg19` and `--genome mm10` are also supported
@@ -160,7 +160,7 @@ module load ccbrpipeliner # v8
 
 DATADIR="/path/to/fastq/folder"
 
-# Step1: Initilalization
+# Step1: Initialization
 
 logan init \
 --output logan_output

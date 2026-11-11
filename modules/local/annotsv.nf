@@ -71,16 +71,16 @@ process survivor_sv {
         val("survivor")
 
     script:
-    def strin = vcfs.join("\\n")
+    def vcfs_list = vcfs.join("\\n")
     """
-    echo -e '${strin}' > filelistin
+    echo -e '${vcfs_list}' > filelistin
     SURVIVOR merge filelistin 1000 2 1 1 1 30 ${tumorname}_merged.vcf
     """
 
     stub:
-    def strin = vcfs.join("\\n")
+    def vcfs_list = vcfs.join("\\n")
     """
-    echo -e '${strin}' > filelistin
+    echo -e '${vcfs_list}' > filelistin
     touch "${tumorname}_merged.vcf"
     """
 }

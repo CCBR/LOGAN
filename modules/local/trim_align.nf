@@ -109,11 +109,11 @@ process gatherbqsr {
         tuple val(samplename), path("${samplename}.recal_data.grp")
 
     script:
-    strin = recalgroups.join(" --input ")
+    input_string = recalgroups.join(" --input ")
 
     """
     gatk --java-options '-Xmx10g' GatherBQSRReports \
-    --input ${strin} \
+    --input ${input_string} \
     --output ${samplename}.recal_data.grp
 
     """
