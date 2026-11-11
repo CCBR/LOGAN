@@ -66,7 +66,7 @@ c130889189_TUMOR  c130889189_PBMC
 
 #### 2. Tumor only mode
 
-No addtional flags for sample sheet are required as all samples will be used to call variants
+No additional flags for sample sheet are required as all samples will be used to call variants
 
 #### Calling Mode
 

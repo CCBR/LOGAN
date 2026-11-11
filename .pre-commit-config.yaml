@@ -20,6 +20,11 @@ repos:
     hooks:
       - id: codespell
         # https://github.com/codespell-project/codespell/issues/1498
+        exclude: |
+          (?x)(
+              bin/makeGraph.R|
+              bin/combineAllSampleCompareResults.R
+           )
   # Python formatting
   - repo: https://github.com/psf/black-pre-commit-mirror
     rev: 26.10.1

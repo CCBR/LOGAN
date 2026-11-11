@@ -160,7 +160,7 @@ module load ccbrpipeliner # v8
 
 DATADIR="/path/to/fastq/folder"
 
-# Step1: Initilalization
+# Step1: Initialization
 
 logan init \
 --output logan_output
