@@ -1,4 +1,4 @@
-## LOGAN development version
+## LOGAN 0.4.0
 
 - Pin `ccbr_tools` to v0.7. (#122, @kelly-sovacool)
 
