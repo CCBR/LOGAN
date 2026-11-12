@@ -1,19 +1,21 @@
 # CoPilot Instructions for CCBR Repositories
 
+If the repo contains an `AGENTS.md` file, refer to that file instead of this one. `AGENTS.md` takes precedence over `.github/copilot-instructions.md`.
+
 ## Reviewer guidance (what to look for in PRs)
 
 - Reviewers must validate enforcement rules: no secrets, container specified, and reproducibility pins.
-- If code is AI-generated, reviewers must ensure the author documents what was changed and why, and that the PR is labeled `generated-by-AI`.
+- If code is AI-generated, reviewers must ensure the author documents what was changed and why, and that the PR is labeled `AI-assisted`.
 - Reviewers should verify license headers and ownership metadata (for example, `CODEOWNERS`) are present.
 - Reviews must read the code and verify that it adheres to the project's coding standards, guidelines, and best practices in software engineering.
 
 ## CI & enforcement suggestions (automatable)
 
-1. **PR template**: include optional AI-assistance disclosure fields (model used, high-level prompt intent, manual review confirmation).
+1. **Pull Request template**: include optional AI-assistance disclosure fields (model used, high-level prompt intent, manual review confirmation).
 2. **Pre-merge check (GitHub Action)**: verify `.github/copilot-instructions.md` is present in the repository and that new pipeline files include a `# CRAFT:` header.
-3. **Lint jobs**: `ruff` for Python, `shellcheck` for shell, `lintr` for R, and `nf-core lint` or Snakemake lint checks where applicable.
+3. **Lint jobs**: `ruff` for Python, `shellcheck` for shell, `lintr` for R, `nf-core lint` for Nextflow, or Snakemake lint checks where applicable.
 4. **Secrets scan**: run `TruffleHog` or `Gitleaks` on PRs to detect accidental credentials.
-5. **AI usage label**: if AI usage is declared, an Action should add `generated-by-AI` label (create this label if it does not exist); the PR body should end with the italicized Markdown line: _Generated using AI_, and any associated commit messages should end with the plain footer line: `Generated using AI`.
+5. **AI usage label**: if AI usage is declared, an Action should add `AI-assisted` label (create this label if it does not exist); the PR body should end with the italicized Markdown line: _AI-assisted_, and any associated commit messages should end with the plain footer line: `_AI-assisted_: <model>` (fill in <model> with the actual model, e.g. Claude Sonnet 5, if known.
 
 _Sample GH Action check (concept): if AI usage is declared, require an AI-assistance disclosure field in the PR body._
 
@@ -92,7 +94,7 @@ _Sample GH Action check (concept): if AI usage is declared, require an AI-assist
 - If mixed changes are present, split into multiple logical commits; the number of commits does not need to equal the number of files changed.
 - Subject format must be: `<type>(optional-scope): short imperative summary` (<=72 chars), e.g., `fix(profile): update release table parser`.
 - Add a body only when needed to explain **why** and notable impact; never include secrets, tokens, PHI, or large diffs.
-- For AI-assisted commits, add this final italicized footer line in the commit message body: _commit message is ai-generated_
+- For AI-assisted commits, add this final italicized footer line to the end commit message body: `_AI-assisted_: <model>` (fill in <model> with the actual model, e.g. Claude Sonnet 5, if known.
 
 Suggested prompt for AI tools:
 
@@ -108,7 +110,7 @@ Rules:
 
 ## Pull Requests
 
-When opening a pull request, use the repository's pull request template (usually it is `.github/PULL_REQUEST_TEMPLATE.md`).
+When opening a pull request, agents and authors must use the repository's pull request template (`.github/PULL_REQUEST_TEMPLATE.md`).
 Different repos have different PR templates depending on their needs.
 Ensure that the pull request follows the repository's PR template and includes all required information.
 Do not allow the developer to proceed with opening a PR if it does not fill out all sections of the template.
@@ -137,6 +139,18 @@ Example:
 
 - Fix bug in `detect_absolute_paths()` to ignore comments. (#123, @username)
 ```
+
+## Release Process
+
+To cut a new release in a repo, first use the draft-release workflow
+(`.github/workflows/draft-release.yml`) to draft the release.
+Then the human developer must review the draft release and ensure it meets
+quality standards, then publish the release.
+AI agents must not publish a release, it can only be done by human developers.
+When the release is published, the post-release workflow (`.github/workflows/post-release.yml`)
+will run automatically and open a new Pull Request.
+The human developer must then review the PR, and approve & merge it if the PR
+meets quality standards.
 
 ## Onboarding checklist for new developers
 
