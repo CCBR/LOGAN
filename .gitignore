@@ -55,3 +55,4 @@ replay_pid*
 
 /submit_slurm.sh
 /tmp/
+docs/codebase/
