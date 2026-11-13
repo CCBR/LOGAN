@@ -9,6 +9,7 @@ import pathlib
 import ccbr_tools.pkg_util
 import ccbr_tools.pipeline.util
 import ccbr_tools.pipeline.nextflow
+import ccbr_tools.pipeline.hpc
 
 
 def repo_base(*paths):
@@ -134,6 +135,7 @@ def run(main_path, output, _mode, force_all, **kwargs):
             f"output directory not initialized: {output_dir}. Hint: you must initialize the output directory with `logan init --output {output_dir}`"
         )
     current_wd = os.getcwd()
+    hpc = ccbr_tools.pipeline.hpc.get_hpc()
     try:
         os.chdir(output_dir)
         ccbr_tools.pipeline.nextflow.run(
@@ -141,7 +143,12 @@ def run(main_path, output, _mode, force_all, **kwargs):
             mode=_mode,
             force_all=force_all,
             pipeline_name="LOGAN",
-            hpc_modules="nextflow/25",
+            hpc=hpc,
+            hpc_modules=(
+                "nextflow/25 apptainer"
+                if hpc and hpc.name == "biowulf"
+                else "nextflow/25"
+            ),
             hpc_walltime="4-00:00:00",
             hpc_memory="10G",
             **kwargs,
