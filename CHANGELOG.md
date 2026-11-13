@@ -1,4 +1,4 @@
-## LOGAN development version
+## LOGAN 0.4.1
 
 - Reduced initial Octopus memory from 96 GB to 30 GB for tumor-normal and tumor-only calling. Scaled the read-buffer target to 80% of allocated memory and explicitly enabled retries; VarDict resources are unchanged. (#125, @samarth8392)
 - Switched Biowulf, interactive and stub profiles to native Apptainer, explicitly loading the Apptainer module on Biowulf while retaining the shared image cache, bind-path checks and legacy Singularity profiles. (#125, @samarth8392)
