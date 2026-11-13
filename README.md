@@ -25,9 +25,7 @@ Original pipelining and code forked from the CCBR Exome-seek Pipeline [Exome-see
 
 ## Dependencies
 
-**Requires:** `singularity>=3.5` `nextflow>=22.10.2`
-
-[singularity](https://singularity.lbl.gov/all-releases) must be installed on the target system. Nextflow orchestrates the execution of each step in the pipeline. To guarantee the highest level of reproducibility, each step relies on versioned images from [DockerHub](https://hub.docker.com/orgs/nciccbr/repositories). Nextflow uses singularity to pull these images onto the local filesystem prior to job execution, and as so, nextflow and singularity are the only two dependencies.
+**Requires:** `nextflow>=22.10.2` and Apptainer (Biowulf) or `singularity>=3.5` (legacy profiles).
 
 ## Set up
 
