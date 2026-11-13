@@ -1,5 +1,9 @@
 ## LOGAN development version
 
+- Reduced initial Octopus memory from 96 GB to 30 GB for tumor-normal and tumor-only calling, with two retries at 60 GB and 90 GB (subject to the configured maximum). Scaled the read-buffer target to 80% of allocated memory and explicitly enabled retries; VarDict resources are unchanged. (#113)
+- Switched Biowulf, interactive and stub profiles to native Apptainer, explicitly loading the Apptainer module on Biowulf while retaining the shared image cache, bind-path checks and legacy Singularity profiles. (#120)
+- Fixed container bind paths: `/data/CCBR_Pipeliner` and `/fdb` are now bound, the stale `/gpfs` bind is removed, missing optional paths are skipped, bind paths are checked and reported at startup, and runs stop early if a required path is missing. New params `--bind_paths`, `--bind_paths_required` and `--bind_paths_optional`. (#121, @samarth8392)
+
 ## LOGAN 0.4.0
 
 - Pin `ccbr_tools` to v0.7. (#122, @kelly-sovacool)
