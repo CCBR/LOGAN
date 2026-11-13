@@ -39,4 +39,23 @@ class Utils {
         return err.length()==0
 
     }
+    // report container bind paths (OK / MISSING) and return the missing required ones
+    public static List check_bind_paths(params, log) {
+        def split = { v -> v instanceof CharSequence ? v.toString().tokenize(',')*.trim().findAll { it } : [] }
+        def required = (split(params.bind_paths_required) + split(params.bind_paths)).unique()
+        def optional = split(params.bind_paths_optional) - required
+        def missing_required = []
+        def lines = ["Container bind paths:"]
+        required.each { p ->
+            def ok = new File(p.tokenize(':')[0]).exists()
+            if (!ok) { missing_required << p }
+            lines << "  ${ok ? 'OK     ' : 'MISSING'} ${p} (required)"
+        }
+        optional.each { p ->
+            def ok = new File(p.tokenize(':')[0]).exists()
+            lines << "  ${ok ? 'OK     ' : 'MISSING'} ${p}${ok ? '' : ' (optional, skipped)'}"
+        }
+        log.info lines.join('\n')
+        return missing_required
+    }
 }

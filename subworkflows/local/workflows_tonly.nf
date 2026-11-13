@@ -485,6 +485,17 @@ workflow SV_TONLY {
     main:
         svcall_list = params.svcallers.split(',') as List
         svout=Channel.empty()
+        if (svcall_list.any { it in ['svaba', 'manta', 'gridss'] } || svcall_list.size() > 1) {
+            def db = params.genomes[params.genome].annotsvdb
+            if (!db) {
+                error "AnnotSV database is not configured for genome '${params.genome}'. Set params.genomes.${params.genome}.annotsvdb."
+            }
+            def database = file(db, checkIfExists: true)
+            if (!database.isDirectory()) {
+                error "AnnotSV database must be a directory: ${database}"
+            }
+            annotsv_db = Channel.value(database)
+        }
 
         //Svaba
         if ("svaba" in svcall_list){
@@ -492,7 +503,7 @@ workflow SV_TONLY {
             svaba_out=svaba_tonly(bamwithsample)
             .map{ tumor,bps,contigs,discord,alignments,so_indel,so_sv,unfil_so_indel,unfil_sv,log ->
                 tuple(tumor,so_sv,"svaba_tonly")}
-            annotsv_svaba_tonly(svaba_out).ifEmpty("Empty SV input--No SV annotated")
+            annotsv_svaba_tonly(svaba_out, annotsv_db).ifEmpty("Empty SV input--No SV annotated")
             svout=svout | concat(svaba_out)
         }
         //Manta
@@ -500,7 +511,7 @@ workflow SV_TONLY {
             manta_out=manta_tonly(bamwithsample)
                 .map{tumor, sv, svtbi, indel, indeltbi, tumorsv, tumorsvtbi->
                 tuple(tumor,tumorsv,"manta_tonly")}
-            annotsv_manta_tonly(manta_out).ifEmpty("Empty SV input--No SV annotated")
+            annotsv_manta_tonly(manta_out, annotsv_db).ifEmpty("Empty SV input--No SV annotated")
             svout=svout | concat(manta_out)
         }
 
@@ -510,17 +521,16 @@ workflow SV_TONLY {
         gridss_out_forsv=gridss_out
             | map{tumor,vcf,index,bam,gripssvcf,gripsstbi,gripssfilt,filttbi ->
             tuple(tumor,gripssfilt,"gridss_tonly")} | gunzip_gridss
-        annotsv_gridss_tonly(gridss_out_forsv).ifEmpty("Empty SV input--No SV annotated")
+        annotsv_gridss_tonly(gridss_out_forsv, annotsv_db).ifEmpty("Empty SV input--No SV annotated")
             svout=svout | concat(gridss_out_forsv)
         }
 
         //Survivor
         if (svcall_list.size()>1){
             //Survivor
-            svout | groupTuple
-                | survivor_sv
-                | annotsv_survivor_tonly
-                | ifEmpty("Empty SV input--No SV annotated")
+            merged_sv = svout | groupTuple | survivor_sv
+            annotsv_survivor_tonly(merged_sv, annotsv_db)
+                .ifEmpty("Empty SV input--No SV annotated")
          }
 
         if("gridss" in svcall_list){

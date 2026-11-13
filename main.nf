@@ -14,6 +14,14 @@ log.info """\
          """
          .stripIndent()
 
+def missing_bind_paths = Utils.check_bind_paths(params, log)
+def uses_singularity = workflow.containerEngine in ['singularity', 'apptainer']
+def is_stub = workflow.stubRun || workflow.profile.tokenize(',').contains('ci_stub')
+if (missing_bind_paths && uses_singularity && !is_stub) {
+    error "Required container bind path(s) not found on this host: ${missing_bind_paths.join(', ')}. " +
+        "Check the paths or override them with --bind_paths_required."
+}
+
 
 
 include {DETERMINEBAM; INPUT; INPUT_BAM; ALIGN; GL;

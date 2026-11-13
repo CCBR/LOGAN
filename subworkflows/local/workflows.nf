@@ -942,10 +942,18 @@ workflow SV {
 
         if (svcall_list.size()>1){
             //Survivor
-            svout | groupTuple
-                | survivor_sv
-                | annotsv_survivor_tn
-                | ifEmpty("Empty SV input--No SV annotated")
+            def db = params.genomes[params.genome].annotsvdb
+            if (!db) {
+                error "AnnotSV database is not configured for genome '${params.genome}'. Set params.genomes.${params.genome}.annotsvdb."
+            }
+            def database = file(db, checkIfExists: true)
+            if (!database.isDirectory()) {
+                error "AnnotSV database must be a directory: ${database}"
+            }
+            annotsv_db = Channel.value(database)
+            merged_sv = svout | groupTuple | survivor_sv
+            annotsv_survivor_tn(merged_sv, annotsv_db)
+                .ifEmpty("Empty SV input--No SV annotated")
          }
 
         if("gridss" in svcall_list){

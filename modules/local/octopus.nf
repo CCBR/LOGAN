@@ -11,7 +11,6 @@ GERMLINE_FOREST=params.genomes[params.genome].octopus_gforest
 process octopus_tn {
     container "${params.containers.octopus}"
     label 'process_somaticcaller_high'
-    errorStrategy { task.attempt <= 3 ? 'retry' : 'terminate' }
 
     input:
         tuple val(tumorname), path(tumor), path(tumorbai),
@@ -29,7 +28,7 @@ process octopus_tn {
     --threads $task.cpus \
     $GERMLINE_FOREST \
     $SOMATIC_FOREST \
-    -B 92Gb \
+    -B ${(task.memory.toMega() * 0.8).toLong()}MB \
     -o ${tumorname}_vs_${normalname}_${bed.simpleName}.octopus.vcf.gz
     """
 
@@ -103,7 +102,6 @@ process octopus_convertvcf {
 process octopus_tonly {
     container "${params.containers.octopus}"
     label 'process_somaticcaller_high'
-    errorStrategy { task.attempt <= 3 ? 'retry' : 'terminate' }
 
     input:
         tuple val(tumorname), path(tumor), path(tumorbai), path(bed)
@@ -116,7 +114,7 @@ process octopus_tonly {
     """
     octopus -R $GENOMEREF -C cancer -I ${tumor} \
     --annotations AF AC AD DP SB \
-    -B 92Gb \
+    -B ${(task.memory.toMega() * 0.8).toLong()}MB \
     -t ${bed} \
     --threads ${task.cpus}\
     $SOMATIC_FOREST \

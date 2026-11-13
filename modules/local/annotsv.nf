@@ -8,6 +8,7 @@ process annotsv_tn {
 
     input:
         tuple val(tumorname), path(somaticvcf), val(sv)
+        path annotsv_db, stageAs: 'annotsv_db'
 
     output:
         tuple val(tumorname),
@@ -21,7 +22,7 @@ process annotsv_tn {
 
     AnnotSV -SVinputFile ${somaticvcf} \
     -genomeBuild ${annotsvGenome} \
-    -annotationsDir /annotsv_db \
+    -annotationsDir "${annotsv_db}" \
     -SVinputInfo 1 -outputFile ${tumorname} \
     -outputDir ${sv}
 
@@ -93,6 +94,7 @@ process annotsv_tonly {
 
     input:
         tuple val(tumorname), path(somaticvcf), val(sv)
+        path annotsv_db, stageAs: 'annotsv_db'
 
     output:
         tuple val(tumorname),
@@ -106,7 +108,7 @@ process annotsv_tonly {
 
     AnnotSV -SVinputFile ${somaticvcf} \
     -genomeBuild ${annotsvGenome} \
-    -annotationsDir /annotsv_db \
+    -annotationsDir "${annotsv_db}" \
     -SVinputInfo 1 -outputFile ${tumorname} \
     -outputDir ${sv}
 
